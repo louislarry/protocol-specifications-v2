@@ -192,7 +192,7 @@ paths:
       tags:
       - Discovery
       parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
+      - $ref: '#/components/parameters/CallbackAuthorizationHeader'
       requestBody:
         required: true
         content:
@@ -301,7 +301,7 @@ paths:
       tags:
       - Contracting / Ordering
       parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
+      - $ref: '#/components/parameters/CallbackAuthorizationHeader'
       requestBody:
         required: true
         content:
@@ -411,7 +411,7 @@ paths:
       tags:
       - Contracting / Ordering
       parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
+      - $ref: '#/components/parameters/CallbackAuthorizationHeader'
       requestBody:
         required: true
         content:
@@ -523,7 +523,7 @@ paths:
       tags:
       - Contracting / Ordering
       parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
+      - $ref: '#/components/parameters/CallbackAuthorizationHeader'
       requestBody:
         required: true
         content:
@@ -637,7 +637,7 @@ paths:
       tags:
       - Fulfillment
       parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
+      - $ref: '#/components/parameters/CallbackAuthorizationHeader'
       requestBody:
         required: true
         content:
@@ -748,7 +748,7 @@ paths:
       tags:
       - Fulfillment
       parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
+      - $ref: '#/components/parameters/CallbackAuthorizationHeader'
       requestBody:
         required: true
         content:
@@ -868,7 +868,7 @@ paths:
       tags:
       - Fulfillment
       parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
+      - $ref: '#/components/parameters/CallbackAuthorizationHeader'
       requestBody:
         required: true
         content:
@@ -988,7 +988,7 @@ paths:
       tags:
       - Fulfillment
       parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
+      - $ref: '#/components/parameters/CallbackAuthorizationHeader'
       requestBody:
         required: true
         content:
@@ -1095,7 +1095,7 @@ paths:
       tags:
       - Post-Fulfillment
       parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
+      - $ref: '#/components/parameters/CallbackAuthorizationHeader'
       requestBody:
         required: true
         content:
@@ -1204,7 +1204,7 @@ paths:
       tags:
       - Post-Fulfillment
       parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
+      - $ref: '#/components/parameters/CallbackAuthorizationHeader'
       requestBody:
         required: true
         content:
@@ -1315,7 +1315,7 @@ paths:
       tags:
       - Fabric API - Cataloging Service
       parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
+      - $ref: '#/components/parameters/CallbackAuthorizationHeader'
       requestBody:
         required: true
         content:
@@ -1921,11 +1921,28 @@ components:
       name: Authorization
       in: header
       required: true
-      description: 'Beckn HTTP Signature authentication header.
-
-        See `#/components/schemas/Signature` for the expected format.'
+      description: "Beckn HTTP Signature authentication header for BAP requests and\
+        \ BPP provider-initiated notifications. The signing string covers `(created)`,\
+        \ `(expires)`, and the BLAKE2b-512 body digest.\n\nSee `#/components/schemas/Signature`\
+        \ for the wire format and signing string construction. For BPP solicited callbacks,\
+        \ use `CallbackAuthorizationHeader` instead."
       schema:
         $ref: '#/components/schemas/Signature'
+    CallbackAuthorizationHeader:
+      name: Authorization
+      in: header
+      required: true
+      description: "Beckn HTTP Callback Signature authentication header for BPP solicited\
+        \ callbacks to BAP `/on_*` endpoints. The signing string covers `(created)`,\
+        \ `(expires)`, the BLAKE2b-512 body digest, and `request-signature` — the\
+        \ raw Base64 signature value from the triggering BAP request's `Authorization`\
+        \ header. This chain proves the callback is a genuine response to the BAP's\
+        \ original request.\n\nEndpoints that also accept provider-initiated notifications\
+        \ (no preceding BAP request) use `AuthorizationHeader` with the standard\
+        \ Signature for those messages.\n\nSee `#/components/schemas/CallbackSignature`\
+        \ for the wire format and signing string construction."
+      schema:
+        $ref: '#/components/schemas/CallbackSignature'
   headers:
     SignatureHeader:
       description: "Beckn HTTP Signature authentication header transmitted on every\
@@ -3636,24 +3653,55 @@ components:
     Signature:
       title: Beckn HTTP Signature
       description: "A digitally signed authentication credential transmitted in the\
-        \ HTTP Authorization header of every Beckn request, proving the identity of\
-        \ the sending network participant and ensuring the integrity of the request\
-        \ body.\n\nSignature appears in every Beckn request across all phases of the\
-        \ value-exchange lifecycle. The sending actor (BAP or BPP) produces it by\
-        \ signing a canonical signing string with its Ed25519 private key registered\
-        \ with the namespacing service; the receiving actor verifies it against the sender's\
-        \ registered public key to authenticate the request. Requests carrying an\
-        \ absent, expired, or unverifiable Signature MUST be rejected with a 401 NackUnauthorized\
-        \ response.\n\nThe format follows draft-cavage-http-signatures-12 as profiled\
-        \ by the Beckn authentication specification. The keyId field MUST follow the\
-        \ format namespace_id followed by uniqueKeyId followed by algorithm, separated\
-        \ by pipe characters. The algorithm MUST be ed25519. The signing string MUST\
-        \ include the created timestamp, the expires timestamp, and the BLAKE2b-512\
-        \ digest of the request body.\n\nRelationship: Used in the Authorization request\
-        \ header for inbound request authentication and in the Signature response header\
-        \ for authenticated receipt, as defined in NFH-004 Authentication and Trust."
+        \ HTTP Authorization header of BAP requests and BPP provider-initiated notifications,\
+        \ proving the identity of the sending network participant and ensuring the\
+        \ integrity of the request body.\n\nThe sending actor produces this by signing\
+        \ a three-line canonical signing string with its Ed25519 private key registered\
+        \ on the fabric GRR:\n\n    (created): {unix_timestamp}\n    (expires): {unix_timestamp}\n\
+        \    digest: BLAKE2b-512={base64_body_hash}\n\nThe `headers` attribute of\
+        \ the Authorization header MUST be `\"(created) (expires) digest\"`. The\
+        \ `keyId` field identifies the signer using the format `{namespace}/{registry}/{record}|ed25519`\
+        \ (implicit, resolved at GRR) or a full dedi protocol URL followed by `|ed25519`\
+        \ (explicit). The algorithm MUST be `ed25519`. The body digest MUST use BLAKE2b-512\
+        \ encoded as `BLAKE2b-512={Base64}`.\n\nUsed for: BAP→BPP requests across\
+        \ all phases of the value-exchange lifecycle; BPP→BAP provider-initiated notifications.\
+        \ The receiving actor verifies it against the sender's registered public key.\
+        \ Requests with an absent, expired, or unverifiable Signature MUST be rejected\
+        \ with 401 NackUnauthorized.\n\nFor BPP solicited callbacks, use CallbackSignature\
+        \ instead. For synchronous response signing, see the Signature response header\
+        \ (components/headers/SignatureHeader). See NFH-004 Authentication and Trust\
+        \ for the full specification."
       type: string
-      pattern: ^Signature keyId="[^|"]+\|[^|"]+\|[^"]+",algorithm="[^"]+",created="\d+",expires="\d+",headers="[^"]+",signature="[A-Za-z0-9+/]+=*"$
+      pattern: ^Signature keyId="[^"]+",algorithm="ed25519",created="\d+",expires="\d+",headers="\(created\)
+        \(expires\) digest",signature="[A-Za-z0-9+/]+=*"$
+      example: 'Signature keyId="example.ns/gro.example/bap-key-001|ed25519",algorithm="ed25519",created="1714000000",expires="1714000600",headers="(created)
+        (expires) digest",signature="BASE64SIGNATURE=="'
+
+    CallbackSignature:
+      title: Beckn HTTP Callback Signature
+      description: "A digitally signed authentication credential transmitted in the\
+        \ HTTP Authorization header of BPP solicited callbacks to BAP `/on_*` endpoints.\
+        \ Extends the standard Signature by chaining the BPP's signature to the BAP's\
+        \ original request signature, allowing the BAP to verify that the callback\
+        \ is a genuine response to a request it sent.\n\nThe BPP produces this by\
+        \ signing a four-line canonical signing string with its Ed25519 private key:\n\
+        \n    (created): {unix_timestamp}\n    (expires): {unix_timestamp}\n    digest:\
+        \ BLAKE2b-512={base64_callback_body_hash}\n    request-signature: {bap_raw_base64_signature}\n\
+        \nThe fourth line (`request-signature`) contains the raw Base64 Ed25519 signature\
+        \ value extracted verbatim from the `signature=\"...\"` field of the BAP's\
+        \ original `Authorization` header. This binds the callback cryptographically\
+        \ to the triggering request.\n\nThe `headers` attribute MUST be `\"(created)\
+        \ (expires) digest request-signature\"`. The `keyId` identifies the BPP signer.\
+        \ The algorithm MUST be `ed25519`. The body digest covers the callback body\
+        \ using BLAKE2b-512.\n\nUsed for: BPP→BAP solicited callbacks only. For provider-initiated\
+        \ notifications (no preceding BAP request), use the standard Signature schema\
+        \ instead. For synchronous response signing, see components/headers/SignatureHeader.\
+        \ See NFH-004 Authentication and Trust §5 for the full callback signing procedure."
+      type: string
+      pattern: ^Signature keyId="[^"]+",algorithm="ed25519",created="\d+",expires="\d+",headers="\(created\)
+        \(expires\) digest request-signature",signature="[A-Za-z0-9+/]+=*"$
+      example: 'Signature keyId="example.ns/gro.example/bpp-key-001|ed25519",algorithm="ed25519",created="1714000060",expires="1714000660",headers="(created)
+        (expires) digest request-signature",signature="BPPSIGNATURE=="'
 
     Support:
       description: "A structured record representing a consumer's request for assistance\
