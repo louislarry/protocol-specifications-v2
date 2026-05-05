@@ -1926,6 +1926,23 @@ components:
         See `#/components/schemas/Signature` for the expected format.'
       schema:
         $ref: '#/components/schemas/Signature'
+  headers:
+    SignatureHeader:
+      description: "Beckn HTTP Signature authentication header transmitted on every\
+        \ synchronous response. The signer is the responding actor (BPP or BAP); the\
+        \ receiver verifies it to confirm authenticated receipt of the response body.\n\
+        \nFormat follows the same draft-cavage-http-signatures-12 profile used for\
+        \ the Authorization request header, except the headers attribute covers only\
+        \ the standard three components: `(created) (expires) digest`. The digest\
+        \ covers the response body using BLAKE2b-512.\n\nSee NFH-004 Authentication\
+        \ and Trust for the full signing-string specification."
+      required: true
+      schema:
+        type: string
+        pattern: ^Signature keyId="[^"]+",algorithm="ed25519",created="\d+",expires="\d+",headers="\(created\)
+          \(expires\) digest",signature="[A-Za-z0-9+/]+=*"$
+        example: 'Signature keyId="example.ns/gro.example/key-001|ed25519",algorithm="ed25519",created="1714000000",expires="1714000600",headers="(created)
+          (expires) digest",signature="BASE64SIGNATURE=="'
   schemas:
     CancelAction:
       title: Cancel Action
@@ -2940,27 +2957,6 @@ components:
           - $ref: '#/components/schemas/Attributes'
           - properties: {}
 
-    CounterSignature:
-      title: Beckn HTTP Counter-Signature
-      description: "A digitally signed receipt transmitted in the synchronous Ack\
-        \ response body, proving that the receiving actor authenticated, received,\
-        \ and accepted the inbound request for processing, thereby establishing bilateral\
-        \ non-repudiation for the synchronous leg of a Beckn interaction.\n\nCounterSignature\
-        \ appears in every Ack response returned by a BPP or BAP across all phases\
-        \ of the value-exchange lifecycle. The implementer (BPP or BAP depending on\
-        \ direction) produces it; the sender verifies it to confirm authenticated\
-        \ receipt.\n\nCounterSignature shares the same wire format as Signature but\
-        \ differs in three respects: the signer is the response receiver rather than\
-        \ the request sender; it is transmitted in the Ack response body rather than\
-        \ the Authorization header; and the digest covers the Ack response body rather\
-        \ than the inbound request body. The signing string MUST include request-digest\
-        \ and message-id components in addition to the standard created, expires,\
-        \ and digest fields.\n\nRelationship: Extends the Signature schema, inheriting\
-        \ its wire format and signing string structure as defined in the Authentication\
-        \ and Trust document."
-      allOf:
-      - $ref: '#/components/schemas/Signature'
-
     Descriptor:
       $schema: https://json-schema.org/draft/2020-12/schema
       description: "A structured label that provides machine-readable and human-readable\
@@ -3653,9 +3649,9 @@ components:
         \ format namespace_id followed by uniqueKeyId followed by algorithm, separated\
         \ by pipe characters. The algorithm MUST be ed25519. The signing string MUST\
         \ include the created timestamp, the expires timestamp, and the BLAKE2b-512\
-        \ digest of the request body.\n\nRelationship: Extended by the CounterSignature\
-        \ schema, which applies the same wire format to the response body rather than\
-        \ the request Authorization header."
+        \ digest of the request body.\n\nRelationship: Used in the Authorization request\
+        \ header for inbound request authentication and in the Signature response header\
+        \ for authenticated receipt, as defined in NFH-004 Authentication and Trust."
       type: string
       pattern: ^Signature keyId="[^|"]+\|[^|"]+\|[^"]+",algorithm="[^"]+",created="\d+",expires="\d+",headers="[^"]+",signature="[A-Za-z0-9+/]+=*"$
 
@@ -4446,8 +4442,11 @@ components:
     Ack:
       description: "The implementer has authenticated the request, accepted it for\
         \ processing, and MUST deliver the business outcome asynchronously via the\
-        \ corresponding callback endpoint. The response body carries a CounterSignature\
-        \ proving authenticated receipt."
+        \ corresponding callback endpoint. The Signature response header carries the\
+        \ implementer's authenticated receipt."
+      headers:
+        Signature:
+          $ref: '#/components/headers/SignatureHeader'
       content:
         application/json:
           schema:
@@ -4457,6 +4456,9 @@ components:
         \ cannot produce a callback — for example, no matching catalog was found,\
         \ inventory is unavailable, or the provider is closed. The response body carries\
         \ an Error explaining why no callback will follow."
+      headers:
+        Signature:
+          $ref: '#/components/headers/SignatureHeader'
       content:
         application/json:
           schema:
@@ -4465,6 +4467,9 @@ components:
       description: "The request body is structurally invalid, missing required fields,\
         \ or carries a value that fails semantic validation. The implementer MUST NOT\
         \ process the request further. The caller MUST correct the request before retrying."
+      headers:
+        Signature:
+          $ref: '#/components/headers/SignatureHeader'
       content:
         application/json:
           schema:
@@ -4474,6 +4479,9 @@ components:
         \ fails verification against the sender's public key returned by the subnet\
         \ registry lookup. The implementer MUST NOT process the request further. The\
         \ caller MUST correct its signing credential or key registration before retrying."
+      headers:
+        Signature:
+          $ref: '#/components/headers/SignatureHeader'
       content:
         application/json:
           schema:
@@ -4483,6 +4491,9 @@ components:
         \ processing the request. The caller SHOULD treat this as a transient error\
         \ and MAY retry after a backoff interval. The response body MAY contain an\
         \ error object with additional diagnostic detail."
+      headers:
+        Signature:
+          $ref: '#/components/headers/SignatureHeader'
       content:
         application/json:
           schema:
@@ -4493,6 +4504,9 @@ components:
         \ trust, capacity limits, scheduled inactivity, or general refusal). The\
         \ caller MUST NOT expect an on_* callback. NFOs MAY restrict or prohibit\
         \ discretionary NACKs per CON-008-20."
+      headers:
+        Signature:
+          $ref: '#/components/headers/SignatureHeader'
       content:
         application/json:
           schema:
@@ -4502,6 +4516,8 @@ components:
         \ MUST apply back-off before retrying. Implementations SHOULD include a\
         \ Retry-After header indicating when the caller MAY retry."
       headers:
+        Signature:
+          $ref: '#/components/headers/SignatureHeader'
         Retry-After:
           description: "Number of seconds (integer) or HTTP-date after which the\
             \ caller MAY retry the request."
