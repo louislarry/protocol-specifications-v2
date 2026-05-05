@@ -1,7 +1,8 @@
-# RFC-003: The Beckn Protocol Stack
+# The Beckn Protocol Stack
 
-## 1. Document Details
+## Document Details
 
+- **ID:** NFH-003
 - **Status:** Draft.
 - **Authors:** Beckn Protocol contributors.
 - **Created:** 2026-04-10.
@@ -16,38 +17,38 @@
 - **Feedback:** Issues Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22RFC-003%22), discussions Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22RFC-003%22), pull requests Click [here](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22RFC-003%22).
 - **Errata:** To be published.
 
-## 2. Abstract
+## Abstract
 
 This RFC defines the Beckn v2 protocol stack as six layers and explains how networking, trust, data, semantics, policy, and application concerns interact to provide a consistent implementation model across participants.
 
-## 3. Table of Contents
+## Table of Contents
 
-- [RFC-003: The Beckn Protocol Stack](#rfc-003-the-beckn-protocol-stack)
-  - [1. Document Details](#1-document-details)
-  - [2. Abstract](#2-abstract)
-  - [3. Table of Contents](#3-table-of-contents)
-  - [4. Introduction](#4-introduction)
-  - [5. Specification](#5-specification)
-    - [5.1 Stack definition](#51-stack-definition)
-    - [5.2 Layer 1: Networking Layer](#52-layer-1-networking-layer)
+- [The Beckn Protocol Stack](#the-beckn-protocol-stack)
+  - [Document Details](#document-details)
+  - [Abstract](#abstract)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Specification](#specification)
+    - [Stack definition](#stack-definition)
+    - [Layer 1: Networking Layer](#layer-1-networking-layer)
     - [Network Architecture](#network-architecture)
     - [Endpoint Pattern and Action Surface](#endpoint-pattern-and-action-surface)
     - [Request Modes and Message Exchange](#request-modes-and-message-exchange)
     - [Discovery on Beckn](#discovery-on-beckn)
-    - [5.3 Layer 2: Trust Layer](#53-layer-2-trust-layer)
-    - [5.4 Layer 3: Core Data Layer](#54-layer-3-core-data-layer)
-    - [5.5 Layer 4: Linked Data Layer](#55-layer-4-linked-data-layer)
-    - [5.6 Layer 5: Policy Layer](#56-layer-5-policy-layer)
-    - [5.7 Layer 6: Application Layer](#57-layer-6-application-layer)
-    - [5.8 Interaction examples](#58-interaction-examples)
-    - [5.9 Conformance requirements](#59-conformance-requirements)
-    - [5.10 Security considerations](#510-security-considerations)
-    - [5.11 Migration notes](#511-migration-notes)
-  - [6. Conclusion](#6-conclusion)
-  - [7. Acknowledgements](#7-acknowledgements)
-  - [8. References](#8-references)
+    - [Layer 2: Trust Layer](#layer-2-trust-layer)
+    - [Layer 3: Core Data Layer](#layer-3-core-data-layer)
+    - [Layer 4: Linked Data Layer](#layer-4-linked-data-layer)
+    - [Layer 5: Policy Layer](#layer-5-policy-layer)
+    - [Layer 6: Application Layer](#layer-6-application-layer)
+    - [Interaction examples](#interaction-examples)
+    - [Conformance requirements](#conformance-requirements)
+    - [Security considerations](#security-considerations)
+    - [Migration notes](#migration-notes)
+  - [Conclusion](#conclusion)
+  - [Acknowledgements](#acknowledgements)
+  - [References](#references)
 
-## 4. Introduction
+## Introduction
 
 Beckn implementations involve multiple independently operated actors and services, and without a canonical layering model responsibilities can blur across transport, trust, data, semantics, policy, and business workflow concerns. This RFC establishes a shared architecture baseline so implementations remain coherent and interoperable across BAP, BPP, DS, PS, Registry, and related infrastructure.
 
@@ -55,11 +56,11 @@ In this layering model, the Networking Layer handles routing, addressing, discov
 
 The stack is guided by four implementation principles: each layer MUST own a clearly defined set of responsibilities, shared contracts and semantics SHOULD be interpreted consistently across participants, request acknowledgement and callback completion patterns SHOULD be preserved for async-ready exchanges, and signature verification with trust lookup MUST be treated as first-class runtime behavior.
 
-## 5. Specification
+## Specification
 
 The key words MUST, SHOULD, and MAY in this document are to be interpreted as described in Click [here](./00_Keyword_Definitions.md).
 
-### 5.1 Stack definition
+### Stack definition
 
 Beckn v2 architecture is defined as a six-layer stack:
 
@@ -85,7 +86,7 @@ flowchart TD
     L1 --> L2 --> L3 --> L4 --> L5 --> L6
 ```
 
-### 5.2 Layer 1: Networking Layer
+### Layer 1: Networking Layer
 
 The networking layer defines how participants are arranged and how requests, callbacks, and discovery traffic move between them.
 
@@ -205,7 +206,7 @@ sequenceDiagram
     DS->>BAP: POST on_discover
 
 ```
-### 5.3 Layer 2: Trust Layer
+### Layer 2: Trust Layer
 
 The trust layer provides identity and non-repudiation controls.
 
@@ -213,7 +214,7 @@ The trust layer provides identity and non-repudiation controls.
 - Open Network Participants (BAP, BPP, DS) MUST lookup the Registry using DeDi protocol
 - Receivers MUST verify signatures against trusted key material returned from the Registry `lookup`
 
-### 5.4 Layer 3: Core Data Layer
+### Layer 3: Core Data Layer
 
 The core data layer defines structural interoperability.
 
@@ -221,7 +222,7 @@ The core data layer defines structural interoperability.
 - Core objects MUST be validated with JSON Schema/OpenAPI constraints.
 - Callback correlation SHOULD use `inReplyTo`.
 
-### 5.5 Layer 4: Linked Data Layer
+### Layer 4: Linked Data Layer
 
 The linked data layer defines semantic interoperability through JSON-LD.
 
@@ -229,7 +230,7 @@ The linked data layer defines semantic interoperability through JSON-LD.
 - `@context` and `@type` SHOULD be used for semantic interpretation.
 - Structural validation and semantic validation are complementary and SHOULD both be applied.
 
-### 5.6 Layer 5: Policy Layer
+### Layer 5: Policy Layer
 
 The policy layer governs runtime behavior outside core schema structure.
 
@@ -240,7 +241,7 @@ Examples include:
 3. Ranking, filtering, and discovery constraints.
 4. Timeout/TTL and acknowledgement expectations.
 
-### 5.7 Layer 6: Application Layer
+### Layer 6: Application Layer
 
 The application layer contains participant workflows and business logic.
 
@@ -252,7 +253,7 @@ Typical lifecycle groups:
 - Post-fulfillment: `rate`, `on_rate`, `support`, `on_support`.
 - Infrastructure: `publish`, trust lookups.
 
-### 5.8 Interaction examples
+### Interaction examples
 
 Example 1 - Discovery to transaction path:
 
@@ -277,7 +278,7 @@ Example 2 - Envelope shape:
 }
 ```
 
-### 5.9 Conformance requirements
+### Conformance requirements
 
 | ID | Requirement | Level |
 |---|---|---|
@@ -285,23 +286,23 @@ Example 2 - Envelope shape:
 | CON-003-02 | Implementations MUST enforce signature verification and trust lookup behavior in the trust layer. | MUST |
 | CON-003-03 | Implementations SHOULD preserve async acknowledgement/callback interaction semantics where defined by action policy. | SHOULD |
 
-### 5.10 Security considerations
+### Security considerations
 
 This RFC emphasizes trust-layer controls including signature verification, key resolution, and signed acknowledgements. Misplacing these responsibilities outside the trust layer can create verification gaps and replay/non-repudiation weaknesses.
 
-### 5.11 Migration notes
+### Migration notes
 
 This update migrates the document to RFC format. It does not introduce new wire-level protocol behavior.
 
-## 6. Conclusion
+## Conclusion
 
 The Beckn protocol stack provides a consistent implementation model by separating networking, trust, structural data validation, semantic interpretation, policy enforcement, and application behavior into explicit layers. Future standardization work may still be useful for formal actor capability profiles and policy-layer conformance profiles across networks, but these questions do not change the stack definition established here.
 
-## 7. Acknowledgements
+## Acknowledgements
 
 This RFC reflects contributions from Beckn Protocol contributors who developed and reviewed the architecture, interoperability, and trust-model guidance represented in this stack description.
 
-## 8. References
+## References
 
 - Click [here](./00_Keyword_Definitions.md)
 - Click [here](../api/v2.0.0/beckn.yaml)
