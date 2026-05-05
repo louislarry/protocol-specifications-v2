@@ -1,4 +1,4 @@
-# RFC-005: Specification Design Guide
+# Specification Design Guide
 
 ## Status of this document
 
@@ -10,6 +10,7 @@ Copyright © 2026 Networks for Humanity Foundation. All rights reserved.
 
 ## Document Details
 
+- **ID:** NFH-005
 - **Publication Status:** Draft.
 - **Authors:** 
   - Ravi Prakash V, Networks for Humanity Foundation 
@@ -37,7 +38,7 @@ Legacy exceptions will be progressively evaluated for migration toward conforman
 
 ## Table of Contents
 
-- [RFC-005: Specification Design Guide](#rfc-005-specification-design-guide)
+- [Specification Design Guide](#specification-design-guide)
   - [Status of this document](#status-of-this-document)
   - [Copyright Notice](#copyright-notice)
   - [Document Details](#document-details)
@@ -529,15 +530,15 @@ Example action and callback pairing:
 
 Ambiguous naming, schema and documentation drift, and untracked semantic changes can cause unsafe parsing and inconsistent policy enforcement. Strict cross-artifact validation, deterministic action naming, and explicit semantic mapping reduce these risks.
 
-# Conclusion
+## Conclusion
 
 This RFC consolidates the style guide into a single ordered structure while preserving the original normative guidance for naming, artifact precedence, validation, compatibility, and semantic alignment. Draft-01 records this RFC-form restructuring, and future governance work may standardize JSON-LD extension patterns and automated pull-request gates for minimum cross-artifact checks.
 
-# Acknowledgements
+## Acknowledgements
 
 This document reflects input from Beckn Protocol contributors maintaining protocol contracts, schema packs, semantic artifacts, and governance processes.
 
-# References
+## References
 - **Keyword definitions:** [Keyword Definitions](./Keyword_Definitions.md)
 - **Schema.org style guide:** Click [here](https://schema.org/docs/styleguide.html)
 - **Related pull request 67:** Click [here](https://github.com/beckn/protocol-specifications-v2/pull/67)
