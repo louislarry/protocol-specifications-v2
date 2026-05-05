@@ -124,11 +124,11 @@ _List any unresolved issues or design choices that require further discussion be
 1. ...
 
 
-## 7. Acknowledgements
+## Acknowledgements
 
 > Acknowledge contributors, reviewers, working groups, and implementers whose feedback informed this RFC.
 
-## 8. References
+## References
 > Add any external standards, prior art, or related RFCs here.
 
 - **Governance:** Click [here](../GOVERNANCE.md).
