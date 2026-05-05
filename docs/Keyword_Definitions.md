@@ -50,7 +50,6 @@ This document outlines the normative definitions of keywords that are commonly u
     - [Example 1: Using "REQUIRED" and "MUST"](#example-1-using-required-and-must)
     - [Example 2: Using "RECOMMENDED" and "SHOULD"](#example-2-using-recommended-and-should)
   - [Conclusion](#conclusion)
-  - [Conclusion](#conclusion-1)
   - [Acknowledgements](#acknowledgements)
   - [References](#references)
 
@@ -146,10 +145,6 @@ In this section, we provide examples that demonstrate the correct usage of the k
 The definitions provided in this document are intended to clarify the interpretation of key terms used in technical specifications, standards, and protocols. Adherence to these definitions will ensure a consistent understanding and implementation of such documents.
 
 > Note : This document is subject to change and may be updated to include additional terms or to refine existing definitions.
-
-## Conclusion
-
-The Beckn protocol stack provides a consistent implementation model by separating networking, trust, structural data validation, semantic interpretation, policy enforcement, and application behavior into explicit layers. Future standardization work may still be useful for formal actor capability profiles and policy-layer conformance profiles across networks, but these questions do not change the stack definition established here.
 
 ## Acknowledgements
 

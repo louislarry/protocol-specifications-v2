@@ -39,6 +39,8 @@ This document defines the authentication and trust model for Beckn Protocol v2.0
         - [2.1 Implicit Format](#21-implicit-format)
         - [2.2 Explicit Format](#22-explicit-format)
         - [2.3 Key Lookup Procedure](#23-key-lookup-procedure)
+          - [For implicit keyIds](#for-implicit-keyids)
+          - [For explicit keyIds](#for-explicit-keyids)
       - [3. Signing String Construction](#3-signing-string-construction)
         - [3.1 Body Digest](#31-body-digest)
         - [3.2 Standard Signing String](#32-standard-signing-string)
@@ -47,16 +49,42 @@ This document defines the authentication and trust model for Beckn Protocol v2.0
       - [5. Synchronous Response Signing](#5-synchronous-response-signing)
       - [6. Callback Signing — BPP to BAP](#6-callback-signing--bpp-to-bap)
       - [7. Verifying a Callback — BAP Procedure](#7-verifying-a-callback--bap-procedure)
+        - [Step 1 — Parse the Authorization header](#step-1--parse-the-authorization-header)
+        - [Step 2 — Validate timestamps](#step-2--validate-timestamps)
+        - [Step 3 — Validate algorithm](#step-3--validate-algorithm)
+        - [Step 4 — Fetch the BPP's public key](#step-4--fetch-the-bpps-public-key)
+        - [Step 5 — Reconstruct the signing string](#step-5--reconstruct-the-signing-string)
+        - [Step 6 — Verify the BPP's Ed25519 signature](#step-6--verify-the-bpps-ed25519-signature)
+        - [Step 7 — Verify the request-signature chain (solicited callbacks only)](#step-7--verify-the-request-signature-chain-solicited-callbacks-only)
+        - [Step 8 — Return Ack](#step-8--return-ack)
       - [8. Verifying a Request — BPP and DS Procedure](#8-verifying-a-request--bpp-and-ds-procedure)
       - [9. Pre-call NP Verification](#9-pre-call-np-verification)
+        - [9.1 Subscriber Reference Lookup (Same-Network NPs)](#91-subscriber-reference-lookup-same-network-nps)
+        - [9.2 Key Expiry Check Before Callbacks](#92-key-expiry-check-before-callbacks)
       - [10. Replay Protection](#10-replay-protection)
+        - [10.1 BAP Request Replay Protection](#101-bap-request-replay-protection)
+        - [10.2 Solicited Callback Replay Protection](#102-solicited-callback-replay-protection)
+        - [10.3 Provider-Initiated Notification Replay Protection](#103-provider-initiated-notification-replay-protection)
     - [Conformance Requirements](#conformance-requirements)
     - [Cross-cutting considerations](#cross-cutting-considerations)
+      - [Clock skew](#clock-skew)
+      - [Key rotation](#key-rotation)
+      - [Privacy](#privacy)
+      - [Key compromise](#key-compromise)
+      - [Explicit keyId trust](#explicit-keyid-trust)
     - [Migration Notes](#migration-notes)
     - [Examples](#examples)
       - [Example 1: BAP Request to BPP](#example-1-bap-request-to-bpp)
+        - [Step 1 — Compute body digest](#step-1--compute-body-digest)
+        - [Step 2 — Construct signing string](#step-2--construct-signing-string)
+        - [Step 3 — Sign and assemble header](#step-3--sign-and-assemble-header)
       - [Example 2: BPP Synchronous Ack Response](#example-2-bpp-synchronous-ack-response)
-      - [Example 3: BPP Callback to BAP](#example-3-bpp-callback-to-bap)
+      - [Example 3: BPP Solicited Callback to BAP](#example-3-bpp-solicited-callback-to-bap)
+        - [Step 1 — Extract BAP's original signature](#step-1--extract-baps-original-signature)
+        - [Step 2 — Compute callback body digest](#step-2--compute-callback-body-digest)
+        - [Step 3 — Construct callback signing string](#step-3--construct-callback-signing-string)
+        - [Step 4 — Assemble callback request](#step-4--assemble-callback-request)
+        - [BAP verification](#bap-verification)
   - [Conclusion](#conclusion)
     - [Open Questions](#open-questions)
   - [Acknowledgements](#acknowledgements)
@@ -149,7 +177,7 @@ https://registry.example-nfo.io/example-bpp.beckn.io/keys/signing-key-001|ed2551
 
 ##### 2.3 Key Lookup Procedure
 
-**For implicit keyIds:**
+###### For implicit keyIds
 
 The verifying NP MUST fetch the public key by issuing an HTTP GET request to:
 
@@ -164,7 +192,7 @@ where `{keyId}` is the full implicit keyId string — including the `|algorithm`
 https://fabric.nfh.global/registry/dedi/lookup/example-bap.beckn.io/keys/signing-key-001|ed25519
 ```
 
-**For explicit keyIds:**
+###### For explicit keyIds
 
 The verifying NP MUST extract the URL portion (everything before `|`) and issue an HTTP GET to that URL to retrieve the key record.
 
@@ -298,35 +326,43 @@ For provider-initiated notifications (§10.3), the BPP MUST omit the `request-si
 
 Upon receiving a callback at its `/on_*` endpoint, the BAP MUST perform the following verification steps in order. If any step fails, the BAP MUST return `401 NackUnauthorized`.
 
-**Step 1 — Parse the Authorization header.**
+##### Step 1 — Parse the Authorization header
+
 Extract `keyId`, `algorithm`, `created`, `expires`, `headers`, and `signature` from the BPP's `Authorization` header.
 
-**Step 2 — Validate timestamps.**
+##### Step 2 — Validate timestamps
+
 Confirm that `created` is not in the future beyond the subnet-configured clock skew tolerance (default: 5 seconds) and that `expires` is not in the past.
 
-**Step 3 — Validate algorithm.**
+##### Step 3 — Validate algorithm
+
 Confirm `algorithm` is `ed25519`. Reject any other value.
 
-**Step 4 — Fetch the BPP's public key.**
+##### Step 4 — Fetch the BPP's public key
+
 Use the key lookup procedure (§2.3) to retrieve the BPP's Ed25519 public key.
 
-**Step 5 — Reconstruct the signing string.**
+##### Step 5 — Reconstruct the signing string
+
 Using the `headers` field as the ordered list of fields:
 
 - If `headers` is `"(created) (expires) digest"`: reconstruct the standard signing string (§3.2) using the `created` and `expires` values from the BPP's `Authorization` header and the BLAKE2b-512 digest of the received callback body. This is a provider-initiated notification.
 - If `headers` is `"(created) (expires) digest request-signature"`: reconstruct the callback signing string (§3.3) using the above plus the value on the `request-signature` line. This is a solicited callback; proceed to Step 7.
 
-**Step 6 — Verify the BPP's Ed25519 signature.**
+##### Step 6 — Verify the BPP's Ed25519 signature
+
 Verify the decoded `signature` against the reconstructed signing string using the BPP's public key. If verification fails, reject with `401`.
 
-**Step 7 — Verify the request-signature chain (solicited callbacks only).**
+##### Step 7 — Verify the request-signature chain (solicited callbacks only)
+
 If `headers` contains `request-signature`:
 
 1. Retrieve the `signature` value from the BAP's own stored outbound `Authorization` header for the message identified by `context.transactionId` and `context.messageId` from the callback's `context` object.
 2. Compare it to the `{bap_signature_value}` extracted from the reconstructed signing string's `request-signature` line.
 3. If they do not match, reject with `401`. This mismatch indicates the callback was not issued in response to a request the BAP sent.
 
-**Step 8 — Return Ack.**
+##### Step 8 — Return Ack
+
 If all steps pass, return `200 Ack` with the BAP's own `Signature` response header (§5).
 
 #### 8. Verifying a Request — BPP and DS Procedure
@@ -409,15 +445,25 @@ A BPP sending a provider-initiated notification MUST assign a unique `messageId`
 
 ### Cross-cutting considerations
 
-**Clock skew:** A tolerance of up to 5 seconds is the recommended default for the `created` field. NFOs MAY configure a stricter or more permissive value for their subnet; when they do, all NPs operating within that subnet MUST use the configured value. NPs MUST NOT accept any tolerance for `expires`; an expired signature MUST be rejected without exception regardless of subnet configuration.
+#### Clock skew
 
-**Key rotation:** When an NP rotates its signing key, the old key MUST remain resolvable in the GRR until all in-flight transactions that used it have expired. The NP MUST update its key registration atomically and MUST NOT sign new messages with the old key after rotation.
+A tolerance of up to 5 seconds is the recommended default for the `created` field. NFOs MAY configure a stricter or more permissive value for their subnet; when they do, all NPs operating within that subnet MUST use the configured value. NPs MUST NOT accept any tolerance for `expires`; an expired signature MUST be rejected without exception regardless of subnet configuration.
 
-**Privacy:** The `keyId` path exposes the NP's namespace identifier in every request header. This is by design: fabric identity is not pseudonymous at the protocol level.
+#### Key rotation
 
-**Key compromise:** If an NP's private key is compromised, the NP MUST immediately revoke the key record in the GRR. The GRR revocation status MUST be checked at verification time; a cached public key from a revoked record MUST NOT be used to verify signatures.
+When an NP rotates its signing key, the old key MUST remain resolvable in the GRR until all in-flight transactions that used it have expired. The NP MUST update its key registration atomically and MUST NOT sign new messages with the old key after rotation.
 
-**Explicit keyId trust:** Allowing explicit keyIds pointing to arbitrary registries creates a trust bootstrapping problem. NPs that have not configured explicit trust for a given registry SHOULD default to rejecting such signatures rather than accepting them, to avoid being deceived by rogue registries.
+#### Privacy
+
+The `keyId` path exposes the NP's namespace identifier in every request header. This is by design: fabric identity is not pseudonymous at the protocol level.
+
+#### Key compromise
+
+If an NP's private key is compromised, the NP MUST immediately revoke the key record in the GRR. The GRR revocation status MUST be checked at verification time; a cached public key from a revoked record MUST NOT be used to verify signatures.
+
+#### Explicit keyId trust
+
+Allowing explicit keyIds pointing to arbitrary registries creates a trust bootstrapping problem. NPs that have not configured explicit trust for a given registry SHOULD default to rejecting such signatures rather than accepting them, to avoid being deceived by rogue registries.
 
 ### Migration Notes
 
@@ -435,7 +481,8 @@ The following v1.x patterns are breaking changes in v2.0:
 
 **Scenario:** BAP `bap.example.com` sends a `/select` request to BPP `bpp.example.com`.
 
-**Step 1 — Compute body digest:**
+##### Step 1 — Compute body digest
+
 ```
 body = '{"context":{"action":"select",...},"message":{...}}'
 hash = BLAKE2b-512( UTF-8(body) )
@@ -443,14 +490,16 @@ digest = "BLAKE2b-512=" + Base64(hash)
        = "BLAKE2b-512=qK3Uvd39k+SHfSdG5igXsRY2Sh+nvBSNlQkLxzM7NnP4..."
 ```
 
-**Step 2 — Construct signing string:**
+##### Step 2 — Construct signing string
+
 ```
 (created): 1746518400
 (expires): 1746518700
 digest: BLAKE2b-512=qK3Uvd39k+SHfSdG5igXsRY2Sh+nvBSNlQkLxzM7NnP4...
 ```
 
-**Step 3 — Sign and assemble header:**
+##### Step 3 — Sign and assemble header
+
 ```http
 POST /select HTTP/1.1
 Host: bpp.example.com
@@ -478,19 +527,22 @@ The BPP's `Signature` header signs the `{"message":{"ack":{"status":"ACK"}}}` bo
 
 **Scenario:** BPP sends the asynchronous `/on_select` callback to the BAP. The BAP's original `signature` value from Example 1 is `Base64EncodedEd25519SignatureHere==`.
 
-**Step 1 — Extract BAP's original signature:**
+##### Step 1 — Extract BAP's original signature
+
 ```
 bap_signature_value = "Base64EncodedEd25519SignatureHere=="
 ```
 
-**Step 2 — Compute callback body digest:**
+##### Step 2 — Compute callback body digest
+
 ```
 callback_body = '{"context":{"action":"on_select","transactionId":"txn-001","messageId":"msg-001",...},"message":{...}}'
 digest = "BLAKE2b-512=" + Base64( BLAKE2b-512( UTF-8(callback_body) ) )
        = "BLAKE2b-512=rN4Wve49l+TIfTeH6jhYtCS3Ti+owCTOmRlMyy8OoQQ5..."
 ```
 
-**Step 3 — Construct callback signing string:**
+##### Step 3 — Construct callback signing string
+
 ```
 (created): 1746518450
 (expires): 1746518750
@@ -498,7 +550,8 @@ digest: BLAKE2b-512=rN4Wve49l+TIfTeH6jhYtCS3Ti+owCTOmRlMyy8OoQQ5...
 request-signature: Base64EncodedEd25519SignatureHere==
 ```
 
-**Step 4 — Assemble callback request:**
+##### Step 4 — Assemble callback request
+
 ```http
 POST /on_select HTTP/1.1
 Host: bap.example.com
@@ -508,7 +561,8 @@ Content-Type: application/json
 {"context":{"action":"on_select","transactionId":"txn-001","messageId":"msg-001",...},"message":{...}}
 ```
 
-**BAP verification:**
+##### BAP verification
+
 1. Fetch BPP's public key from `https://fabric.nfh.global/registry/dedi/lookup/bpp.example.com/keys/k002|ed25519`.
 2. Reconstruct the callback signing string using the four `headers` fields in declared order.
 3. Verify BPP's `signature` against the reconstructed string.

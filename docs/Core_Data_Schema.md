@@ -309,7 +309,7 @@ classDiagram
     AddOn --> Offer
 ```
 
-#### Canonical contract interpretation
+### Canonical contract interpretation
 
 Implementations MUST treat `api/v2.0.0/beckn.yaml` as the primary contract for envelope and operation payload constraints.
 

@@ -31,10 +31,10 @@ This RFC defines the Beckn v2 protocol stack as six layers and explains how netw
   - [Specification](#specification)
     - [Stack definition](#stack-definition)
     - [Layer 1: Networking Layer](#layer-1-networking-layer)
-    - [Network Architecture](#network-architecture)
-    - [Endpoint Pattern and Action Surface](#endpoint-pattern-and-action-surface)
-    - [Request Modes and Message Exchange](#request-modes-and-message-exchange)
-    - [Discovery on Beckn](#discovery-on-beckn)
+      - [Network Architecture](#network-architecture)
+      - [Endpoint Pattern and Action Surface](#endpoint-pattern-and-action-surface)
+      - [Request Modes and Message Exchange](#request-modes-and-message-exchange)
+      - [Discovery on Beckn](#discovery-on-beckn)
     - [Layer 2: Trust Layer](#layer-2-trust-layer)
     - [Layer 3: Core Data Layer](#layer-3-core-data-layer)
     - [Layer 4: Linked Data Layer](#layer-4-linked-data-layer)
@@ -90,7 +90,7 @@ flowchart TD
 
 The networking layer defines how participants are arranged and how requests, callbacks, and discovery traffic move between them.
 
-### Network Architecture
+#### Network Architecture
 
 A Beckn network is a set of independently run platforms that communicate through common protocol contracts.
 
@@ -128,7 +128,7 @@ flowchart TB
 
 The key networking shift in v2 is catalog-first discovery. Discovery does not depend on live multicast fan-out.
 
-### Endpoint Pattern and Action Surface
+#### Endpoint Pattern and Action Surface
 
 Beckn endpoints follow a simple action/callback pairing pattern:
 
@@ -147,7 +147,7 @@ Typical role endpoints include:
 
 Action support depends on the participant role and network policy.
 
-### Request Modes and Message Exchange
+#### Request Modes and Message Exchange
 
 Beckn v2 supports three transport request modes:
 
@@ -180,7 +180,7 @@ sequenceDiagram
 
 In `GET Query` mode, the server only returns acknowledgement and does not send asynchronous callbacks.
 
-### Discovery on Beckn
+#### Discovery on Beckn
 
 Discovery in Beckn is performed via the synchronization of two actors, Cataloging Service (on Fabric) and the Discovery Service (on Network):
 
