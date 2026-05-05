@@ -1,6 +1,6 @@
 # Keyword Definitions
 
-## 1. Document Details
+## Document Details
 - **ID:** NFH-002
 - **Status:** PUBLISHED
 - **Authors:** 
@@ -17,18 +17,18 @@
 - **Feedback:** Issues Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%NFH-002%22), discussions Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22RFC-003%22), pull requests Click [here](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22RFC-003%22).
 - **Errata:** -NA-
 
-## 2. Abstract
+## Abstract
 
 This document outlines the normative definitions of keywords that are commonly used in technical specifications, standards, and protocols. The aim is to provide a uniform interpretation of these terms to avoid ambiguity and misinterpretation.
 
-## 3. Table of Contents
+## Table of Contents
 
 - [Keyword Definitions](#keyword-definitions)
-  - [1. Document Details](#1-document-details)
-  - [2. Abstract](#2-abstract)
-  - [3. Table of Contents](#3-table-of-contents)
-  - [4. Introduction](#4-introduction)
-  - [5. Definitions](#5-definitions)
+  - [Document Details](#document-details)
+  - [Abstract](#abstract)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Definitions](#definitions)
     - [MUST](#must)
     - [MUST NOT](#must-not)
     - [REQUIRED](#required)
@@ -39,18 +39,25 @@ This document outlines the normative definitions of keywords that are commonly u
     - [RECOMMENDED](#recommended)
     - [MAY](#may)
     - [OPTIONAL](#optional)
+  - [Network Actor Definitions](#network-actor-definitions)
+    - [BAP (Beckn Application Platform)](#bap-beckn-application-platform)
+    - [BPP (Beckn Provider Platform)](#bpp-beckn-provider-platform)
+    - [NFH (Networks for Humanity Foundation)](#nfh-networks-for-humanity-foundation)
+    - [Fabric](#fabric)
+    - [Discovery Service (DS)](#discovery-service-ds)
+    - [Registry](#registry)
   - [Examples and Correct Usage](#examples-and-correct-usage)
     - [Example 1: Using "REQUIRED" and "MUST"](#example-1-using-required-and-must)
     - [Example 2: Using "RECOMMENDED" and "SHOULD"](#example-2-using-recommended-and-should)
   - [Conclusion](#conclusion)
-  - [6. Conclusion](#6-conclusion)
-  - [7. Acknowledgements](#7-acknowledgements)
-  - [8. References](#8-references)
+  - [Conclusion](#conclusion-1)
+  - [Acknowledgements](#acknowledgements)
+  - [References](#references)
 
-## 4. Introduction
+## Introduction
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described below. These definitions aim to ensure that the terms are understood precisely and consistently to avoid confusion in the interpretation of standards, specifications, and protocols.
-## 5. Definitions
+## Definitions
 
 ### MUST
 
@@ -106,7 +113,7 @@ A software platform that receives transaction requests from a BAP, processes the
 
 ### NFH (Networks for Humanity Foundation)
 
-The foundation that governs, hosts, and evolves the Universal Value-exchange Fabric. NFH publishes the canonical Beckn Protocol Specification and operates the shared infrastructure that Beckn network participants connect to.
+The foundation that governs, hosts, and evolves the Universal Value-exchange Fabric. NFH publishes the canonical Beckn Protocol Specification and operates the shared infrastructure that Beckn network participants connect to. It was previously known as Foundation for Interoperability in Digital Economy, which was previously known as Beckn Foundation. 
 
 ### Fabric
 
@@ -140,15 +147,15 @@ The definitions provided in this document are intended to clarify the interpreta
 
 > Note : This document is subject to change and may be updated to include additional terms or to refine existing definitions.
 
-## 6. Conclusion
+## Conclusion
 
 The Beckn protocol stack provides a consistent implementation model by separating networking, trust, structural data validation, semantic interpretation, policy enforcement, and application behavior into explicit layers. Future standardization work may still be useful for formal actor capability profiles and policy-layer conformance profiles across networks, but these questions do not change the stack definition established here.
 
-## 7. Acknowledgements
+## Acknowledgements
 
 This RFC reflects contributions from Beckn Protocol contributors who developed and reviewed the architecture, interoperability, and trust-model guidance represented in this stack description.
 
-## 8. References
+## References
 
 - Click [here](./00_Keyword_Definitions.md)
 - Click [here](../api/v2.0.0/beckn.yaml)
