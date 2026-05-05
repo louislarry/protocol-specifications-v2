@@ -4,30 +4,80 @@ info:
   description: |
     The Beckn Protocol API v2.0.0 — an OpenAPI 3.1.1 specification defining one named path per Beckn protocol action.
 
-    ## Network Actors
+    ## Scope
+    Designed for interoperability across any value-exchange use case across any industry sector including but not necessarily limited to retail, mobility, logistics, energy, healthcare, skilling, financial services, carbon trading, hiring, and data exchange.
 
-    - **BAP** (Beckn Application Platform) — consumer-side participant that initiates discovery and transaction actions.
-    - **BPP** (Beckn Provider Platform) — provider-side participant that responds to discovery and transaction actions.
-    - **DS** (Discovery Service) — Open Network participant that maintains a synchronized catalog index and handles `discover` / `on_discover` exchanges with BAPs.
-    - **CS** (Cataloging Service) — Fabric service that receives, validates, and indexes catalogs published by BPPs, and synchronizes them to the DS.
-    - **Registry** — Fabric service used by all participants for identity, endpoint, and key resolution.
+    ## Value-exchange Flows (Normative)
 
-    ## Common Preconditions
+    - **Discovery**: Catalog publishing, Catalog discovery and browsing
+    - **Contracting (previously called Ordering)**: Price negotiation, Terms negotiation, Contract agreement
+    - **Performance (previously called Fulfillment)** : Status updates, real-time tracking, contract cancellation / termination, contract amendment 
+    - **Post-performance (previously called Post-fulfillment)**: Rating, feedback, and support
 
+    ## Fabric Actors (Normative)
+
+    Any actor on the fabric participating in a value-exchange transaction MUST be one of the following:
+
+    1. **Consumer:** A verified entity on the fabric that seeks to obtain an item of value (Resource) from a provider who owns that resource. 
+
+    2. **Provider:** A verified entity on the fabric that provides the item of value (Resource) to the consumer who wants that resource.
+
+    3. **Beckn Application Platform (BAP)** — A verified, on-fabric application that onboards consumers or consumer-facing agents as clients by creating or verifying their identity on the fabric. It initiates value-exchange transactions on behalf of its clients. It MUST provide an addressable endpoint to routing incoming messages to the respective consumers it onboards. It SHOULD implement a client-facing interface for discovery, contracting, fulfillment and post-fulfillment workflows. 
+
+    4. **Beckn Provider Platform (BPP)** — A verified, on-fabric application that onboards providers or provider-facing agents as clients by creating or verifying their identity on the fabric. Its network-facing API MUST implement the Beckn Protocol endpoints that receive value-exchange requests from calling BAPs and respond to them via asynchronous callback endpoints implemented by the BAPs. It MUST provide an addressable endpoint to routing incoming messages to the respective providers it has onboarded. It SHOULD provide a client-facing interface for publishing and managing catalogs, contracts, fulfillments, ratings, feedback, and providing support to BAPs.
+
+    5. **Discovery Service (DS)**: — A verified on-fabric application that enables discovery of catalogs only accessible via BAPs. Its network-facing API MUST implement the Beckn Protocol API endpoints that receive catalog discovery requests from BAPs and asynchronously respond with catalogs from various providers. It MUST subscribe to updates from the fabric cataloging service (see next section), and ensure the catalog it has is the most recent. It MAY be implemented as an independent SaaS for BAPs to consume, or implemented by the BAPs themselves.
+
+    6. **Network Facilitator Organization (NFO)** — Entity that manages a subnet on the fabric consisting of BAPs, BPPs, and DSes. 
+
+    The above actors can exist as separate applications with distinct fabric identities, or can be bundled inside a single application. Each role MUST have a separate identity and public key on the fabric, even if they are all implemented of a single platform.
+
+    ## Required Infrastructure Building Blocks (Threads)
+    To perform trusted value-exchange, NPs MUST consume the following services provided on the Fabric. These services are a species of one, and MUST NOT be implemented on any subnet inside the fabric, only consumed.
+
+    1. **NS** (Namespacing Service) — Identity service provided to all NPs to create their unique and verified identity and establish their presence on the fabric. Powered by dedi.global, an implementation of dedi protocol. 
+
+    2. **GRR** (Global Root Registry) — Global identity and address lookup service used by all NPs.
+    
+    3. **CS** (Cataloging Service) — Common service provided to all NPs for programmable catalog discoverability.
+
+    **Note:** Both the Namespacing Service and Global Root Registry service MUST be consumed using dedi protocol API. The API for consuming the Namespacing and Global Root Registry services are out of scope of this API specification and can be found in the dedi protocol documentation. 
+
+    ## Prerequisites for Production
+
+    1. **Namespace creation** — Every actor (Consumer, Provider, NFO, BAP, BPP, DS) MUST claim a unique namespace on the fabric created via the namespacing service. For consumers and providers, the namespace can be created by themselves, or by the BAPs and BPPs that have respectively onboarded them. 
+
+    2. **Network address registration** — BAPs and BPPs that are onboarding their respective users (consumers and providers) MUST ensure that their addresses are properly registered on their respective users' namespaces. 
+
+    3. **Subnet registration** — Actors participating in a fabric subnet MUST register their network identifier and relevant addresses on the registry managed by that subnet's NFO in its own namespace.
+
+
+    ## Common Implementation Requirements
     The following apply to every request in this specification unless an endpoint states otherwise:
 
-    1. **Registry registration** — the caller (BAP, BPP, DS, or CS) MUST be registered on the Beckn Registry before making any call.
-    2. **Beckn HTTP Signature** — every request MUST carry a valid Beckn HTTP Signature in the `Authorization` header.
-
-    ## Request Envelope
-
-    Every request and callback body MUST conform to the Beckn envelope:
+    1. **Payload Structure** — Every request and callback body MUST conform to the Beckn envelope:
 
     ```json
     { "context": { ... }, "message": { ... } }
     ```
 
-    The `context` object MUST include at minimum `action`, `version`, `transactionId`, and `messageId`. The `message` object carries the action-specific payload defined by the path's request schema.
+    2. **Context** —  The `context` object MUST include at minimum:
+    ```
+    - `action`, 
+    - `version` (always set to 2.0.0)
+    - `transactionId`
+    - `messageId`
+    - `bapId` or `bppId`
+    ```
+    3. **`context.try`** — The `context.try` property when set to `true`, allows a requesting NP to preview the consequences of an action before committing to that action. 
+    - This field is applicable to `update / on_update` and `cancel / on_cancel` endpoints ONLY. 
+    - NPs MUST NOT send this flag, or if sent, completely ignore the value of this flag in other endpoints. 
+    - When the caller wants to commit the request, it MUST set the `context.try` to `false`, with the `context.requestDigest` containing the digest of the previous payload that it received as a response to the request with `try` set to true. If this value is not sent, the receiver NP MUST return a NACK with an appropriate error.
+    - This is to ensure that NPs are not directly committing requests that without knowing the consequences of that operation. 
+
+    4. **Message** — The `message` object carries the action-specific payload defined by the path's request schema.
+
+    5. **Beckn HTTP Signature** — Every request MUST carry a valid Beckn HTTP Signature in the `Authorization` header.
 
     ## Standard Response Families
 
@@ -41,26 +91,6 @@ info:
     | 401 | **NackUnauthorized** | The Beckn HTTP Signature is absent, expired, or fails Registry key verification. The implementer MUST NOT process the request; the caller MUST obtain a valid signature before retrying. |
     | 500 | **ServerError** | An unexpected internal failure occurred. The caller SHOULD treat this as transient and MAY retry after a backoff interval. |
 
-    ## Transaction Lifecycle
-
-    ```
-    discover → on_discover
-    select → on_select → init → on_init → confirm → on_confirm
-    → [status / on_status]* → [update / on_update]* → [cancel / on_cancel]?
-    → [track / on_track]* → rate / on_rate → support / on_support
-    ```
-
-    ## `context.try` — Sandbox Mode
-
-    The `try` flag on the `Context` object indicates sandbox mode:
-    - `context.try: true` — simulate consequences without changing state.
-    - `context.try: false` (default) — commit the action.
-
-    Applicable to `update`, `cancel`, `rate`, and `support` actions.
-
-    ## Scope
-
-    Designed for interoperability across value-exchange use cases: retail, mobility, logistics, energy, healthcare, skilling, financial services, carbon trading, hiring, data licensing, and other domains built on Beckn.
   version: 2.0.0
   contact:
     name: Beckn Protocol
@@ -70,65 +100,23 @@ info:
     url: https://creativecommons.org/licenses/by-nc-sa/4.0/deed.en
 tags:
 - name: Discovery
-  description: Discover catalogs across a Beckn network
-- name: Transaction
-  description: Select, negotiate, confirm and manage contracts
+  description: Discover catalogs published by providers
+- name: Contracting / Ordering
+  description: Negotiate and agree on pricing, terms and establish dual-digitally signed contracts
 - name: Fulfillment
   description: Track, update and cancel active contracts
 - name: Post-Fulfillment
   description: Rate and support completed contracts
-- name: Catalog Publishing
-  description: Publish catalogs to the Cataloging Service (CS) on the Fabric
-- name: Subscription
-  description: 'Beckn v2.0 catalog subscription management.
-
-    Subscriptions determine which networks and schema types a BAP receives
-
-    `on_discover` callbacks for. Only `ACTIVE` subscriptions are matched
-
-    during evaluation.
-
-    '
-- name: Catalog Pull
-  description: 'Async catalog pull API hosted on the CS (Cataloging Service).
-
-    The BAP POSTs a pull request and receives an immediate ACK with a `requestId`.
-
-    The actual catalog data is delivered asynchronously via HTTP callback to
-
-    `{bapUri}/on_catalog_pull`.
-
-
-    Two delivery modes:
-
-    - **FULL** — latest version of each matching catalog
-
-    - **INCREMENTAL** — all versions within a date range (`fromDate`/`toDate`)
-
-
-    Large payloads exceeding the configured inline threshold are written to disk
-
-    and served via `GET /catalog/pull/result/{requestId}/catalogs.json`; the
-
-    callback''s `objectUrl` field carries the download URL and `sha256` checksum.
-
-    '
-- name: Master Resource Search
-  description: 'Query APIs for master catalog items stored in the CS (Cataloging Service).
-
-    All endpoints return a Beckn v2.0 response envelope with
-
-    `action: "on_catalog_master_search"`.
-
-    '
+- name: Fabric API - Cataloging Service
+  description: Publish catalogs to the Cataloging Service (CS) on the Fabric and subscribe to catalog updates. 
 security: []
 servers:
 - url: https://{subscriberUrl}
-  description: Base URL of the Beckn network participant endpoint. Implementations MUST substitute `{subscriberUrl}` with the actual registered subscriber URL obtained from the Beckn Registry.
+  description: Base URL of the Beckn network participant endpoint. Implementations MUST substitute `{subscriberUrl}` with the subscriber_url returned by the subnet registry lookup for the NP's namespace id and networkId.
   variables:
     subscriberUrl:
       default: example.beckn.io
-      description: Registered subscriber URL of the Beckn network participant (BAP or BPP) as published in the Beckn Registry.
+      description: Network address of the NP, resolved via the subnet registry lookup using the NP's namespace id and networkId.
 paths:
   /discover:
     post:
@@ -178,8 +166,12 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '403':
+          $ref: '#/components/responses/NackDiscretionary'
         '409':
           $ref: '#/components/responses/AckNoCallback'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -228,6 +220,8 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -249,7 +243,7 @@ paths:
         \ NackBadRequest, NackUnauthorized, ServerError."
       operationId: select
       tags:
-      - Transaction
+      - Contracting / Ordering
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
@@ -279,8 +273,12 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '403':
+          $ref: '#/components/responses/NackDiscretionary'
         '409':
           $ref: '#/components/responses/AckNoCallback'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -301,7 +299,7 @@ paths:
         \ NackUnauthorized, ServerError."
       operationId: onSelect
       tags:
-      - Transaction
+      - Contracting / Ordering
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
@@ -331,6 +329,8 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -352,7 +352,7 @@ paths:
         \ ServerError."
       operationId: init
       tags:
-      - Transaction
+      - Contracting / Ordering
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
@@ -382,8 +382,12 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '403':
+          $ref: '#/components/responses/NackDiscretionary'
         '409':
           $ref: '#/components/responses/AckNoCallback'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -405,7 +409,7 @@ paths:
         \ /confirm.\n\nResponse codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
       operationId: onInit
       tags:
-      - Transaction
+      - Contracting / Ordering
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
@@ -435,6 +439,8 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -457,7 +463,7 @@ paths:
         \ ServerError."
       operationId: confirm
       tags:
-      - Transaction
+      - Contracting / Ordering
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
@@ -487,8 +493,12 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '403':
+          $ref: '#/components/responses/NackDiscretionary'
         '409':
           $ref: '#/components/responses/AckNoCallback'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -511,7 +521,7 @@ paths:
         \ ServerError."
       operationId: onConfirm
       tags:
-      - Transaction
+      - Contracting / Ordering
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
@@ -541,6 +551,8 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -593,8 +605,12 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '403':
+          $ref: '#/components/responses/NackDiscretionary'
         '409':
           $ref: '#/components/responses/AckNoCallback'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -649,6 +665,8 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -702,8 +720,12 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '403':
+          $ref: '#/components/responses/NackDiscretionary'
         '409':
           $ref: '#/components/responses/AckNoCallback'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -754,6 +776,8 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -769,8 +793,10 @@ paths:
         \ When context.try is set to true, the BAP is requesting a preview of the\
         \ updated terms without committing state; the BPP MUST respond via /on_update\
         \ with recalculated terms but MUST NOT change any persistent state. When context.try\
-        \ is false (the default), the BAP commits the update and the BPP MUST apply\
-        \ the change and respond with the confirmed updated contract.\n\nCallback relationship:\
+        \ is false (the default), the BAP MUST include context.requestDigest containing\
+        \ the digest of the on_update preview response it received; if context.requestDigest\
+        \ is absent or does not match, the BPP MUST return a NackBadRequest. The BPP\
+        \ MUST apply the change and respond with the confirmed updated contract.\n\nCallback relationship:\
         \ After processing the update request, the BPP MUST send an /on_update callback\
         \ to the BAP. When context.try was true, the callback carries updated terms\
         \ without state change. When context.try was false, the callback carries the\
@@ -810,8 +836,12 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '403':
+          $ref: '#/components/responses/NackDiscretionary'
         '409':
           $ref: '#/components/responses/AckNoCallback'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -866,6 +896,8 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -882,8 +914,10 @@ paths:
         \ requesting applicable cancellation terms (such as refund policy and penalties)\
         \ without committing to cancellation; the BPP MUST respond via /on_cancel\
         \ with the applicable policy without changing state. When context.try is false\
-        \ (the default), the BAP commits the cancellation and the BPP MUST cancel\
-        \ the contract and respond with the cancelled contract.\n\nCallback relationship:\
+        \ (the default), the BAP MUST include context.requestDigest containing the\
+        \ digest of the on_cancel preview response it received; if context.requestDigest\
+        \ is absent or does not match, the BPP MUST return a NackBadRequest. The BPP\
+        \ MUST cancel the contract and respond with the cancelled contract.\n\nCallback relationship:\
         \ After processing the cancellation request, the BPP MUST send an /on_cancel\
         \ callback to the BAP. When context.try was true, the callback carries the\
         \ applicable cancellation policy without state change. When context.try was\
@@ -923,8 +957,12 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '403':
+          $ref: '#/components/responses/NackDiscretionary'
         '409':
           $ref: '#/components/responses/AckNoCallback'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -978,6 +1016,8 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -986,21 +1026,17 @@ paths:
       summary: BAP submits ratings for one or more entities
       description: "The BAP submits one or more rating inputs to the BPP for ratable\
         \ entities associated with a completed contract, including the contract itself,\
-        \ fulfillment stages, individual resources, the provider, agents, and support\
+        \ performance stages, individual resources, the provider, agents, and support\
         \ interactions.\n\nAdditional preconditions: The contract for which ratings\
         \ are being submitted MUST have reached a terminal state (COMPLETE or CANCELLED)\
         \ and the BAP MUST hold the confirmed Contract id.\n\nThe message MUST contain\
         \ a RateAction with a ratingInputs array. Each RatingInput MUST identify the\
-        \ target entity being rated. When context.try is set to true, the BAP is requesting\
-        \ a preview of the rating form and criteria without recording any rating; the\
-        \ BPP MUST NOT persist any rating data. When context.try is false (the default),\
-        \ the BPP MUST record the submitted ratings.\n\nCallback relationship: After\
-        \ processing the rating, the BPP MUST send an /on_rate callback to the BAP.\
-        \ When context.try was true, the callback returns the rating form and criteria\
-        \ without recording. When context.try was false, the callback confirms the\
-        \ ratings were recorded and optionally returns an aggregate rating snapshot.\
-        \ The BAP MUST correlate the callback using the messageId from Context.\n\n\
-        Response codes: Ack, AckNoCallback, NackBadRequest, NackUnauthorized, ServerError."
+        \ target entity being rated. The BPP MUST record the submitted ratings.\n\n\
+        Callback relationship: After processing the rating, the BPP MUST send an /on_rate\
+        \ callback to the BAP confirming the ratings were recorded and optionally returning\
+        \ an aggregate rating snapshot. The BAP MUST correlate the callback using the\
+        \ messageId from Context.\n\nResponse codes: Ack, AckNoCallback, NackBadRequest,\
+        \ NackUnauthorized, ServerError."
       operationId: rate
       tags:
       - Post-Fulfillment
@@ -1033,28 +1069,28 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '403':
+          $ref: '#/components/responses/NackDiscretionary'
         '409':
           $ref: '#/components/responses/AckNoCallback'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
   /on_rate:
     post:
       summary: BPP acknowledges rating and optionally returns aggregate
-      description: "The BPP calls this endpoint on the BAP, either returning the rating\
-        \ form and criteria (when responding to a preview request) or confirming that\
-        \ the submitted ratings have been recorded and optionally returning aggregate\
-        \ rating data.\n\nAdditional preconditions: A /rate request MUST have been\
-        \ sent by the BAP and accepted (200 Ack) by the BPP before this callback is\
-        \ triggered.\n\nThe message MUST contain an OnRateAction with a ratings array.\
-        \ When context.try was true in the originating /rate request, the array carries\
-        \ rating form structures and criteria without any recorded data. When context.try\
-        \ was false, the array carries confirmation of the recorded ratings and MAY\
-        \ include aggregate rating snapshots for the rated entities.\n\nCallback relationship:\
-        \ This endpoint is triggered by the BPP in response to a /rate request. The\
-        \ BAP MUST use the messageId in Context to correlate this callback with the\
-        \ originating /rate call.\n\nResponse codes: Ack, NackBadRequest, NackUnauthorized,\
-        \ ServerError."
+      description: "The BPP calls this endpoint on the BAP, confirming that the submitted\
+        \ ratings have been recorded and optionally returning aggregate rating data.\n\
+        \nAdditional preconditions: A /rate request MUST have been sent by the BAP\
+        \ and accepted (200 Ack) by the BPP before this callback is triggered.\n\n\
+        The message MUST contain an OnRateAction with a ratings array carrying confirmation\
+        \ of the recorded ratings and MAY include aggregate rating snapshots for the\
+        \ rated entities.\n\nCallback relationship: This endpoint is triggered by the\
+        \ BPP in response to a /rate request. The BAP MUST use the messageId in Context\
+        \ to correlate this callback with the originating /rate call.\n\nResponse codes:\
+        \ Ack, NackBadRequest, NackUnauthorized, ServerError."
       operationId: onRate
       tags:
       - Post-Fulfillment
@@ -1087,31 +1123,28 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
   /support:
     post:
       summary: BAP requests support information for an entity
-      description: "The BAP requests support channel information or raises a support\
-        \ ticket from the BPP for any entity associated with a contract, using the\
-        \ context.try two-phase pattern to either preview available channels or submit\
-        \ a support request.\n\nAdditional preconditions: The BAP MUST hold a confirmed\
-        \ Contract id or a reference to another supported entity before this endpoint\
-        \ may be called.\n\nThe message MUST contain a SupportAction with a Support\
-        \ object that describes the nature of support needed and the reference to the\
-        \ entity requiring support. The Support object is not limited to contracts\
-        \ and MAY reference resources, providers, or agents. When context.try is set\
-        \ to true, the BAP is requesting available support channels without creating\
-        \ a ticket; the BPP MUST NOT create or link any ticket. When context.try is\
-        \ false (the default), the BPP MUST create or link a support ticket and return\
-        \ the details.\n\nCallback relationship: After processing the support request,\
-        \ the BPP MUST send an /on_support callback to the BAP. When context.try was\
-        \ true, the callback returns available support channels without any ticket.\
-        \ When context.try was false, the callback returns support contact details\
-        \ and the created or linked ticket information. The BAP MUST correlate the\
-        \ callback using the messageId from Context.\n\nResponse codes: Ack, AckNoCallback,\
-        \ NackBadRequest, NackUnauthorized, ServerError."
+      description: "The BAP requests support from the BPP for any entity associated\
+        \ with a contract by submitting a support request that the BPP uses to create\
+        \ or link a support ticket.\n\nAdditional preconditions: The BAP MUST hold\
+        \ a confirmed Contract id or a reference to another supported entity before\
+        \ this endpoint may be called.\n\nThe message MUST contain a SupportAction\
+        \ with a Support object that describes the nature of support needed and the\
+        \ reference to the entity requiring support. The Support object is not limited\
+        \ to contracts and MAY reference resources, providers, or agents. The BPP MUST\
+        \ create or link a support ticket and return the details.\n\nCallback relationship:\
+        \ After processing the support request, the BPP MUST send an /on_support callback\
+        \ to the BAP returning support contact details and the created or linked ticket\
+        \ information. The BAP MUST correlate the callback using the messageId from\
+        \ Context.\n\nResponse codes: Ack, AckNoCallback, NackBadRequest, NackUnauthorized,\
+        \ ServerError."
       operationId: support
       tags:
       - Post-Fulfillment
@@ -1144,27 +1177,27 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '403':
+          $ref: '#/components/responses/NackDiscretionary'
         '409':
           $ref: '#/components/responses/AckNoCallback'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
   /on_support:
     post:
       summary: BPP returns support details
-      description: "The BPP calls this endpoint on the BAP, delivering either the\
-        \ available support channels (when responding to a preview request) or the\
-        \ full support contact details including created or linked ticket information\
-        \ (when responding to a committed support request).\n\nAdditional preconditions:\
-        \ A /support request MUST have been sent by the BAP and accepted (200 Ack)\
-        \ by the BPP before this callback is triggered.\n\nThe message MUST contain\
-        \ an OnSupportAction with a Support object. When context.try was true in the\
-        \ originating /support request, the Support object carries available channels\
-        \ without any ticket. When context.try was false, the Support object carries\
-        \ support contact details and the created or linked ticket reference.\n\nCallback\
-        \ relationship: This endpoint is triggered by the BPP in response to a /support\
-        \ request. The BAP MUST use the messageId in Context to correlate this callback\
-        \ with the originating /support call and SHOULD present the support information\
+      description: "The BPP calls this endpoint on the BAP, delivering the full support\
+        \ contact details including the created or linked ticket information.\n\nAdditional\
+        \ preconditions: A /support request MUST have been sent by the BAP and accepted\
+        \ (200 Ack) by the BPP before this callback is triggered.\n\nThe message MUST\
+        \ contain an OnSupportAction with a Support object carrying support contact\
+        \ details and the created or linked ticket reference.\n\nCallback relationship:\
+        \ This endpoint is triggered by the BPP in response to a /support request.\
+        \ The BAP MUST use the messageId in Context to correlate this callback with\
+        \ the originating /support call and SHOULD present the support information\
         \ to the consumer.\n\nResponse codes: Ack, NackBadRequest, NackUnauthorized,\
         \ ServerError."
       operationId: onSupport
@@ -1199,6 +1232,8 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -1219,7 +1254,7 @@ paths:
         \ NackBadRequest, NackUnauthorized, ServerError."
       operationId: catalogPublish
       tags:
-      - Catalog Publishing
+      - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
@@ -1251,8 +1286,12 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '403':
+          $ref: '#/components/responses/NackDiscretionary'
         '409':
           $ref: '#/components/responses/AckNoCallback'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -1274,7 +1313,7 @@ paths:
         Response codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
       operationId: catalogOnPublish
       tags:
-      - Catalog Publishing
+      - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
@@ -1306,6 +1345,8 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -1314,7 +1355,7 @@ paths:
       summary: Subscribe to catalog distribution events
       operationId: catalogSubscribe
       tags:
-      - Subscription
+      - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       description: "The BAP creates a new catalog subscription on the DS (Discovery\
@@ -1399,19 +1440,21 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
   /catalog/subscriptions:
     get:
-      summary: List subscriptions for a subscriber
+      summary: List catalog subscriptions for a BAP
       description: "The BAP retrieves all catalog subscriptions associated with a\
-        \ given subscriber identifier from the DS (Discovery Service), with optional\
+        \ given BAP identifier from the DS (Discovery Service), with optional\
         \ pagination.\n\nAdditional preconditions: The subscriberId query parameter\
         \ MUST be supplied.\n\nResponse codes: Ack, NackBadRequest, ServerError."
       operationId: catalogSubscribeList
       tags:
-      - Subscription
+      - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       - name: subscriberId
@@ -1453,6 +1496,8 @@ paths:
                         $ref: '#/components/schemas/Pagination'
         '400':
           $ref: '#/components/responses/NackBadRequest'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -1465,7 +1510,7 @@ paths:
         \ NackUnauthorized, ServerError."
       operationId: catalogSubscribeGet
       tags:
-      - Subscription
+      - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       - name: subscriptionId
@@ -1510,13 +1555,15 @@ paths:
           $ref: '#/components/responses/NackUnauthorized'
         '404':
           $ref: '#/components/responses/NackBadRequest'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
     delete:
       summary: Delete (deactivate) subscription
       operationId: catalogSubscribeDelete
       tags:
-      - Subscription
+      - Fabric API - Cataloging Service
       description: "The BAP deactivates a catalog subscription on the DS (Discovery\
         \ Service) by setting its status to DELETED.\n\nAdditional preconditions:\
         \ The subscriptionId path parameter MUST be a valid UUID.\n\nResponse codes:\
@@ -1565,6 +1612,8 @@ paths:
           $ref: '#/components/responses/NackUnauthorized'
         '404':
           $ref: '#/components/responses/NackBadRequest'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -1572,7 +1621,7 @@ paths:
     post:
       operationId: catalogPull
       tags:
-      - Catalog Pull
+      - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       summary: Submit async catalog pull request
@@ -1633,6 +1682,8 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -1640,7 +1691,7 @@ paths:
     get:
       operationId: getPullResult
       tags:
-      - Catalog Pull
+      - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       - name: requestId
@@ -1695,7 +1746,7 @@ paths:
         Response codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
       operationId: masterSearch
       tags:
-      - Master Resource Search
+      - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
@@ -1754,6 +1805,8 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -1766,7 +1819,7 @@ paths:
         \ Ack, NackUnauthorized, ServerError."
       operationId: listMasterSchemaTypes
       tags:
-      - Master Resource Search
+      - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       responses:
@@ -1799,6 +1852,8 @@ paths:
                           type: string
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -1812,7 +1867,7 @@ paths:
         \nResponse codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
       operationId: getMasterItem
       tags:
-      - Master Resource Search
+      - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       - name: masterItemId
@@ -1856,6 +1911,8 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '404':
           $ref: '#/components/responses/NackBadRequest'
+        '429':
+          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 components:
@@ -1875,7 +1932,7 @@ components:
       description: "The real-world act by which the BAP expresses the consumer's\
         \ intent to cancel an active contract, optionally entering a preview phase\
         \ to retrieve applicable cancellation terms before committing to the cancellation.\n\
-        \nThis schema appears in the fulfillment and post-fulfillment phases of the\
+        \nThis schema appears in the performance and post-performance phases of the\
         \ value-exchange lifecycle. The BAP produces it as the message payload of a\
         \ /cancel request; the BPP consumes it to determine whether to preview cancellation\
         \ terms (context.try true) or execute the cancellation (context.try false).\n\
@@ -2057,8 +2114,8 @@ components:
       description: "The real-world act by which the BPP returns the outcome of a\
         \ cancellation request to the BAP, either presenting the applicable cancellation\
         \ policy when in preview mode or confirming the executed cancellation with\
-        \ the terminal contract state.\n\nThis schema appears in the fulfillment and\
-        \ post-fulfillment phases of the value-exchange lifecycle. The BPP produces\
+        \ the terminal contract state.\n\nThis schema appears in the performance and\
+        \ post-performance phases of the value-exchange lifecycle. The BPP produces\
         \ it as the message payload of an /on_cancel callback; the BAP consumes it\
         \ to inform the consumer of cancellation terms or to update the locally held\
         \ contract state to CANCELLED.\n\nRelationship: Composes the Contract schema\
@@ -2140,7 +2197,7 @@ components:
       description: "The real-world act by which the BPP returns the outcome of a\
         \ rating request to the BAP, either delivering rating form definitions and\
         \ criteria when in preview mode or confirming that the submitted ratings have\
-        \ been recorded.\n\nThis schema appears in the post-fulfillment phase of the\
+        \ been recorded.\n\nThis schema appears in the post-performance phase of the\
         \ value-exchange lifecycle. The BPP produces it as the message payload of\
         \ an /on_rate callback; the BAP consumes it to confirm to the consumer that\
         \ ratings were accepted or to render the rating form when in preview mode.\n\
@@ -2180,7 +2237,7 @@ components:
       description: "The real-world act by which the BPP communicates the current\
         \ state of an active contract to the BAP, either in response to a status query\
         \ or as a proactive push notification for a significant state transition.\n\
-        \nThis schema appears in the fulfillment phase of the value-exchange lifecycle.\
+        \nThis schema appears in the performance phase of the value-exchange lifecycle.\
         \ The BPP produces it as the message payload of an /on_status callback; the\
         \ BAP consumes it to update the displayed contract state for the consumer.\
         \ This schema covers significant lifecycle state changes only; real-time position\
@@ -2201,7 +2258,7 @@ components:
         \ to the BAP, either delivering a list of available support channels when in\
         \ preview mode or providing full support contact details and a created or linked\
         \ ticket when a support request has been submitted.\n\nThis schema appears\
-        \ in the post-fulfillment phase of the value-exchange lifecycle. The BPP produces\
+        \ in the post-performance phase of the value-exchange lifecycle. The BPP produces\
         \ it as the message payload of an /on_support callback; the BAP consumes it\
         \ to connect the consumer with the appropriate support channel or ticket.\n\
         \nRelationship: Composes the Support schema as its primary carrier. The Support\
@@ -2219,7 +2276,7 @@ components:
       description: "The real-world act by which the BPP delivers a real-time tracking\
         \ handle to the BAP, providing the URL or WebSocket endpoint through which\
         \ the consumer may monitor live position and progress updates for an active\
-        \ fulfillment stage.\n\nThis schema appears in the fulfillment phase of the\
+        \ fulfillment stage.\n\nThis schema appears in the performance phase of the\
         \ value-exchange lifecycle. The BPP produces it as the message payload of\
         \ an /on_track callback; the BAP consumes it to open the tracking connection\
         \ and expose real-time progress to the consumer.\n\nRelationship: Composes\
@@ -2240,7 +2297,7 @@ components:
         \ contract mutation to the BAP, either returning recalculated terms without\
         \ state change (preview mode) or confirming the committed updated contract\
         \ state, which may also be sent proactively for provider-initiated mutations.\n\
-        \nThis schema appears in the fulfillment phase of the value-exchange lifecycle.\
+        \nThis schema appears in the performance phase of the value-exchange lifecycle.\
         \ The BPP produces it as the message payload of an /on_update callback; the\
         \ BAP consumes it to update the locally held contract state or to present\
         \ revised terms to the consumer before committing.\n\nRelationship: Composes\
@@ -2259,12 +2316,12 @@ components:
       description: "The real-world act by which the BAP submits one or more consumer\
         \ ratings for entities associated with a completed contract, including the\
         \ contract itself, fulfillment stages, individual resources, the provider,\
-        \ agents, and support interactions.\n\nThis schema appears in the post-fulfillment\
+        \ agents, and support interactions.\n\nThis schema appears in the post-performance\
         \ phase of the value-exchange lifecycle. The BAP produces it as the message\
-        \ payload of a /rate request; the BPP consumes it to record or preview the\
-        \ ratings depending on the context.try flag.\n\nRelationship: Composes one\
-        \ or more RatingInput schemas in the required ratingInputs array. Each RatingInput\
-        \ MUST identify the target entity being rated and MUST include a scoring range."
+        \ payload of a /rate request; the BPP consumes it to record the submitted\
+        \ ratings.\n\nRelationship: Composes one or more RatingInput schemas in the\
+        \ required ratingInputs array. Each RatingInput MUST identify the target entity\
+        \ being rated and MUST include a scoring range."
       type: object
       additionalProperties: false
       properties:
@@ -2299,7 +2356,7 @@ components:
       description: "The real-world act by which the BAP polls the BPP for the current\
         \ state of an active contract by providing its identifier, triggering the\
         \ BPP to return the latest fulfillment and lifecycle state.\n\nThis schema\
-        \ appears in the fulfillment phase of the value-exchange lifecycle. The BAP\
+        \ appears in the performance phase of the value-exchange lifecycle. The BAP\
         \ produces it as the message payload of a /status request; the BPP consumes\
         \ it to locate the contract and return its current state via /on_status. BAPs\
         \ SHOULD NOT use repeated status calls for continuous monitoring; the BPP\
@@ -2317,17 +2374,14 @@ components:
 
     SupportAction:
       title: Support Action
-      description: "The real-world act by which the BAP requests support channel\
-        \ information or initiates a support ticket from the BPP for any entity associated\
-        \ with a contract, using the context.try pattern to either preview available\
-        \ channels or submit a support request.\n\nThis schema appears in the post-fulfillment\
-        \ phase of the value-exchange lifecycle. The BAP produces it as the message\
-        \ payload of a /support request; the BPP consumes it to determine whether\
-        \ to preview support channels (context.try true) or to create or link a ticket\
-        \ (context.try false).\n\nRelationship: Composes the Support schema as its\
-        \ primary carrier. The Support object MUST carry a descriptor describing the\
-        \ nature of the support needed and at least one channel entry when responding\
-        \ to a preview request."
+      description: "The real-world act by which the BAP requests support from the\
+        \ BPP for any entity associated with a contract, submitting a support request\
+        \ that the BPP uses to create or link a support ticket.\n\nThis schema appears\
+        \ in the post-performance phase of the value-exchange lifecycle. The BAP produces\
+        \ it as the message payload of a /support request; the BPP consumes it to\
+        \ create or link a support ticket and return the details.\n\nRelationship:\
+        \ Composes the Support schema as its primary carrier. The Support object MUST\
+        \ carry a descriptor describing the nature of the support needed."
       type: object
       additionalProperties: false
       properties:
@@ -2341,7 +2395,7 @@ components:
       description: "The real-world act by which the BAP requests a real-time tracking\
         \ handle from the BPP for an active fulfillment or performance stage of a\
         \ confirmed contract, enabling the consumer to monitor live position and progress\
-        \ updates.\n\nThis schema appears in the fulfillment phase of the value-exchange\
+        \ updates.\n\nThis schema appears in the performance phase of the value-exchange\
         \ lifecycle. The BAP produces it as the message payload of a /track request;\
         \ the BPP consumes it to identify the performance stage and return an appropriate\
         \ tracking handle via /on_track.\n\nRelationship: Composes the Tracking schema\
@@ -2361,7 +2415,7 @@ components:
         \ active contract, which may include changes to committed resources, quantities,\
         \ billing details, performance preferences, or payment arrangements, using\
         \ the context.try pattern to preview or commit the change.\n\nThis schema\
-        \ appears in the fulfillment phase of the value-exchange lifecycle. The BAP\
+        \ appears in the performance phase of the value-exchange lifecycle. The BAP\
         \ produces it as the message payload of an /update request; the BPP consumes\
         \ it to compute revised terms (when context.try is true) or to apply and confirm\
         \ the mutation (when context.try is false).\n\nRelationship: Composes the\
@@ -2658,9 +2712,12 @@ components:
             for all requests conforming to this specification.
           const: 2.0.0
         bapId:
-          description: The globally unique subscriber identifier of the BAP, assigned
-            by the Beckn Registry and used by receiving actors to look up the BAP's
-            registered public key for signature verification.
+          description: Verified namespace identifier of the BAP on dedi.global. Receiving actors MUST
+            resolve the BAP's address and key material by first resolving the subnet
+            registry URL from context.networkId, then calling the subnet registry's
+            lookup endpoint with context.bapId and context.networkId. The subscriber_url
+            field in the response is the BAP's network address; the key material is
+            used for signature verification.
           type: string
         senderId:
           description: The globally unique decentralized identifier (DID) of the
@@ -2669,21 +2726,22 @@ components:
           type: string
         bapUri:
           description: The callback base URL of the BAP to which the BPP or Fabric
-            service MUST deliver asynchronous callbacks. This MUST match the URL registered
-            for the BAP in the Beckn Registry and MUST use the same domain name verified
-            in the BAP's namespace on the registry.
+            service MUST deliver asynchronous callbacks. This MUST match the subscriber_url
+            returned by the subnet registry lookup for context.bapId and context.networkId.
           type: string
           format: uri
         bppId:
-          description: The globally unique subscriber identifier of the BPP, assigned
-            by the Beckn Registry and used by the BAP to look up the BPP's registered
-            public key for signature verification of callbacks.
+          description: Verified namespace identifier of the BPP on dedi.global. Calling actors MUST
+            resolve the BPP's address and key material by first resolving the subnet
+            registry URL from context.networkId, then calling the subnet registry's
+            lookup endpoint with context.bppId and context.networkId. The subscriber_url
+            field in the response is the BPP's network address; the key material is
+            used for signature verification.
           type: string
         bppUri:
           description: The request base URL of the BPP to which the BAP MUST send
-            request API calls. This MUST match the URL registered for the BPP in the
-            Beckn Registry and MUST use the same domain name verified in the BPP's
-            namespace on the registry.
+            request API calls. This MUST match the subscriber_url returned by the
+            subnet registry lookup for context.bppId and context.networkId.
           type: string
           format: uri
         receiverId:
@@ -2710,11 +2768,11 @@ components:
           type: string
           format: uuid
         networkId:
-          description: "The unique identifier of the Beckn network within which this\
-            \ transaction is occurring, always representing a specific registry in\
-            \ a specific namespace on the Beckn Registry. The RECOMMENDED format is\
-            \ namespace_id followed by a slash followed by registry_id, for example\
-            \ acmenet.org/charge-net."
+          description: "The unique identifier of the Beckn subnet within which this\
+            \ transaction is occurring. Actors use this value to resolve the subnet's\
+            \ registry URL before performing identity and address lookups. The RECOMMENDED\
+            \ format is namespace_id followed by a slash followed by registry_id, for\
+            \ example acmenet.org/charge-net."
           type: string
         timestamp:
           description: The date and time at which this message was generated by the
@@ -2733,8 +2791,9 @@ components:
           description: 'A boolean flag set by the BAP to activate the two-phase preview
             pattern: when true, the BPP MUST compute and return the outcome of the
             requested action without persisting any state change; when false (the default),
-            the BPP MUST execute and commit the action. Applicable to the update, cancel,
-            rate, and support actions.'
+            the BPP MUST execute and commit the action. Applicable to the `update` and
+            `cancel` actions only. For all other actions, sending actors MUST NOT set
+            this flag; receiving actors MUST ignore it if present.'
           type: boolean
         ttl:
           description: The duration, expressed in ISO 8601 duration format, after
@@ -2758,7 +2817,7 @@ components:
         \ binding together what is promised (commitments), what value is exchanged\
         \ (consideration), how execution occurs (performance), and how value is discharged\
         \ (settlements).\n\nContract is the canonical transaction object across all\
-        \ phases of the Beckn value-exchange lifecycle from select through post-fulfillment.\
+        \ phases of the Beckn value-exchange lifecycle from select through post-performance.\
         \ The BAP initially constructs the Contract in SelectAction and progressively\
         \ enriches it through InitAction and ConfirmAction; the BPP updates and returns\
         \ it in each corresponding callback carrying the authoritative state. It is\
@@ -2793,7 +2852,7 @@ components:
           description: 'The participants involved in the contract. Contracts are not always between two individuals.
 
 
-            Several entities may play a specific role in the creation, fulfillment, and post-fulfillment of
+            Several entities may play a specific role in the creation, performance, and post-performance of
 
             the contract.'
           type: array
@@ -2954,7 +3013,7 @@ components:
         \ or a signed contract document, distinguished from media files by its support\
         \ for cryptographic signature and schema metadata.\n\nDocuments appear wherever\
         \ a Beckn entity requires supporting documentary evidence across the value-exchange\
-        \ lifecycle, including offer terms, contract documents, and post-fulfillment\
+        \ lifecycle, including offer terms, contract documents, and post-performance\
         \ receipts. Both BAPs and BPPs produce and consume them via the Descriptor.docs\
         \ field.\n\nRelationship: Used by composition within the Descriptor schema\
         \ via the docs array. Intentionally kept separate from MediaFile to accommodate\
@@ -3003,22 +3062,53 @@ components:
 
     Error:
       title: Error
-      description: "A structured error container returned in NACK responses and asynchronous\
-        \ error callbacks, carrying a machine-readable error code and a human-readable\
-        \ error message to enable callers to diagnose and handle failures.\n\nError\
-        \ appears in NackBadRequest (400), NackUnauthorized (401), AckNoCallback (409),\
-        \ and AsyncError across all phases of the value-exchange lifecycle. Both BPPs\
-        \ and BAPs produce errors depending on the direction of the failing call; the\
-        \ counterpart consumes them to determine corrective action.\n\nRelationship:\
-        \ Extended by the AsyncError schema with JSON-LD type annotations. Composed\
-        \ within the NackBadRequest, NackUnauthorized, AckNoCallback, and ServerError\
-        \ schemas."
+      description: "A canonical Beckn error returned in NACK responses and asynchronous\
+        \ error callbacks. The topmost (Level 1) Error in any payload MUST carry a\
+        \ code from the canonical Beckn error code enum. The self-referencing details.cause\
+        \ property (Level 2) MAY carry domain-specific or non-canonical error codes\
+        \ from downstream systems, enabling typed error chains across protocol stack\
+        \ layers and network hops.\n\nError appears in NackBadRequest (400), NackUnauthorized\
+        \ (401), AckNoCallback (409), and AsyncError across all phases of the value-exchange\
+        \ lifecycle. Both BPPs and BAPs produce errors depending on the direction of\
+        \ the failing call; the counterpart consumes them to determine corrective action.\n\
+        \nRelationship: Extended by the AsyncError schema. Composed within the NackBadRequest,\
+        \ NackUnauthorized, AckNoCallback, and ServerError schemas."
       type: object
+      required:
+      - code
+      - message
       properties:
-        errorCode:
+        code:
           type: string
-        errorMessage:
+          description: "Canonical error code. MUST be a value from the ErrorCode\
+            \ enum schema. The prefix indicates the protocol stack layer at which\
+            \ the error originated: CTX_ (context/routing), NET_ (networking), AUT_\
+            \ (authentication/trust), SCH_ (core/linked data schema), POL_ (policy),\
+            \ BIZ_ (application/business logic), DOM_ (domain-specific)."
+          example: SCH_FIELD_NOT_ALLOWED
+        message:
           type: string
+          description: Human-readable description of the error.
+          example: "Field 'electronic:invalidField' not found in ElectronicItem schema"
+        details:
+          type: object
+          description: "Additional structured error details. The well-known key 'path'\
+            \ identifies the failing field. The 'cause' key carries the underlying\
+            \ root-cause Error (self-referencing), enabling typed error chains across\
+            \ protocol stack layers and network hops."
+          properties:
+            path:
+              type: string
+              description: JSONPath expression or field reference that failed validation.
+              example: "$.message.order.items[0].quantity.count"
+            cause:
+              description: "Optional Level 2 Error representing the underlying root\
+                \ cause, such as a downstream provider error, registry failure, or\
+                \ domain-specific error (OCPI, FHIR, OCPP). MAY carry non-canonical\
+                \ codes."
+              $ref: '#/components/schemas/Error'
+          additionalProperties: false
+      additionalProperties: false
 
     FormSubmission:
       title: FormSubmission
@@ -3026,7 +3116,7 @@ components:
       - common
       description: "A consumer's submitted response to a structured feedback form,\
         \ capturing the filled-in field values keyed by form field identifiers as\
-        \ defined in the form schema.\n\nFormSubmission appears in the post-fulfillment\
+        \ defined in the form schema.\n\nFormSubmission appears in the post-performance\
         \ phase of the value-exchange lifecycle. The BAP produces it as part of a\
         \ RatingInput when the consumer has completed a structured feedback form returned\
         \ by the BPP in a prior on_rate preview response; the BPP consumes it to record\
@@ -3058,9 +3148,9 @@ components:
     Participant:
       type: object
       description: "An identified party that plays a specific role in the creation,\
-        \ fulfillment, or post-fulfillment of a Contract, which may represent a consumer,\
+        \ performance, or post-performance of a Contract, which may represent a consumer,\
         \ provider, agent, or any other actor bound by the contract's terms.\n\nParticipants\
-        \ appear in the negotiation and fulfillment phases of the value-exchange lifecycle.\
+        \ appear in the negotiation and performance phases of the value-exchange lifecycle.\
         \ The BAP introduces consumer participant details in InitAction; the BPP may\
         \ add provider or agent participant records in the corresponding callback.\
         \ Both actors consume participant records to understand the parties bound by\
@@ -3458,7 +3548,7 @@ components:
         \ assessment and optional qualitative feedback for a specific entity associated\
         \ with a completed contract, including the contract itself, individual resources,\
         \ fulfillment stages, providers, agents, or support interactions.\n\nRatingInput\
-        \ appears in the post-fulfillment phase of the value-exchange lifecycle, within\
+        \ appears in the post-performance phase of the value-exchange lifecycle, within\
         \ RateAction (produced by the BAP) and OnRateAction (produced by the BPP).\
         \ The BAP submits rating inputs to record consumer feedback; the BPP may also\
         \ return rating form definitions as RatingInput structures in preview mode\
@@ -3524,7 +3614,7 @@ components:
       description: "A record representing the discharge of an agreed consideration\
         \ within a Contract, tracking the progression from a draft payment intent\
         \ through a committed payment instruction to a completed settlement.\n\nSettlements\
-        \ appear across the negotiation and fulfillment phases of the value-exchange\
+        \ appear across the negotiation and performance phases of the value-exchange\
         \ lifecycle. The BAP introduces draft settlement records in ConfirmAction to\
         \ carry payment proof or reference; the BPP updates settlement status through\
         \ COMMITTED and COMPLETE as payment is processed and discharged.\n\nRelationship:\
@@ -3555,12 +3645,12 @@ components:
         \ body.\n\nSignature appears in every Beckn request across all phases of the\
         \ value-exchange lifecycle. The sending actor (BAP or BPP) produces it by\
         \ signing a canonical signing string with its Ed25519 private key registered\
-        \ in the Beckn Registry; the receiving actor verifies it against the sender's\
+        \ with the namespacing service; the receiving actor verifies it against the sender's\
         \ registered public key to authenticate the request. Requests carrying an\
         \ absent, expired, or unverifiable Signature MUST be rejected with a 401 NackUnauthorized\
         \ response.\n\nThe format follows draft-cavage-http-signatures-12 as profiled\
         \ by the Beckn authentication specification. The keyId field MUST follow the\
-        \ format subscriberId followed by uniqueKeyId followed by algorithm, separated\
+        \ format namespace_id followed by uniqueKeyId followed by algorithm, separated\
         \ by pipe characters. The algorithm MUST be ed25519. The signing string MUST\
         \ include the created timestamp, the expires timestamp, and the BLAKE2b-512\
         \ digest of the request body.\n\nRelationship: Extended by the CounterSignature\
@@ -3573,7 +3663,7 @@ components:
       description: "A structured record representing a consumer's request for assistance\
         \ related to an entity associated with a contract, carrying the entity reference,\
         \ a description of the support need, and the available or assigned support\
-        \ channels.\n\nSupport appears in the post-fulfillment phase of the value-exchange\
+        \ channels.\n\nSupport appears in the post-performance phase of the value-exchange\
         \ lifecycle, within SupportAction (produced by the BAP) and OnSupportAction\
         \ (produced by the BPP). The BAP constructs it to describe the nature and\
         \ target of the support request; the BPP returns it with populated channel\
@@ -3751,14 +3841,14 @@ components:
     Ack:
       description: "The synchronous acknowledgement body returned by the implementing\
         \ actor (BPP or BAP) for every accepted Beckn request, carrying the processing\
-        \ status and a CounterSignature that proves authenticated receipt.\n\nAck appears\
+        \ status and a messageId of the received request.\n\nAck appears\
         \ as the response body for every 200 response across all phases of the value-exchange\
-        \ lifecycle. The implementing actor produces it synchronously upon accepting\
-        \ a request; the calling actor verifies the CounterSignature to confirm that\
+        \ lifecycle. The implementing actor also signs the response digest and returns \
+        \ the signature of the response payload in the response header synchronously \ 
+        \ upon accepting a request; the calling actor verifies the signature to confirm that \
         \ its request was authenticated and accepted for asynchronous processing.\n\
         \nRelationship: Extended by the AckNoCallback and NackBadRequest schemas for\
-        \ specific response conditions. Composes the CounterSignature schema in the\
-        \ required signature field."
+        \ specific response conditions."
       type: object
       properties:
         status:
@@ -3767,19 +3857,18 @@ components:
           - ACK
           - NACK
           description: ACK if the request was accepted; NACK if rejected.
-        signature:
-          $ref: '#/components/schemas/CounterSignature'
-          description: Counter-signature proving the receiver authenticated and processed the inbound request.
+        messageId:
+          description: The message id of the request sent in the context, to which this acknowledgement is being returned. 
+          type: string
       required:
       - status
-      - signature
+      - messageId
 
     AckNoCallback:
       description: "The synchronous response body returned when the implementing actor\
         \ has authenticated and received the request but has determined that no asynchronous\
         \ callback will follow, for example because no matching catalog was found,\
-        \ inventory is unavailable, the provider is closed, or a context.try preview\
-        \ has been completed without committing state.\n\nAckNoCallback appears as\
+        \ inventory is unavailable, or the provider is closed.\n\nAckNoCallback appears as\
         \ the response body for 409 responses across all phases of the value-exchange\
         \ lifecycle where the endpoint supports this response code. The implementing\
         \ actor (BPP, DS, or CS) produces it; the calling actor (BAP or BPP) consumes\
@@ -3796,7 +3885,7 @@ components:
             $ref: '#/components/schemas/Error'
       - required:
         - status
-        - signature
+        - messageId
         - error
 
     NackBadRequest:
@@ -3818,11 +3907,15 @@ components:
             const: NACK
           error:
             $ref: '#/components/schemas/Error'
+      - required:
+        - status
+        - messageId
+        - error
 
     NackUnauthorized:
       description: "The synchronous rejection body returned when the Beckn HTTP Signature\
         \ on the request is absent, expired, or fails verification against the sender's\
-        \ registered public key in the Beckn Registry, indicating that the implementing\
+        \ public key returned by the subnet registry lookup, indicating that the implementing\
         \ actor has not authenticated or processed the request.\n\nNackUnauthorized\
         \ appears as the response body for 401 responses across all phases of the\
         \ value-exchange lifecycle. The implementing actor (BPP, BAP, or Fabric service)\
@@ -3838,7 +3931,28 @@ components:
             type: string
             const: NACK
           error:
-            $ref: '#/components/schemas/Error'
+            allOf:
+              - $ref: '#/components/schemas/Error'
+              - properties:
+                  code:
+                    type: string
+                    description: "For 401 responses the error code MUST be one of\
+                      \ the AUT_ (authentication and non-repudiation) canonical codes\
+                      \ defined in NFH-008."
+                    enum:
+                      - AUT_SIGNATURE_MISSING
+                      - AUT_SIGNATURE_INVALID
+                      - AUT_SUBSCRIBER_NOT_FOUND
+                      - AUT_KEY_NOT_FOUND
+                      - AUT_KEY_EXPIRED_OR_REVOKED
+                      - AUT_UNAUTHORIZED_ACTION
+                      - AUT_DOMAIN_NOT_ALLOWED
+                      - AUT_REPLAY_DETECTED
+                      - AUT_RATE_LIMITED
+      - required:
+        - status
+        - messageId
+        - error
 
     ServerError:
       description: "The response body returned when an unexpected internal failure\
@@ -3854,6 +3968,158 @@ components:
       properties:
         error:
           $ref: '#/components/schemas/Error'
+
+    ErrorCode:
+      title: ErrorCode
+      description: "Canonical Beckn Protocol v2 error code enum. The prefix indicates\
+        \ the protocol stack layer at which the error originated. Error.code MUST\
+        \ be one of these values. Defined by NFH-008 (Handling Exceptions and Errors)."
+      type: string
+      enum:
+        - CTX_MISSING_FIELD
+        - CTX_INVALID_FIELD
+        - CTX_ACTION_MISMATCH
+        - CTX_VERSION_UNSUPPORTED
+        - CTX_TTL_EXPIRED
+        - CTX_MESSAGE_ID_DUPLICATE
+        - CTX_TRANSACTION_ID_UNKNOWN
+        - CTX_CALLBACK_URL_MISSING
+        - CTX_INVALID_BPP_URI
+        - AUT_SIGNATURE_MISSING
+        - AUT_SIGNATURE_INVALID
+        - AUT_SUBSCRIBER_NOT_FOUND
+        - AUT_KEY_NOT_FOUND
+        - AUT_KEY_EXPIRED_OR_REVOKED
+        - AUT_UNAUTHORIZED_ACTION
+        - AUT_DOMAIN_NOT_ALLOWED
+        - AUT_REPLAY_DETECTED
+        - AUT_RATE_LIMITED
+        - SCH_INVALID_JSON
+        - SCH_SCHEMA_VALIDATION_FAILED
+        - SCH_REQUIRED_FIELD_MISSING
+        - SCH_FIELD_NOT_ALLOWED
+        - SCH_INVALID_ENUM
+        - SCH_INVALID_FORMAT
+        - SCH_INVALID_JSONPATH
+        - SCH_INVALID_JSONLD_CONTEXT
+        - SCH_TYPE_NOT_SUPPORTED
+        - SCH_ATTRIBUTE_PACK_INVALID
+        - SCH_INVALID_ENTITY_TYPE
+        - SCH_SCHEMA_ADAPTATION_FAILED
+        - NET_TIMEOUT
+        - NET_DOWNSTREAM_UNAVAILABLE
+        - NET_CALLBACK_FAILED
+        - NET_ACK_TIMEOUT
+        - NET_OVERLOADED
+        - NET_INTERNAL_ERROR
+        - NET_NOT_IMPLEMENTED
+        - NET_CATALOG_SOURCE_UNAVAILABLE
+        - NET_CATALOG_STALE
+        - BIZ_PROVIDER_NOT_FOUND
+        - BIZ_LOCATION_NOT_FOUND
+        - BIZ_CATEGORY_NOT_FOUND
+        - BIZ_ITEM_NOT_FOUND
+        - BIZ_OFFER_NOT_FOUND
+        - BIZ_ADDON_NOT_FOUND
+        - BIZ_ORDER_NOT_FOUND
+        - BIZ_QUANTITY_UNAVAILABLE
+        - BIZ_FULFILLMENT_UNAVAILABLE
+        - BIZ_QUOTE_EXPIRED_OR_CHANGED
+        - BIZ_PRICE_MISMATCH
+        - BIZ_PAYMENT_NOT_SUPPORTED
+        - BIZ_PAYMENT_FAILED
+        - BIZ_TRACKING_NOT_SUPPORTED
+        - BIZ_SUPPORT_NOT_AVAILABLE
+        - BIZ_NO_RESULTS_FOUND
+        - BIZ_INVALID_STATE_TRANSITION
+        - BIZ_ALREADY_CANCELLED
+        - BIZ_ALREADY_CONFIRMED
+        - BIZ_UPDATE_INCONSISTENT
+        - BIZ_INVALID_UPDATE_TARGET
+        - BIZ_INVALID_CANCELLATION_REASON
+        - BIZ_RATING_TARGET_NOT_FOUND
+        - BIZ_INVALID_RATING_VALUE
+        - BIZ_GENERIC_ERROR
+        - POL_CANCELLATION_NOT_ALLOWED
+        - POL_UPDATE_NOT_ALLOWED
+        - POL_GEO_RESTRICTED
+        - POL_ELIGIBILITY_NOT_MET
+        - POL_KYC_REQUIRED
+        - POL_CONSENT_REQUIRED
+        - POL_SANCTIONED_PARTY
+        - POL_CALLER_TRUST_INSUFFICIENT
+        - POL_NP_CAPACITY_EXCEEDED
+        - POL_NP_DORMANT
+        - POL_ENGAGEMENT_REFUSED
+        - POL_GENERIC_ERROR
+
+    NackDiscretionary:
+      description: "The synchronous rejection body returned when a responding NP\
+        \ exercises its protocol-level agency to decline engagement for policy-governed\
+        \ reasons — insufficient caller trust, capacity limits, scheduled inactivity,\
+        \ or general refusal — without an underlying exception in the received message.\
+        \ The caller MUST NOT expect an on_* callback.\n\nNackDiscretionary appears\
+        \ as the response body for 403 responses on action endpoints. The responding\
+        \ NP produces it; the calling NP MUST treat it as a terminal response for\
+        \ the current request. NFOs MAY restrict or prohibit discretionary NACKs\
+        \ for specific actions, domain contexts, or transaction lifecycle stages per\
+        \ CON-008-20 in NFH-008.\n\nRelationship: Extends the Ack schema with status\
+        \ constrained to NACK and adds an error field whose code MUST be one of\
+        \ the POL_ENGAGEMENT_* discretionary refusal codes."
+      allOf:
+      - $ref: '#/components/schemas/Ack'
+      - type: object
+        properties:
+          status:
+            type: string
+            const: NACK
+          error:
+            allOf:
+            - $ref: '#/components/schemas/Error'
+            - properties:
+                code:
+                  type: string
+                  description: "For 403 discretionary NACK responses the error code\
+                    \ MUST be one of the POL_ENGAGEMENT_* codes defined in NFH-008."
+                  enum:
+                    - POL_CALLER_TRUST_INSUFFICIENT
+                    - POL_NP_CAPACITY_EXCEEDED
+                    - POL_NP_DORMANT
+                    - POL_ENGAGEMENT_REFUSED
+      - required:
+        - status
+        - messageId
+        - error
+
+    NackTooManyRequests:
+      description: "The synchronous rejection body returned when the responding NP\
+        \ has exceeded a request rate limit (AUT_RATE_LIMITED) or a policy-governed\
+        \ engagement capacity limit (POL_NP_CAPACITY_EXCEEDED). The caller MUST\
+        \ apply back-off before retrying. Implementations SHOULD include a Retry-After\
+        \ header on 429 responses.\n\nNackTooManyRequests appears as the response\
+        \ body for 429 responses on all endpoints.\n\nRelationship: Extends the\
+        \ Ack schema with status constrained to NACK and an error code constrained\
+        \ to the two retryable capacity/rate-limit codes."
+      allOf:
+      - $ref: '#/components/schemas/Ack'
+      - type: object
+        properties:
+          status:
+            type: string
+            const: NACK
+          error:
+            allOf:
+            - $ref: '#/components/schemas/Error'
+            - properties:
+                code:
+                  type: string
+                  enum:
+                    - AUT_RATE_LIMITED
+                    - POL_NP_CAPACITY_EXCEEDED
+      - required:
+        - status
+        - messageId
+        - error
 
     CatalogSubscribeAction:
       type: object
@@ -4138,9 +4404,8 @@ components:
     AckNoCallback:
       description: "The implementer has received and authenticated the request but\
         \ cannot produce a callback — for example, no matching catalog was found,\
-        \ inventory is unavailable, the provider is closed, or context.try preview\
-        \ has been completed without committing state. The response body carries an\
-        \ Error explaining why no callback will follow."
+        \ inventory is unavailable, or the provider is closed. The response body carries\
+        \ an Error explaining why no callback will follow."
       content:
         application/json:
           schema:
@@ -4155,9 +4420,9 @@ components:
             $ref: '#/components/schemas/NackBadRequest'
     NackUnauthorized:
       description: "The Beckn HTTP Signature on the request is absent, expired, or\
-        \ fails verification against the sender's registered public key in the Beckn\
-        \ Registry. The implementer MUST NOT process the request further. The caller\
-        \ MUST correct its signing credential or key registration before retrying."
+        \ fails verification against the sender's public key returned by the subnet\
+        \ registry lookup. The implementer MUST NOT process the request further. The\
+        \ caller MUST correct its signing credential or key registration before retrying."
       content:
         application/json:
           schema:
@@ -4171,3 +4436,27 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/ServerError'
+    NackDiscretionary:
+      description: "The responding NP has declined engagement for policy-governed\
+        \ reasons unrelated to a protocol error in the request (insufficient caller\
+        \ trust, capacity limits, scheduled inactivity, or general refusal). The\
+        \ caller MUST NOT expect an on_* callback. NFOs MAY restrict or prohibit\
+        \ discretionary NACKs per CON-008-20."
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NackDiscretionary'
+    NackTooManyRequests:
+      description: "Rate limit or policy-governed capacity limit exceeded. The caller\
+        \ MUST apply back-off before retrying. Implementations SHOULD include a\
+        \ Retry-After header indicating when the caller MAY retry."
+      headers:
+        Retry-After:
+          description: "Number of seconds (integer) or HTTP-date after which the\
+            \ caller MAY retry the request."
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NackTooManyRequests'
