@@ -3844,25 +3844,32 @@ components:
         \ status and a messageId of the received request.\n\nAck appears\
         \ as the response body for every 200 response across all phases of the value-exchange\
         \ lifecycle. The implementing actor also signs the response digest and returns \
-        \ the signature of the response payload in the response header synchronously \ 
+        \ the signature of the response payload in the response header synchronously \
         \ upon accepting a request; the calling actor verifies the signature to confirm that \
         \ its request was authenticated and accepted for asynchronous processing.\n\
         \nRelationship: Extended by the AckNoCallback and NackBadRequest schemas for\
         \ specific response conditions."
       type: object
-      properties:
-        status:
-          type: string
-          enum:
-          - ACK
-          - NACK
-          description: ACK if the request was accepted; NACK if rejected.
-        messageId:
-          description: The message id of the request sent in the context, to which this acknowledgement is being returned. 
-          type: string
       required:
-      - status
-      - messageId
+      - message
+      properties:
+        message:
+          type: object
+          required:
+          - status
+          - messageId
+          properties:
+            status:
+              type: string
+              enum:
+              - ACK
+              - NACK
+              description: ACK if the request was accepted; NACK if rejected.
+            messageId:
+              description: The message id of the request sent in the context, to which this acknowledgement is being returned.
+              type: string
+            error:
+              $ref: '#/components/schemas/Error'
 
     AckNoCallback:
       description: "The synchronous response body returned when the implementing actor\
@@ -3877,16 +3884,27 @@ components:
         \ Ack schema, inheriting status and signature fields and adding a required\
         \ error field composed of an Error schema explaining why no callback will be\
         \ sent."
-      allOf:
-      - $ref: '#/components/schemas/Ack'
-      - type: object
-        properties:
-          error:
-            $ref: '#/components/schemas/Error'
-      - required:
-        - status
-        - messageId
-        - error
+      type: object
+      required:
+      - message
+      properties:
+        message:
+          type: object
+          required:
+          - status
+          - messageId
+          - error
+          properties:
+            status:
+              type: string
+              enum:
+              - ACK
+              - NACK
+              description: ACK if the request was accepted; NACK if rejected.
+            messageId:
+              type: string
+            error:
+              $ref: '#/components/schemas/Error'
 
     NackBadRequest:
       description: "The synchronous rejection body returned when the request body\
@@ -3898,19 +3916,24 @@ components:
         \ correct the request before retrying.\n\nRelationship: Extends the Ack schema\
         \ with status constrained to NACK and adds an error field composed of an Error\
         \ schema describing the validation failure."
-      allOf:
-      - $ref: '#/components/schemas/Ack'
-      - type: object
-        properties:
-          status:
-            type: string
-            const: NACK
-          error:
-            $ref: '#/components/schemas/Error'
-      - required:
-        - status
-        - messageId
-        - error
+      type: object
+      required:
+      - message
+      properties:
+        message:
+          type: object
+          required:
+          - status
+          - messageId
+          - error
+          properties:
+            status:
+              type: string
+              const: NACK
+            messageId:
+              type: string
+            error:
+              $ref: '#/components/schemas/Error'
 
     NackUnauthorized:
       description: "The synchronous rejection body returned when the Beckn HTTP Signature\
@@ -3923,15 +3946,24 @@ components:
         \ registration before retrying.\n\nRelationship: Extends the Ack schema with\
         \ status constrained to NACK and adds an error field composed of an Error\
         \ schema describing the authentication failure."
-      allOf:
-      - $ref: '#/components/schemas/Ack'
-      - type: object
-        properties:
-          status:
-            type: string
-            const: NACK
-          error:
-            allOf:
+      type: object
+      required:
+      - message
+      properties:
+        message:
+          type: object
+          required:
+          - status
+          - messageId
+          - error
+          properties:
+            status:
+              type: string
+              const: NACK
+            messageId:
+              type: string
+            error:
+              allOf:
               - $ref: '#/components/schemas/Error'
               - properties:
                   code:
@@ -3940,19 +3972,15 @@ components:
                       \ the AUT_ (authentication and non-repudiation) canonical codes\
                       \ defined in NFH-008."
                     enum:
-                      - AUT_SIGNATURE_MISSING
-                      - AUT_SIGNATURE_INVALID
-                      - AUT_SUBSCRIBER_NOT_FOUND
-                      - AUT_KEY_NOT_FOUND
-                      - AUT_KEY_EXPIRED_OR_REVOKED
-                      - AUT_UNAUTHORIZED_ACTION
-                      - AUT_DOMAIN_NOT_ALLOWED
-                      - AUT_REPLAY_DETECTED
-                      - AUT_RATE_LIMITED
-      - required:
-        - status
-        - messageId
-        - error
+                    - AUT_SIGNATURE_MISSING
+                    - AUT_SIGNATURE_INVALID
+                    - AUT_SUBSCRIBER_NOT_FOUND
+                    - AUT_KEY_NOT_FOUND
+                    - AUT_KEY_EXPIRED_OR_REVOKED
+                    - AUT_UNAUTHORIZED_ACTION
+                    - AUT_DOMAIN_NOT_ALLOWED
+                    - AUT_REPLAY_DETECTED
+                    - AUT_RATE_LIMITED
 
     ServerError:
       description: "The response body returned when an unexpected internal failure\
@@ -3965,9 +3993,22 @@ components:
         \ the optional Error schema via the error field to carry additional diagnostic\
         \ detail when available."
       type: object
+      required:
+      - message
       properties:
-        error:
-          $ref: '#/components/schemas/Error'
+        message:
+          type: object
+          required:
+          - status
+          - messageId
+          properties:
+            status:
+              type: string
+              const: NACK
+            messageId:
+              type: string
+            error:
+              $ref: '#/components/schemas/Error'
 
     ErrorCode:
       title: ErrorCode
@@ -4066,30 +4107,35 @@ components:
         \ CON-008-20 in NFH-008.\n\nRelationship: Extends the Ack schema with status\
         \ constrained to NACK and adds an error field whose code MUST be one of\
         \ the POL_ENGAGEMENT_* discretionary refusal codes."
-      allOf:
-      - $ref: '#/components/schemas/Ack'
-      - type: object
-        properties:
-          status:
-            type: string
-            const: NACK
-          error:
-            allOf:
-            - $ref: '#/components/schemas/Error'
-            - properties:
-                code:
-                  type: string
-                  description: "For 403 discretionary NACK responses the error code\
-                    \ MUST be one of the POL_ENGAGEMENT_* codes defined in NFH-008."
-                  enum:
+      type: object
+      required:
+      - message
+      properties:
+        message:
+          type: object
+          required:
+          - status
+          - messageId
+          - error
+          properties:
+            status:
+              type: string
+              const: NACK
+            messageId:
+              type: string
+            error:
+              allOf:
+              - $ref: '#/components/schemas/Error'
+              - properties:
+                  code:
+                    type: string
+                    description: "For 403 discretionary NACK responses the error code\
+                      \ MUST be one of the POL_ENGAGEMENT_* codes defined in NFH-008."
+                    enum:
                     - POL_CALLER_TRUST_INSUFFICIENT
                     - POL_NP_CAPACITY_EXCEEDED
                     - POL_NP_DORMANT
                     - POL_ENGAGEMENT_REFUSED
-      - required:
-        - status
-        - messageId
-        - error
 
     NackTooManyRequests:
       description: "The synchronous rejection body returned when the responding NP\
@@ -4100,26 +4146,31 @@ components:
         \ body for 429 responses on all endpoints.\n\nRelationship: Extends the\
         \ Ack schema with status constrained to NACK and an error code constrained\
         \ to the two retryable capacity/rate-limit codes."
-      allOf:
-      - $ref: '#/components/schemas/Ack'
-      - type: object
-        properties:
-          status:
-            type: string
-            const: NACK
-          error:
-            allOf:
-            - $ref: '#/components/schemas/Error'
-            - properties:
-                code:
-                  type: string
-                  enum:
+      type: object
+      required:
+      - message
+      properties:
+        message:
+          type: object
+          required:
+          - status
+          - messageId
+          - error
+          properties:
+            status:
+              type: string
+              const: NACK
+            messageId:
+              type: string
+            error:
+              allOf:
+              - $ref: '#/components/schemas/Error'
+              - properties:
+                  code:
+                    type: string
+                    enum:
                     - AUT_RATE_LIMITED
                     - POL_NP_CAPACITY_EXCEEDED
-      - required:
-        - status
-        - messageId
-        - error
 
     CatalogSubscribeAction:
       type: object
