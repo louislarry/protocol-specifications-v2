@@ -1251,9 +1251,7 @@ paths:
         \ results (ACCEPTED, REJECTED, or PARTIAL). The BPP MUST correlate the callback\
         \ using the messageId from Context.\n\nA 200 Ack confirms the request was\
         \ accepted for processing; the CS will deliver per-catalog results asynchronously\
-        \ via /catalog/on_publish. A 200 AckNoCallback is returned when the CS accepts\
-        \ the request but no callback will follow — for example, when no active subscriptions\
-        \ exist for the submitted catalog. A 400 NackBadRequest is returned when the\
+        \ via /catalog/on_publish. A 400 NackBadRequest is returned when the\
         \ payload fails schema validation or the catalogs array is empty or missing.\
         \ A 401 NackUnauthorized is returned when the Authorization header signature\
         \ is missing or invalid. A 500 ServerError indicates an unexpected CS failure;\
@@ -1442,8 +1440,6 @@ paths:
           $ref: '#/components/responses/NackUnauthorized'
         '403':
           $ref: '#/components/responses/NackDiscretionary'
-        '409':
-          $ref: '#/components/responses/AckNoCallback'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
         '500':
@@ -1464,11 +1460,7 @@ paths:
         \ /catalog/publish. The BPP MUST use the messageId in Context to correlate\
         \ this callback with the originating publish request, and MUST handle REJECTED\
         \ or PARTIAL results by correcting and resubmitting affected catalogs.\n\n\
-        A 200 Ack confirms the callback was received and accepted by the BPP. A\
-        \ 400 NackBadRequest is returned when the payload is malformed or the results\
-        \ array is missing. A 401 NackUnauthorized is returned when the Authorization\
-        \ header (callback) signature is invalid. A 500 ServerError indicates an\
-        \ unexpected BPP failure."
+        Response codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
       operationId: catalogOnPublish
       tags:
       - Fabric API - Cataloging Service
@@ -4489,7 +4481,7 @@ components:
               type: array
               items:
                 type: string
-              description: Networks to subscribe to.
+              description: Network IDs to subscribe to.
             schemaTypes:
               type: array
               items:
@@ -4499,18 +4491,17 @@ components:
     CatalogSubscription:
       type: object
       description: "The persisted subscription record held by the CS (Cataloging Service),\
-        \ representing a subscriber's declared interest in receiving catalog delivery\
-        \ callbacks for specific networks and schema types, along with its current\
-        \ lifecycle status.\n\nCatalogSubscription appears in the Catalog Subscription\
-        \ phase. The CS produces it as a response to POST /catalog/subscription (creation\
+        \ representing a subscriber's declared interest in receiving catalog/push callbacks\
+        \ for specific networks and schema types, along with its current lifecycle\
+        \ status.\n\nCatalogSubscription appears in the Catalog Subscription phase.\
+        \ The CS produces it as a response to POST /catalog/subscription (creation\
         \ or update) and GET /catalog/subscriptions (listing). The subscriber consumes\
         \ it to confirm subscription state.\n\nFabric context: Managed exclusively\
         \ by the CS, which uses ACTIVE subscriptions to determine which subscribers\
-        \ receive catalog/push callbacks when catalogs are published. Callback URLs\
-        \ The subscriber's callback URL is not stored on the subscription — it is\
-        \ looked up from the network at delivery time.\n\nRelationship:\
-        \ The status field MUST be one of ACTIVE (subscription is matched during evaluation)\
-        \ or INACTIVE (temporarily paused; can be reactivated via POST update)."
+        \ receive catalog/push callbacks when catalogs are published.\n\nRelationship:\
+        \ The status field MUST be one of ACTIVE (the subscriber receives catalog/push\
+        \ callbacks when matching catalogs are published) or INACTIVE (temporarily\
+        \ paused; can be reactivated via POST update)."
       required:
       - subscriptionId
       - subscriberId
@@ -4527,7 +4518,7 @@ components:
           type: array
           items:
             type: string
-          description: Networks this subscription covers.
+          description: Network IDs this subscription covers.
         schemaTypes:
           type: array
           items:
@@ -4540,9 +4531,9 @@ components:
           - INACTIVE
           description: >-
             Lifecycle state assigned and maintained by the CS. ACTIVE — the
-            subscription is matched during catalog evaluation and the subscriber
-            receives catalog/push callbacks. INACTIVE — the subscription is
-            paused and receives no callbacks; can be reactivated via POST update.
+            subscriber receives catalog/push callbacks when matching catalogs
+            are published. INACTIVE — the subscription is paused and receives
+            no callbacks; can be reactivated via POST update.
         createdAt:
           type: string
           format: date-time
