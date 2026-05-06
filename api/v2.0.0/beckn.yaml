@@ -1500,7 +1500,7 @@ paths:
 
   /catalog/push:
     post:
-      summary: Push catalogs to a Network Participant
+      summary: CS pushes catalog updates to a Network Participant
       description: "The CS (Cataloging Service) calls this endpoint on the Network\
         \ Participant to deliver catalog updates that match an active subscription.\n\
         \nAdditional preconditions: An active subscription MUST exist for the Network\
@@ -1557,7 +1557,7 @@ paths:
 
   /catalog/subscription:
     post:
-      summary: Subscribe to catalog distribution events
+      summary: BAP subscribes to catalog updates on the CS
       description: "Creates a new catalog subscription or updates an existing one\
         \ on the CS (Cataloging Service). The BAP declares which networks and schema\
         \ types it wishes to receive ongoing catalog/push callbacks for when matching\
@@ -1647,7 +1647,7 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
     delete:
-      summary: Deactivate a catalog subscription
+      summary: BAP deactivates a catalog subscription on the CS
       operationId: catalogSubscriptionDeactivate
       tags:
       - Fabric API - Cataloging Service
@@ -1698,7 +1698,7 @@ paths:
 
   /catalog/subscriptions:
     get:
-      summary: List catalog subscriptions for a BAP
+      summary: CS returns catalog subscriptions for the BAP
       description: "The BAP retrieves its own subscriptions from the CS (Cataloging\
         \ Service), optionally filtered by status, with support for pagination and\
         \ lookup by subscription ID.\n\nAdditional preconditions: The caller's identity\
@@ -1771,12 +1771,7 @@ paths:
 
   /catalog/pull:
     post:
-      operationId: catalogPull
-      tags:
-      - Fabric API - Cataloging Service
-      parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
-      summary: Submit async catalog pull request
+      summary: BAP submits async catalog pull request to the CS
       description: "The BAP submits an asynchronous catalog pull request to the CS\
         \ (Cataloging Service), scoped to an active subscription. The subscription's\
         \ networkIds and schemaTypes determine which catalogs are returned — they\
@@ -1798,6 +1793,11 @@ paths:
         \ are invalid. A 401 NackUnauthorized is returned when the Authorization header\
         \ signature is missing or invalid. A 500 ServerError indicates an unexpected\
         \ CS failure; the BAP SHOULD retry."
+      operationId: catalogPull
+      tags:
+      - Fabric API - Cataloging Service
+      parameters:
+      - $ref: '#/components/parameters/AuthorizationHeader'
       requestBody:
         required: true
         content:
@@ -1896,7 +1896,7 @@ paths:
 
   /catalog/master/search:
     post:
-      summary: Search master catalog items
+      summary: Network Participant searches master catalog resources on the CS
       description: "The BAP or BPP queries the CS (Cataloging Service) for master\
         \ catalog items, filtering by network\
         \ identifiers and schema type URIs with paginated results.\n\nAdditional\
