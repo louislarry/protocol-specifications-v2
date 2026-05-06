@@ -518,10 +518,10 @@ HTTP/1.1 200 OK
 Content-Type: application/json
 Signature: keyId="bpp.example.com/keys/k002|ed25519",algorithm="ed25519",created="1746518401",expires="1746518701",headers="(created) (expires) digest",signature="BPPSignatureOverAckBodyHere=="
 
-{"message":{"ack":{"status":"ACK"}}}
+{"message":{"status":"ACK","messageId":"msg-001"}}
 ```
 
-The BPP's `Signature` header signs the `{"message":{"ack":{"status":"ACK"}}}` body using the BPP's Ed25519 private key.
+The BPP's `Signature` header signs the `{"message":{"status":"ACK","messageId":"msg-001"}}` body using the BPP's Ed25519 private key. The `messageId` echoes the `messageId` from the originating `/select` request's `context` object.
 
 #### Example 3: BPP Solicited Callback to BAP
 
