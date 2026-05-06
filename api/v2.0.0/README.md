@@ -59,7 +59,6 @@ Catalog extensions:
 ## Security and acknowledgments
 
 - Requests require Beckn HTTP Signature in Authorization.
-- Ack includes CounterSignature.
 - Error responses follow NackBadRequest, NackUnauthorized, and ServerError schemas.
 
 ## Operational notes

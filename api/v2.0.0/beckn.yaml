@@ -2,7 +2,7 @@ openapi: 3.1.1
 info:
   title: Beckn Protocol API
   description: "The Beckn Protocol API Specification v2.0 — a concrete, developer-friendly OpenAPI 3.1.1\nspecification with one named path per Beckn protocol action.\n\n## Design Philosophy\n- **Minimalism**: Transport-layer schemas are inline. All data-model schemas\n (Catalog, Contract, Intent, etc.) are resolved from #/components/schemas.\n\n## Typical Transaction Lifecycle\n```\ndiscover → on_discover\nselect → on_select → init → on_init → confirm → on_confirm\n→ [status / on_status]* → [update / on_update]* → [cancel / on_cancel]?\n→ [track / on_track]* → rate / on_rate → support / on_support\n```\n\n## `context.try` — Sandbox Mode\nThe `try` flag on the `Context` object (defined in `#/components/schemas/Context`)\nindicates sandbox mode on the network participant:\n- `context.try: true` — test consequences without changing state.\n- `context.try: false` (default) — commit the action.\nThis pattern is applicable to `update`, `cancel`, `rate`, and `support` actions.\n\n## Authentication\n\
-    All requests MUST carry a valid Beckn HTTP Signature in the `Authorization` header.\nThe `Ack` response body MUST carry a `CounterSignature` proving receipt.\nSee `api/v2.0.0/README.md` for implementation notes aligned to this specification.\n\n## Scope\nThis specification is designed for interoperability across value-exchange use cases:\nretail, mobility, logistics, energy, healthcare, skilling, financial services,\ncarbon trading, hiring, data licensing, and other domains built on Beckn."
+    All requests MUST carry a valid Beckn HTTP Signature in the `Authorization` header.\nSee `api/v2.0.0/README.md` for implementation notes aligned to this specification.\n\n## Scope\nThis specification is designed for interoperability across value-exchange use cases:\nretail, mobility, logistics, energy, healthcare, skilling, financial services,\ncarbon trading, hiring, data licensing, and other domains built on Beckn."
   version: 2.0.0
   contact:
     name: Beckn Protocol
@@ -2319,43 +2319,6 @@ components:
           allOf:
           - $ref: '#/components/schemas/Attributes'
           - properties: {}
-
-    CounterSignature:
-      title: Beckn HTTP Counter-Signature
-      description: 'A signed receipt transmitted in the synchronous `Ack` response body, proving that the
-
-        receiver authenticated, received, and processed the inbound request.
-
-
-        `CounterSignature` shares the same wire format as `Signature` but differs:
-
-        - **Signer**: the response receiver (not the request sender)
-
-        - **Location**: transmitted in the `Ack` response body (not in the `Authorization` header)
-
-        - **`digest`**: covers the Ack response body (not the inbound request body)
-
-        - **`(request-digest)`** and **`(message-id)`** MUST be included in the signing string
-
-
-        Signing string format:
-
-        ```
-
-        (created): {unixTimestamp}
-
-        (expires): {unixTimestamp}
-
-        digest: BLAKE-512={base64DigestOfAckBody}
-
-        (request-digest): BLAKE-512={base64DigestOfInboundRequestBody}
-
-        (message-id): {messageId}
-
-        ```'
-      allOf:
-      - $ref: '#/components/schemas/Signature'
-
     Descriptor:
       $schema: https://json-schema.org/draft/2020-12/schema
       description: Schema definition for Descriptor in the Beckn Protocol v2.0.1
@@ -3027,7 +2990,7 @@ components:
       - status
 
     Ack:
-      description: New v2.0 Ack format carrying an HTTP Counter-Signature proving the receiver authenticated, received, and processed the inbound request.
+      description: Synchronous acknowledgement to an incoming request. 
       type: object
       properties:
         status:
@@ -3036,12 +2999,8 @@ components:
           - ACK
           - NACK
           description: ACK if the request was accepted; NACK if rejected.
-        signature:
-          $ref: '#/components/schemas/CounterSignature'
-          description: Counter-signature proving the receiver authenticated and processed the inbound request.
       required:
       - status
-      - signature
 
     AckNoCallback:
       description: Request received but no callback will follow (e.g. agents not found, inventory unavailable, provider closed, context.try preview complete).
