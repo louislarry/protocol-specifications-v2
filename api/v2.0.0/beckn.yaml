@@ -1249,8 +1249,15 @@ paths:
         \ After indexing each submitted catalog, the CS sends a /catalog/on_publish\
         \ callback to the BPP carrying a CatalogOnPublishAction with per-catalog processing\
         \ results (ACCEPTED, REJECTED, or PARTIAL). The BPP MUST correlate the callback\
-        \ using the messageId from Context.\n\nResponse codes: Ack, AckNoCallback,\
-        \ NackBadRequest, NackUnauthorized, ServerError."
+        \ using the messageId from Context.\n\nA 200 Ack confirms the request was\
+        \ accepted for processing; the CS will deliver per-catalog results asynchronously\
+        \ via /catalog/on_publish. A 200 AckNoCallback is returned when the CS accepts\
+        \ the request but no callback will follow — for example, when no active subscriptions\
+        \ exist for the submitted catalog. A 400 NackBadRequest is returned when the\
+        \ payload fails schema validation or the catalogs array is empty or missing.\
+        \ A 401 NackUnauthorized is returned when the Authorization header signature\
+        \ is missing or invalid. A 500 ServerError indicates an unexpected CS failure;\
+        \ the BPP SHOULD retry."
       operationId: catalogPublish
       tags:
       - Fabric API - Cataloging Service
@@ -1457,7 +1464,11 @@ paths:
         \ /catalog/publish. The BPP MUST use the messageId in Context to correlate\
         \ this callback with the originating publish request, and MUST handle REJECTED\
         \ or PARTIAL results by correcting and resubmitting affected catalogs.\n\n\
-        Response codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
+        A 200 Ack confirms the callback was received and accepted by the BPP. A\
+        \ 400 NackBadRequest is returned when the payload is malformed or the results\
+        \ array is missing. A 401 NackUnauthorized is returned when the Authorization\
+        \ header (callback) signature is invalid. A 500 ServerError indicates an\
+        \ unexpected BPP failure."
       operationId: catalogOnPublish
       tags:
       - Fabric API - Cataloging Service
@@ -1498,10 +1509,27 @@ paths:
   /catalog/push:
     post:
       summary: Push catalogs to a Network Participant's edge discovery service
-      description: >-
-        Endpoint implemented by the edge discovery service owned by
-        a Network Participant. The catalog system pushes catalog
-        updates matching the subscriber's networkIds and schema types.
+      description: "The CS (Cataloging Service) calls this endpoint on the Network\
+        \ Participant's edge discovery service to deliver catalog updates that match\
+        \ an active subscription.\n\nAdditional preconditions: An active subscription\
+        \ MUST exist for the Network Participant matching the catalog's networkId\
+        \ and schema types. The Network Participant MUST have a valid subscriberUrl\
+        \ registered in the DeDi registry.\n\nFabric context: This endpoint is hosted\
+        \ by the Network Participant's edge discovery service. The CS resolves the\
+        \ callback URL from the DeDi registry at delivery time and signs the request\
+        \ using the CS signing key.\n\nThe message MUST contain a CatalogPublishAction\
+        \ with a non-empty catalogs array. Each catalog is fully resolved (master-wins\
+        \ merge and variant resolution applied) before delivery. The publishDirectives\
+        \ array carries the updateMode (MERGE or FULL) so the edge discovery service\
+        \ knows whether to upsert or replace existing resources.\n\nThis is a fire-and-forget\
+        \ push — there is no on_catalog_push callback. Delivery failures are handled\
+        \ via Kafka retries and dead-letter topics on the CS side.\n\nA 200 Ack confirms\
+        \ the push was received and accepted for processing. A 400 NackBadRequest\
+        \ is returned for an invalid or malformed payload. A 401 NackUnauthorized\
+        \ is returned when the Authorization header signature is invalid. A 409 AckNoCallback\
+        \ is returned when the edge discovery service accepted the request but no\
+        \ further processing will occur (e.g., no matching local subscriptions). A\
+        \ 500 ServerError indicates an unexpected failure at the Network Participant."
       operationId: catalogPush
       tags:
       - Fabric API - Cataloging Service
@@ -1558,17 +1586,24 @@ paths:
           format: uuid
         example: f47ac10b-58cc-4372-a567-0e02b2c3d479
       description: "Creates a new catalog subscription or updates an existing one\
-        \ on the CS (Cataloging Service). The subscriber declares which networks\
-        \ and schema types it wishes to receive ongoing catalog/push callbacks for\
-        \ when matching catalogs are indexed.\n\nAdditional preconditions: At least\
-        \ one networkId or schemaType MUST be provided (anyOf). An empty schemaTypes\
-        \ array is treated as a wildcard matching all schema types for the specified\
-        \ networks. The subscriber identity is derived from the Authorization header\
-        \ keyId.\n\nThe message MUST contain a CatalogSubscribeAction with a subscription\
-        \ object specifying networkIds and optional schemaTypes.\n\nResponse codes:\
-        \ Ack, NackBadRequest, NackUnauthorized, NackForbidden, NackNotFound (on update\
-        \ with unknown subscriptionId), 409 duplicate (identical networkIds+schemaTypes\
-        \ combination already active), ServerError."
+        \ on the CS (Cataloging Service). The BAP declares which networks and schema\
+        \ types it wishes to receive ongoing catalog/push callbacks for when matching\
+        \ catalogs are indexed.\n\nAdditional preconditions: At least one networkId\
+        \ or schemaType MUST be provided (anyOf). An empty schemaTypes array is treated\
+        \ as a wildcard matching all schema types for the specified networks. The\
+        \ BAP identity is derived from the Authorization header keyId.\n\nThe message\
+        \ MUST contain a CatalogSubscribeAction with a subscription object specifying\
+        \ networkIds and optional schemaTypes.\n\nA 200 response returns the created\
+        \ or updated CatalogSubscription in a CatalogSubscriptionResponse envelope.\
+        \ This endpoint is synchronous — no callback is delivered. A 400 NackBadRequest\
+        \ is returned when neither networkIds nor schemaTypes is provided, or when\
+        \ the payload is malformed. A 401 NackUnauthorized is returned when the Authorization\
+        \ header signature is missing or invalid. A 403 NackForbidden is returned\
+        \ when the subscriptionId belongs to a different subscriber. A 404 NackNotFound\
+        \ is returned when the provided subscriptionId does not exist. A 409 NackBadRequest\
+        \ is returned when an identical networkIds+schemaTypes combination is already\
+        \ active for this subscriber. A 500 ServerError indicates an unexpected CS\
+        \ failure."
       requestBody:
         required: true
         content:
@@ -1628,9 +1663,24 @@ paths:
       operationId: catalogSubscriptionDeactivate
       tags:
       - Fabric API - Cataloging Service
-      description: >-
-        Deactivates a subscription so the subscriber stops receiving
-        catalog updates. Can be reactivated later via POST update.
+      description: "The BAP deactivates an existing subscription on the CS (Cataloging\
+        \ Service). A deactivated subscription stops being matched during catalog\
+        \ evaluation so the BAP no longer receives catalog/push callbacks.\n\nAdditional\
+        \ preconditions: The subscriptionId query parameter MUST be provided. The\
+        \ caller MUST be the subscription owner — the record_id in the Authorization\
+        \ header keyId MUST match the created_by on the subscription.\n\nFabric context:\
+        \ This endpoint is hosted by the CS. Ownership is enforced at two layers:\
+        \ the subscriber_id (org-level) and the record_id (key-level) must both match\
+        \ the caller's identity from the Authorization header.\n\nA 200 response returns\
+        \ the deactivated CatalogSubscription in a CatalogSubscriptionResponse envelope.\
+        \ This endpoint is synchronous — no callback is delivered. The subscription\
+        \ can be reactivated at any time via POST to /catalog/subscription with the\
+        \ same subscriptionId. A 400 NackBadRequest is returned when the subscriptionId\
+        \ query parameter is missing or not a valid UUID. A 401 NackUnauthorized is\
+        \ returned when the Authorization header signature is missing or invalid.\
+        \ A 403 NackForbidden is returned when the subscription belongs to a different\
+        \ subscriber. A 404 NackNotFound is returned when the subscriptionId does\
+        \ not exist. A 500 ServerError indicates an unexpected CS failure."
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       - name: subscriptionId
@@ -1662,9 +1712,21 @@ paths:
   /catalog/subscriptions:
     get:
       summary: List catalog subscriptions for a BAP
-      description: >-
-        Returns the caller's subscriptions, optionally filtered by status.
-        Returns all statuses when omitted. Supports pagination and lookup by ID.
+      description: "The BAP retrieves its own subscriptions from the CS (Cataloging\
+        \ Service), optionally filtered by status, with support for pagination and\
+        \ lookup by subscription ID.\n\nAdditional preconditions: The caller's identity\
+        \ is derived from the Authorization header keyId. Only subscriptions owned\
+        \ by the calling BAP are returned.\n\nFabric context: This endpoint is hosted\
+        \ by the CS. The CS filters the subscription store by the caller's subscriber_id\
+        \ and returns matching records with pagination metadata.\n\nA 200 response\
+        \ returns a CatalogSubscriptionResponse envelope containing the matching subscriptions\
+        \ and pagination metadata. When subscriptionId is provided, at most one subscription\
+        \ is returned. When status is omitted, subscriptions of all statuses are returned.\
+        \ A 400 NackBadRequest is returned for an invalid subscriptionId format or\
+        \ out-of-range pagination parameters. A 401 NackUnauthorized is returned when\
+        \ the Authorization header signature is missing or invalid. A 404 NackNotFound\
+        \ is returned when a specific subscriptionId was requested but does not exist.\
+        \ A 500 ServerError indicates an unexpected CS failure."
       operationId: catalogSubscribeList
       tags:
       - Fabric API - Cataloging Service
@@ -1741,8 +1803,14 @@ paths:
         \ results via POST to the /catalog/on_pull callback. When the payload is\
         \ small it is returned inline; when it exceeds the configured inline threshold\
         \ the callback carries an objectUrl for downloading the result.\
-        \ The response Ack confirms acceptance; the requestId is delivered in the /catalog/on_pull callback.\n\nResponse codes: Ack, NackBadRequest,\
-        \ NackUnauthorized, ServerError."
+        \ The response Ack confirms acceptance; the requestId is delivered in the\
+        \ /catalog/on_pull callback.\n\nA 200 Ack confirms the pull request was accepted;\
+        \ results will be delivered asynchronously via /catalog/on_pull. A 400 NackBadRequest\
+        \ is returned when the subscriptionId is missing, does not exist, or does\
+        \ not belong to the caller, or when the mode, fromDate, or toDate values\
+        \ are invalid. A 401 NackUnauthorized is returned when the Authorization header\
+        \ signature is missing or invalid. A 500 ServerError indicates an unexpected\
+        \ CS failure; the BAP SHOULD retry."
       requestBody:
         required: true
         content:
@@ -1788,9 +1856,23 @@ paths:
   /catalog/on_pull:
     post:
       summary: Receive catalog pull results
-      description: >-
-        Callback endpoint implemented by the Network Participant
-        to receive the results of a `/catalog/pull` request.
+      description: "The CS (Cataloging Service) calls this endpoint on the Network\
+        \ Participant (BAP) to deliver the results of a previously accepted /catalog/pull\
+        \ request.\n\nAdditional preconditions: A /catalog/pull request MUST have\
+        \ been sent by the BAP and accepted (200 Ack) by the CS before this callback\
+        \ is triggered. The callback is correlated to the originating request via\
+        \ the requestId field in CatalogPullCallbackAction.\n\nFabric context: This\
+        \ callback is sent by the CS after asynchronously processing the pull request.\
+        \ The CS resolves the BAP's callback URL from the DeDi registry using the\
+        \ subscriberId and recordId from the original /catalog/pull Authorization\
+        \ header.\n\nThe message MUST contain a CatalogPullCallbackAction with the\
+        \ requestId echoed from the pull request, a status of COMPLETED or FAILED,\
+        \ and either an inline catalogs array (small payload) or an objectUrl for\
+        \ downloading the result (large payload).\n\nA 200 Ack confirms the callback\
+        \ was received and accepted by the BAP. A 400 NackBadRequest is returned\
+        \ when the payload is malformed or required fields are missing. A 401 NackUnauthorized\
+        \ is returned when the Authorization header (callback) signature is invalid.\
+        \ A 500 ServerError indicates an unexpected BAP failure."
       operationId: onCatalogPull
       tags:
       - Fabric API - Cataloging Service
@@ -1832,11 +1914,20 @@ paths:
       summary: Search master catalog items
       description: "The BAP or BPP queries the CS (Cataloging Service) for master\
         \ catalog items stored in the canonical catalog repository, filtering by network\
-        \ identifiers and schema type URIs with paginated results.\n\nThe message\
-        \ MUST contain a MasterSearchAction with optional filters for networkIds and\
-        \ schemaTypes, and optional pagination parameters. All responses are wrapped\
-        \ in a Beckn envelope with action set to \"catalog/on_master_search\".\n\n\
-        Response codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
+        \ identifiers and schema type URIs with paginated results.\n\nAdditional\
+        \ preconditions: filters.networkIds and filters.schemaTypes are optional;\
+        \ omitting or leaving them empty matches all networks and schema types respectively.\
+        \ limit MUST be between 1 and 100 (default 20); offset MUST be non-negative\
+        \ (default 0).\n\nThe message MUST contain a MasterSearchAction with optional\
+        \ filters for networkIds and schemaTypes, and optional pagination parameters.\
+        \ All responses are wrapped in a Beckn envelope with action set to \"catalog/on_master_search\".\n\
+        \nA 200 response returns the matching master catalog items directly in a catalogs\
+        \ array — this endpoint is synchronous and does not use an async callback.\
+        \ A 400 NackBadRequest is returned for an invalid payload or out-of-range\
+        \ pagination parameters. A 401 NackUnauthorized is returned when the Authorization\
+        \ header signature is missing or invalid. A 429 NackTooManyRequests is returned\
+        \ when the request rate exceeds the CS's configured limit. A 500 ServerError\
+        \ indicates an unexpected CS failure."
       operationId: masterSearch
       tags:
       - Fabric API - Cataloging Service
@@ -1907,8 +1998,13 @@ paths:
       summary: List distinct schema types
       description: "The BAP or BPP retrieves the distinct set of schema type URIs\
         \ present in the CS (Cataloging Service) master catalog repository, for use\
-        \ in constructing subscription filters or search queries.\n\nResponse codes:\
-        \ Ack, NackUnauthorized, ServerError."
+        \ in constructing subscription filters or search queries.\n\nA 200 response\
+        \ returns the schema type URIs directly in a schemaTypes array — this endpoint\
+        \ is synchronous and does not use an async callback. A 400 NackBadRequest\
+        \ is returned for a malformed request. A 401 NackUnauthorized is returned\
+        \ when the Authorization header signature is missing or invalid. A 429 NackTooManyRequests\
+        \ is returned when the request rate exceeds the CS's configured limit. A\
+        \ 500 ServerError indicates an unexpected CS failure."
       operationId: listMasterSchemaTypes
       tags:
       - Fabric API - Cataloging Service
@@ -1956,9 +2052,17 @@ paths:
       summary: Get single master item
       description: "The BAP or BPP retrieves a single master catalog item by its\
         \ identifier from the CS (Cataloging Service) canonical repository, returned\
-        \ in a standard Beckn catalog envelope.\n\nAdditional preconditions: The masterResourceId\
-        \ MUST match the allowed character pattern defined in the path parameter schema.\n\
-        \nResponse codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
+        \ in a standard Beckn catalog envelope.\n\nAdditional preconditions: The\
+        \ masterResourceId path parameter MUST match the pattern ^[a-zA-Z0-9_\\-:.]+$\
+        \ — requests with identifiers containing other characters are rejected before\
+        \ any repository access.\n\nA 200 response returns the master catalog item\
+        \ directly in a catalogs array (exactly one entry) — this endpoint is synchronous\
+        \ and does not use an async callback. A 400 NackBadRequest is returned when\
+        \ the masterResourceId format is invalid. A 401 NackUnauthorized is returned\
+        \ when the Authorization header signature is missing or invalid. A 404 NackNotFound\
+        \ is returned when no master item with the given ID exists. A 429 NackTooManyRequests\
+        \ is returned when the request rate exceeds the CS's configured limit. A\
+        \ 500 ServerError indicates an unexpected CS failure."
       operationId: getMasterResource
       tags:
       - Fabric API - Cataloging Service
@@ -4368,10 +4472,17 @@ components:
 
     CatalogSubscribeAction:
       type: object
-      description: >-
-        Subscription request payload. At least one of `networkIds` or
-        `schemaTypes` MUST be provided — providing neither results in 400 NackBadRequest.
-        Updating an inactive subscription reactivates it.
+      description: "The real-world act by which a BAP declares interest in receiving\
+        \ ongoing catalog/push callbacks from the CS (Cataloging Service) for catalogs\
+        \ matching specified networks and schema types.\n\nThis schema appears in\
+        \ the Catalog Subscription phase. The BAP produces it as the message payload\
+        \ of a POST /catalog/subscription request; the CS consumes it to create or\
+        \ update the subscription record.\n\nFabric context: Processed by the CS,\
+        \ which validates the subscription criteria and persists the subscription\
+        \ for use during catalog evaluation.\n\nRelationship: Composes a subscription\
+        \ object specifying networkIds and optional schemaTypes. At least one of\
+        \ networkIds or schemaTypes MUST be provided — providing neither results in\
+        \ 400 NackBadRequest. Updating an inactive subscription reactivates it."
       required:
       - subscription
       properties:
@@ -4399,7 +4510,7 @@ components:
       description: "The persisted subscription record held by the CS (Cataloging Service),\
         \ representing a subscriber's declared interest in receiving catalog delivery\
         \ callbacks for specific networks and schema types, along with its current\
-        \ lifecycle status.\n\nCatalogSubscription appears in the Catalog Publishing\
+        \ lifecycle status.\n\nCatalogSubscription appears in the Catalog Subscription\
         \ phase. The CS produces it as a response to POST /catalog/subscription (creation\
         \ or update) and GET /catalog/subscriptions (listing). The subscriber consumes\
         \ it to confirm subscription state.\n\nFabric context: Managed exclusively\
@@ -4435,13 +4546,23 @@ components:
           enum:
           - ACTIVE
           - INACTIVE
-          description: ACTIVE receives updates, INACTIVE does not.
+          description: >-
+            Lifecycle state assigned and maintained by the CS. ACTIVE — the
+            subscription is matched during catalog evaluation and the subscriber
+            receives catalog/push callbacks. INACTIVE — the subscription is
+            paused and receives no callbacks; can be reactivated via POST update.
         createdAt:
           type: string
           format: date-time
+          description: >-
+            ISO 8601 timestamp set by the CS when the subscription was first
+            created. Immutable after creation.
         updatedAt:
           type: string
           format: date-time
+          description: >-
+            ISO 8601 timestamp set by the CS each time the subscription record
+            is modified.
 
     Pagination:
       type: object
@@ -4644,7 +4765,17 @@ components:
           $ref: '#/components/schemas/Error'
 
     CatalogSubscriptionResponse:
-      description: Subscription response envelope with `catalog/on_subscription` context.
+      description: "The response envelope returned synchronously by the CS (Cataloging\
+        \ Service) for subscription management operations — create, update, list,\
+        \ and deactivate.\n\nThis schema appears in the Catalog Subscription phase.\
+        \ The CS produces it as the synchronous response to POST /catalog/subscription\
+        \ (creation or update), GET /catalog/subscriptions (listing), and DELETE\
+        \ /catalog/subscription (deactivation). The BAP consumes it to confirm subscription\
+        \ state.\n\nFabric context: Produced synchronously by the CS; no async callback\
+        \ is delivered for subscription management operations. The context.action\
+        \ is always catalog/on_subscription.\n\nRelationship: Composes one or more\
+        \ CatalogSubscription records in the message.subscriptions array, and an\
+        \ optional Pagination object for list responses."
       type: object
       required:
       - context
@@ -4693,6 +4824,9 @@ components:
               const: NACK
             messageId:
               type: string
+              description: >-
+                Echoes the messageId from the triggering request's Context,
+                for caller correlation.
             error:
               $ref: '#/components/schemas/Error'
 
@@ -4719,6 +4853,9 @@ components:
               const: NACK
             messageId:
               type: string
+              description: >-
+                Echoes the messageId from the triggering request's Context,
+                for caller correlation.
             error:
               $ref: '#/components/schemas/Error'
 
