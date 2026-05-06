@@ -5,7 +5,7 @@
 - **Status:** Draft.
 - **Authors:** Beckn Protocol contributors.
 - **Created:** 2026-04-22.
-- **Updated:** 2026-04-25.
+- **Updated:** 2026-05-06.
 - **Version history:** To be published.
 - **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Catalog_APIs_RFC.md).
 - **Implementation report:** To be published by implementation working group.
@@ -89,7 +89,7 @@ Each publish directive may include a `visibleTo` array to restrict the catalog's
 
 1. `publishDirectives[].visibleTo` — catalog is visible only to the listed networks.
 2. `context.networkId` — fallback when `visibleTo` is omitted.
-3. Default global network (`nfh.global/beckn-nodes`) — fallback when neither is provided.
+3. The catalog system's configured default network — fallback when neither is provided.
 
 **`POST /catalog/on_publish`**
 
@@ -116,7 +116,7 @@ Endpoint implemented by the edge discovery service owned by a Network Participan
 A Network Participant creates a subscription to receive catalog updates for specified networks and/or schema types.
 
 - At least one of `networkIds` or `schemaTypes` MUST be provided.
-- The catalog system MUST return an existing active subscription if an identical scope subscription already exists (idempotent).
+- The catalog system MUST reject the request with 409 when an identical `networkIds` + `schemaTypes` combination is already active for the caller.
 - The catalog system MUST generate and return a unique `subscriptionId` UUID for each new subscription.
 
 **`DELETE /catalog/subscription?subscriptionId={subscriptionId}`**
@@ -370,7 +370,7 @@ These catalog lifecycle APIs are new in Beckn v2 and have no direct equivalent i
     "timestamp": "2026-04-22T10:00:05.000Z"
   },
   "message": {
-    "requestId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "requestId": "b2c3d4e5-f6a7-8901-bcde-f12345678901",
     "status": "COMPLETED",
     "catalogs": [
       {
@@ -422,6 +422,7 @@ This RFC defines the full catalog lifecycle API surface for Beckn Protocol v2, c
 | Version | Date | Author | Summary |
 |---|---|---|---|
 | Draft-01 | 2026-04-22 | | Initial draft |
+| Draft-02 | 2026-05-06 | | Refactored catalog APIs |
 
 ## 7. Acknowledgements
 
