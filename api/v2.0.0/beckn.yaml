@@ -1482,7 +1482,7 @@ paths:
           $ref: '#/components/responses/ServerError'
     delete:
       summary: Deactivate a catalog subscription
-      operationId: catalogSubscribeDelete
+      operationId: catalogSubscriptionDeactivate
       tags:
       - Fabric API - Cataloging Service
       description: >-
@@ -1940,8 +1940,8 @@ components:
         \ catalogs into its catalog store.\n\nFabric context: This schema is processed\
         \ by the CS, which validates and indexes each submitted Catalog object.\n\n\
         Relationship: Composes one or more Catalog schemas in the catalogs array.\
-        \ The optional publishDirectives field carries deprecated publisher-side routing\
-        \ directives for master and regular catalog flows."
+        \ The optional publishDirectives array controls per-catalog processing —\
+        \ catalog type, update mode, resource inheritance, and visibility."
       required:
       - catalogs
       type: object
@@ -2080,17 +2080,6 @@ components:
                           description: >-
                             A human-readable name for this variant.
                           example: Bangalore region
-              offerDirectives:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    offerId:
-                      type: string
-                      description: ID of the offer for which this directive is applied
-                    resourceId:
-                      type: string
-                      description: ID of the resource for which this offer is published
 
     ConfirmAction:
       title: Confirm Action
@@ -4236,7 +4225,8 @@ components:
       description: >-
         Subscription request payload. At least one of `networkIds` or
         `schemaTypes` is required for both creating and updating a subscription.
-        Updating an inactive subscription reactivates it.
+
+        > **ℹ️ Info:** Updating an inactive subscription reactivates it.
       required:
       - subscription
       properties:
@@ -4261,7 +4251,18 @@ components:
 
     CatalogSubscription:
       type: object
-      description: A subscription record.
+      description: "The persisted subscription record held by the CS (Cataloging Service),\
+        \ representing a subscriber's declared interest in receiving catalog delivery\
+        \ callbacks for specific networks and schema types, along with its current\
+        \ lifecycle status.\n\nCatalogSubscription appears in the Catalog Publishing\
+        \ phase. The CS produces it as a response to POST /catalog/subscription (creation\
+        \ or update) and GET /catalog/subscriptions (listing). The subscriber consumes\
+        \ it to confirm subscription state.\n\nFabric context: Managed exclusively\
+        \ by the CS, which evaluates ACTIVE subscriptions against newly indexed catalogs\
+        \ to determine delivery targets. Callback URLs are resolved at delivery time\
+        \ from the DeDi registry — they are never stored on the subscription.\n\nRelationship:\
+        \ The status field MUST be one of ACTIVE (subscription is matched during evaluation)\
+        \ or INACTIVE (temporarily paused; can be reactivated via POST update)."
       required:
       - subscriptionId
       - subscriberId
@@ -4359,12 +4360,18 @@ components:
 
     CatalogPullAction:
       type: object
-      description: >-
-        Pull request payload. The caller references an active
-        subscription by `subscriptionId` — the catalog system uses
-        the subscription's network and schema-type filters to scope
-        which catalogs are returned. An optional date range narrows
-        results further.
+      description: "The real-world act by which a subscriber initiates an asynchronous\
+        \ bulk catalog retrieval from the CS (Cataloging Service), scoped to an active\
+        \ subscription, specifying whether to retrieve the latest version of each\
+        \ matching catalog (FULL mode) or all catalog versions within a date range\
+        \ (INCREMENTAL mode).\n\nThis schema appears in the Catalog Pull phase. The\
+        \ subscriber produces it as the message payload of a /catalog/pull request;\
+        \ the CS consumes it to process the pull request asynchronously and deliver\
+        \ results via a callback to the subscriber's /catalog/on_pull endpoint.\n\n\
+        Fabric context: Processed by the CS, which uses the referenced subscription's\
+        \ networkIds and schemaTypes to determine which catalogs to retrieve and deliver\
+        \ asynchronously.\n\nRelationship: Composed as the message payload of the\
+        \ /catalog/pull request body. References a CatalogSubscription by subscriptionId."
       additionalProperties: false
       required:
       - subscriptionId
@@ -4414,10 +4421,17 @@ components:
 
     CatalogPullCallbackAction:
       type: object
-      description: >-
-        Callback payload for pull results. Contains either the
-        requested catalogs inline or a download URL for large
-        results.
+      description: "The real-world act by which the CS (Cataloging Service) delivers\
+        \ the results of a previously accepted /catalog/pull request to the subscriber's\
+        \ /catalog/on_pull callback endpoint.\n\nThis schema appears in the Catalog\
+        \ Pull phase. The CS produces it as the message payload of the async callback;\
+        \ the subscriber consumes it to retrieve the requested catalog data.\n\nFabric\
+        \ context: Produced by the CS after asynchronously processing the pull request.\
+        \ When the payload is small it is returned inline in `catalogs`; when it\
+        \ exceeds the configured threshold the callback carries an `objectUrl` for\
+        \ downloading the result.\n\nRelationship: Composed as the message payload\
+        \ of the /catalog/on_pull callback. References the originating pull request\
+        \ via `requestId`."
       additionalProperties: false
       required:
       - status
