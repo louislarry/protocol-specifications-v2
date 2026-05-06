@@ -1238,15 +1238,15 @@ paths:
 
   /catalog/publish:
     post:
-      summary: BPP publishes catalogs for indexing by the CS
+      summary: BPP publishes catalogs to the CS
       description: "The BPP submits one or more Catalog objects to the CS (Cataloging\
-        \ Service) for validation and indexing so that BAPs may discover them via /discover.\n\
+        \ Service) for validation and processing so that BAPs may discover them via /discover.\n\
         \nAdditional preconditions: At least one Catalog object MUST be present in\
         \ the message.\n\nFabric context: This endpoint is hosted by the CS, a Fabric\
         \ service that receives, validates, and indexes submitted catalogs.\n\nThe\
         \ message MUST contain a CatalogPublishAction with a non-empty catalogs array.\
         \ Each Catalog MUST include an id, descriptor, and provider.\n\nCallback relationship:\
-        \ After indexing each submitted catalog, the CS sends a /catalog/on_publish\
+        \ After processing each submitted catalog, the CS sends a /catalog/on_publish\
         \ callback to the BPP carrying a CatalogOnPublishAction with per-catalog processing\
         \ results (ACCEPTED, REJECTED, or PARTIAL). The BPP MUST correlate the callback\
         \ using the messageId from Context.\n\nA 200 Ack confirms the request was\
@@ -1457,10 +1457,10 @@ paths:
         \ request.\n\nAdditional preconditions: A /catalog/publish request MUST have\
         \ been sent by the BPP and accepted (200 Ack) by the CS before this callback\
         \ is triggered.\n\nFabric context: This callback is sent by the CS after completing\
-        \ indexing for each submitted catalog.\n\nThe message MUST contain a CatalogOnPublishAction\
+        \ processing each submitted catalog.\n\nThe message MUST contain a CatalogOnPublishAction\
         \ with a results array. Each result carries the catalogId and a processing\
         \ status of ACCEPTED, REJECTED, or PARTIAL, along with any per-item errors.\n\
-        \nCallback relationship: Triggered by the CS after indexing each catalog from\
+        \nCallback relationship: Triggered by the CS after processing each catalog from\
         \ /catalog/publish. The BPP MUST use the messageId in Context to correlate\
         \ this callback with the originating publish request, and MUST handle REJECTED\
         \ or PARTIAL results by correcting and resubmitting affected catalogs.\n\n\
@@ -1508,27 +1508,24 @@ paths:
 
   /catalog/push:
     post:
-      summary: Push catalogs to a Network Participant's edge discovery service
+      summary: Push catalogs to a Network Participant
       description: "The CS (Cataloging Service) calls this endpoint on the Network\
-        \ Participant's edge discovery service to deliver catalog updates that match\
-        \ an active subscription.\n\nAdditional preconditions: An active subscription\
-        \ MUST exist for the Network Participant matching the catalog's networkId\
-        \ and schema types. The Network Participant MUST have a valid subscriberUrl\
-        \ registered in the DeDi registry.\n\nFabric context: This endpoint is hosted\
-        \ by the Network Participant's edge discovery service. The CS resolves the\
-        \ callback URL from the DeDi registry at delivery time and signs the request\
-        \ using the CS signing key.\n\nThe message MUST contain a CatalogPublishAction\
-        \ with a non-empty catalogs array. Each catalog is delivered in its final,\
-        \ fully resolved form. The publishDirectives array carries the updateMode\
-        \ (MERGE or FULL) so the edge discovery service knows whether to upsert or\
-        \ replace existing resources.\n\nThis is a fire-and-forget push — there is\
-        \ no on_catalog_push callback. The CS ensures at-least-once delivery.\n\nA 200 Ack confirms\
-        \ the push was received and accepted for processing. A 400 NackBadRequest\
-        \ is returned for an invalid or malformed payload. A 401 NackUnauthorized\
-        \ is returned when the Authorization header signature is invalid. A 409 AckNoCallback\
-        \ is returned when the edge discovery service accepted the request but no\
-        \ further processing will occur (e.g., no matching local subscriptions). A\
-        \ 500 ServerError indicates an unexpected failure at the Network Participant."
+        \ Participant to deliver catalog updates that match an active subscription.\n\
+        \nAdditional preconditions: An active subscription MUST exist for the Network\
+        \ Participant matching the catalog's networkId and schema types. The Network\
+        \ Participant MUST have a valid endpoint registered in the network.\n\nFabric\
+        \ context: This endpoint is implemented by the Network Participant. The CS\
+        \ signs the request and delivers it to the Network Participant's registered\
+        \ endpoint.\n\nThe message MUST contain a CatalogPublishAction with a non-empty\
+        \ catalogs array. The publishDirectives array carries the updateMode (MERGE\
+        \ or FULL) indicating how the receiver should process the catalogs. No on_catalog_push\
+        \ callback is sent.\n\nA 200 Ack confirms the push was received and accepted\
+        \ for processing. A 400 NackBadRequest is returned for an invalid or malformed\
+        \ payload. A 401 NackUnauthorized is returned when the Authorization header\
+        \ signature is invalid. A 409 AckNoCallback is returned when the receiver\
+        \ accepted the request but will not process it further (e.g., no matching\
+        \ subscriptions). A 500 ServerError indicates an unexpected failure at the\
+        \ Network Participant."
       operationId: catalogPush
       tags:
       - Fabric API - Cataloging Service
@@ -1590,7 +1587,7 @@ paths:
         \ catalogs are indexed.\n\nAdditional preconditions: At least one networkId\
         \ or schemaType MUST be provided (anyOf). An empty schemaTypes array is treated\
         \ as a wildcard matching all schema types for the specified networks. The\
-        \ BAP identity is derived from the Authorization header keyId.\n\nThe message\
+        \ BAP identity is extracted from the Authorization header.\n\nThe message\
         \ MUST contain a CatalogSubscribeAction with a subscription object specifying\
         \ networkIds and optional schemaTypes.\n\nA 200 response returns the created\
         \ or updated CatalogSubscription in a CatalogSubscriptionResponse envelope.\
@@ -1713,7 +1710,7 @@ paths:
       description: "The BAP retrieves its own subscriptions from the CS (Cataloging\
         \ Service), optionally filtered by status, with support for pagination and\
         \ lookup by subscription ID.\n\nAdditional preconditions: The caller's identity\
-        \ is derived from the Authorization header keyId. Only subscriptions owned\
+        \ is extracted from the Authorization header. Only subscriptions owned\
         \ by the calling BAP are returned.\n\nFabric context: This endpoint is hosted\
         \ by the CS. The CS returns only subscriptions belonging to the calling BAP,\
         \ with pagination metadata.\n\nA 200 response\
@@ -1795,7 +1792,7 @@ paths:
         \ context.action, context.transactionId, and message.subscriptionId MUST be\
         \ supplied.\n\nThe message MUST contain a CatalogPullAction. The mode field\
         \ MUST be either FULL (returns the latest version of each matching catalog)\
-        \ or INCREMENTAL (returns all catalog versions indexed between fromDate and\
+        \ or INCREMENTAL (returns all catalog versions published between fromDate and\
         \ toDate inclusive).\n\nCallback\
         \ relationship: The CS processes the pull request asynchronously and delivers\
         \ results via POST to the /catalog/on_pull callback. When the payload is\
@@ -1860,9 +1857,8 @@ paths:
         \ been sent by the BAP and accepted (200 Ack) by the CS before this callback\
         \ is triggered. The callback is correlated to the originating request via\
         \ the requestId field in CatalogPullCallbackAction.\n\nFabric context: This\
-        \ callback is sent by the CS after asynchronously processing the pull request.\
-        \ The CS resolves the BAP's registered callback URL from the DeDi registry\
-        \ and delivers the results to the BAP's endpoint.\n\nThe message MUST contain a CatalogPullCallbackAction with the\
+        \ callback is sent by the CS after processing the pull request. The CS delivers\
+        \ the results to the BAP's registered endpoint.\n\nThe message MUST contain a CatalogPullCallbackAction with the\
         \ requestId echoed from the pull request, a status of COMPLETED or FAILED,\
         \ and either an inline catalogs array (small payload) or an objectUrl for\
         \ downloading the result (large payload).\n\nA 200 Ack confirms the callback\
@@ -1910,7 +1906,7 @@ paths:
     post:
       summary: Search master catalog items
       description: "The BAP or BPP queries the CS (Cataloging Service) for master\
-        \ catalog items stored in the canonical catalog repository, filtering by network\
+        \ catalog items, filtering by network\
         \ identifiers and schema type URIs with paginated results.\n\nAdditional\
         \ preconditions: filters.networkIds and filters.schemaTypes are optional;\
         \ omitting or leaving them empty matches all networks and schema types respectively.\
@@ -1923,7 +1919,7 @@ paths:
         \ A 400 NackBadRequest is returned for an invalid payload or out-of-range\
         \ pagination parameters. A 401 NackUnauthorized is returned when the Authorization\
         \ header signature is missing or invalid. A 429 NackTooManyRequests is returned\
-        \ when the request rate exceeds the CS's configured limit. A 500 ServerError\
+        \ when the request rate exceeds the CS rate limit. A 500 ServerError\
         \ indicates an unexpected CS failure."
       operationId: masterSearch
       tags:
@@ -1994,14 +1990,14 @@ paths:
     get:
       summary: List distinct schema types
       description: "The BAP or BPP retrieves the distinct set of schema type URIs\
-        \ present in the CS (Cataloging Service) master catalog repository, for use\
+        \ available in the CS (Cataloging Service), for use\
         \ in constructing subscription filters or search queries.\n\nA 200 response\
         \ returns the schema type URIs directly in a schemaTypes array — this endpoint\
         \ is synchronous and does not use an async callback. A 400 NackBadRequest\
         \ is returned for a malformed request. A 401 NackUnauthorized is returned\
         \ when the Authorization header signature is missing or invalid. A 429 NackTooManyRequests\
-        \ is returned when the request rate exceeds the CS's configured limit. A\
-        \ 500 ServerError indicates an unexpected CS failure."
+        \ is returned when the request rate exceeds the CS rate limit. A 500 ServerError\
+        \ indicates an unexpected CS failure."
       operationId: listMasterSchemaTypes
       tags:
       - Fabric API - Cataloging Service
@@ -2048,18 +2044,17 @@ paths:
     get:
       summary: Get single master item
       description: "The BAP or BPP retrieves a single master catalog item by its\
-        \ identifier from the CS (Cataloging Service) canonical repository, returned\
-        \ in a standard Beckn catalog envelope.\n\nAdditional preconditions: The\
-        \ masterResourceId path parameter MUST match the pattern ^[a-zA-Z0-9_\\-:.]+$\
-        \ — requests with identifiers containing other characters are rejected before\
-        \ any repository access.\n\nA 200 response returns the master catalog item\
+        \ identifier from the CS (Cataloging Service), returned in a standard Beckn\
+        \ catalog envelope.\n\nAdditional preconditions: The masterResourceId path\
+        \ parameter MUST match the pattern ^[a-zA-Z0-9_\\-:.]+$ — requests with\
+        \ identifiers containing other characters are rejected.\n\nA 200 response returns the master catalog item\
         \ directly in a catalogs array (exactly one entry) — this endpoint is synchronous\
         \ and does not use an async callback. A 400 NackBadRequest is returned when\
         \ the masterResourceId format is invalid. A 401 NackUnauthorized is returned\
         \ when the Authorization header signature is missing or invalid. A 404 NackNotFound\
         \ is returned when no master item with the given ID exists. A 429 NackTooManyRequests\
-        \ is returned when the request rate exceeds the CS's configured limit. A\
-        \ 500 ServerError indicates an unexpected CS failure."
+        \ is returned when the request rate exceeds the CS rate limit. A 500 ServerError\
+        \ indicates an unexpected CS failure."
       operationId: getMasterResource
       tags:
       - Fabric API - Cataloging Service
@@ -2180,7 +2175,7 @@ components:
 
     CatalogPublishAction:
       description: "The real-world act by which a BPP submits one or more catalogs\
-        \ to the CS (Cataloging Service) for indexing so that BAPs may subsequently\
+        \ to the CS (Cataloging Service) for processing so that BAPs may subsequently\
         \ discover them.\n\nThis schema appears in the Catalog Publishing phase of\
         \ the value-exchange lifecycle. The BPP produces it as the message payload\
         \ of a /catalog/publish request; the CS consumes it to index the provided\
@@ -2202,10 +2197,10 @@ components:
           description: >-
             Publish directives define per-catalog processing
             instructions, matched by `catalogId`. When not defined,
-            the catalog service determines the type from content —
-            catalogs with offers are treated as `regular`; catalogs
-            with only resources are treated as `master`. Default
-            update mode is `MERGE`.
+            When not provided, the type is inferred from the catalog
+            content — catalogs with offers are treated as `regular`;
+            catalogs with only resources are treated as `master`.
+            Default update mode is `MERGE`.
           type: array
           items:
             type: object
@@ -2228,7 +2223,7 @@ components:
                   Restricts this catalog's visibility to the listed
                   networks. When omitted, falls back to
                   `context.networkId`, then to the default global
-                  network (`nfh.global/beckn-nodes`).
+                  the deployment's default network.
                 example:
                 - retail-network
                 - mobility-network
@@ -2872,13 +2867,12 @@ components:
 
     CatalogOnPublishAction:
       description: "The real-world act by which the CS (Cataloging Service) communicates\
-        \ per-catalog processing outcomes to the BPP after completing indexing for\
-        \ each catalog submitted in a publish request.\n\nThis schema appears in the\
-        \ Catalog Publishing phase of the value-exchange lifecycle. The CS produces\
-        \ it as the message payload of a /catalog/on_publish callback; the BPP consumes\
-        \ it to determine which submitted catalogs were successfully indexed and which\
-        \ require correction and resubmission.\n\nFabric context: Produced exclusively\
-        \ by the CS as the outcome of its indexing pipeline.\n\nRelationship: Composes\
+        \ per-catalog processing outcomes to the BPP after processing each catalog\
+        \ submitted in a publish request.\n\nThis schema appears in the Catalog Publishing\
+        \ phase of the value-exchange lifecycle. The CS produces it as the message\
+        \ payload of a /catalog/on_publish callback; the BPP consumes it to determine\
+        \ which submitted catalogs were accepted and which require correction and\
+        \ resubmission.\n\nFabric context: Produced exclusively by the CS.\n\nRelationship: Composes\
         \ one or more CatalogProcessingResult schemas in the required results array,\
         \ one per submitted catalog."
       type: object
@@ -2897,8 +2891,7 @@ components:
         \ rejected, or partially indexed, along with any per-item or per-catalog errors.\n\
         \nThis schema appears in the CatalogOnPublishAction and is produced by the\
         \ CS. The BPP consumes it to identify catalogues that require correction.\n\
-        \nFabric context: Produced exclusively by the CS as part of its indexing result\
-        \ reporting.\n\nRelationship: Composes zero or more Error schemas in the errors\
+        \nFabric context: Produced exclusively by the CS.\n\nRelationship: Composes zero or more Error schemas in the errors\
         \ array when status is REJECTED or PARTIAL. An optional stats object provides\
         \ counts of accepted items, providers, and categories."
       type: object
@@ -4514,8 +4507,8 @@ components:
         \ it to confirm subscription state.\n\nFabric context: Managed exclusively\
         \ by the CS, which uses ACTIVE subscriptions to determine which subscribers\
         \ receive catalog/push callbacks when catalogs are published. Callback URLs\
-        \ are resolved at delivery time from the DeDi registry — they are never stored\
-        \ on the subscription.\n\nRelationship:\
+        \ The subscriber's callback URL is not stored on the subscription — it is\
+        \ looked up from the network at delivery time.\n\nRelationship:\
         \ The status field MUST be one of ACTIVE (subscription is matched during evaluation)\
         \ or INACTIVE (temporarily paused; can be reactivated via POST update)."
       required:
@@ -4590,13 +4583,12 @@ components:
     MasterSearchAction:
       type: object
       description: "The real-world act by which a caller queries the CS (Cataloging\
-        \ Service) for canonical master catalog items stored in the catalog repository,\
-        \ applying optional network and schema type filters with pagination control.\n\
-        \nThis schema appears in the Master Resource Search phase. The BAP or BPP\
-        \ produces it as the message payload of a /catalog/master/search request;\
-        \ the CS consumes it to filter and return matching master items with pagination\
-        \ metadata.\n\nFabric context: Processed by the CS, which queries its canonical\
-        \ catalog repository for matching master catalog items.\n\nRelationship: Composed\
+        \ Service) for master catalog items, applying optional network and schema\
+        \ type filters with pagination control.\n\nThis schema appears in the Master\
+        \ Resource Search phase. The BAP or BPP produces it as the message payload\
+        \ of a /catalog/master/search request; the CS consumes it to filter and return\
+        \ matching master items with pagination metadata.\n\nFabric context: Processed\
+        \ by the CS, which returns matching master catalog items.\n\nRelationship: Composed\
         \ as the message payload of the /catalog/master/search request body."
       additionalProperties: false
       properties:
@@ -4694,7 +4686,7 @@ components:
         \ /catalog/on_pull callback endpoint.\n\nThis schema appears in the Catalog\
         \ Pull phase. The CS produces it as the message payload of the async callback;\
         \ the subscriber consumes it to retrieve the requested catalog data.\n\nFabric\
-        \ context: Produced by the CS after asynchronously processing the pull request.\
+        \ context: Produced by the CS after processing the pull request.\
         \ When the result is small it is returned inline in `catalogs`; when the\
         \ result is too large to return inline the callback carries an `objectUrl`\
         \ for downloading the result.\n\nRelationship: Composed as the message payload\
