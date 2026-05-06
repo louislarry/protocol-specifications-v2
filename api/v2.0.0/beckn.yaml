@@ -1518,12 +1518,11 @@ paths:
         \ by the Network Participant's edge discovery service. The CS resolves the\
         \ callback URL from the DeDi registry at delivery time and signs the request\
         \ using the CS signing key.\n\nThe message MUST contain a CatalogPublishAction\
-        \ with a non-empty catalogs array. Each catalog is fully resolved (master-wins\
-        \ merge and variant resolution applied) before delivery. The publishDirectives\
-        \ array carries the updateMode (MERGE or FULL) so the edge discovery service\
-        \ knows whether to upsert or replace existing resources.\n\nThis is a fire-and-forget\
-        \ push — there is no on_catalog_push callback. Delivery failures are handled\
-        \ via Kafka retries and dead-letter topics on the CS side.\n\nA 200 Ack confirms\
+        \ with a non-empty catalogs array. Each catalog is delivered in its final,\
+        \ fully resolved form. The publishDirectives array carries the updateMode\
+        \ (MERGE or FULL) so the edge discovery service knows whether to upsert or\
+        \ replace existing resources.\n\nThis is a fire-and-forget push — there is\
+        \ no on_catalog_push callback. The CS ensures at-least-once delivery.\n\nA 200 Ack confirms\
         \ the push was received and accepted for processing. A 400 NackBadRequest\
         \ is returned for an invalid or malformed payload. A 401 NackUnauthorized\
         \ is returned when the Authorization header signature is invalid. A 409 AckNoCallback\
@@ -1664,14 +1663,13 @@ paths:
       tags:
       - Fabric API - Cataloging Service
       description: "The BAP deactivates an existing subscription on the CS (Cataloging\
-        \ Service). A deactivated subscription stops being matched during catalog\
-        \ evaluation so the BAP no longer receives catalog/push callbacks.\n\nAdditional\
-        \ preconditions: The subscriptionId query parameter MUST be provided. The\
-        \ caller MUST be the subscription owner — the record_id in the Authorization\
-        \ header keyId MUST match the created_by on the subscription.\n\nFabric context:\
-        \ This endpoint is hosted by the CS. Ownership is enforced at two layers:\
-        \ the subscriber_id (org-level) and the record_id (key-level) must both match\
-        \ the caller's identity from the Authorization header.\n\nA 200 response returns\
+        \ Service). A deactivated subscription stops receiving catalog/push callbacks.\n\
+        \nAdditional preconditions: The subscriptionId query parameter MUST be provided.\
+        \ The caller MUST be the subscription owner — the signing key identity in\
+        \ the Authorization header MUST match the identity used when the subscription\
+        \ was created.\n\nFabric context: This endpoint is hosted by the CS. The\
+        \ CS verifies that the caller's organization and signing key identity both\
+        \ match those used when the subscription was created.\n\nA 200 response returns\
         \ the deactivated CatalogSubscription in a CatalogSubscriptionResponse envelope.\
         \ This endpoint is synchronous — no callback is delivered. The subscription\
         \ can be reactivated at any time via POST to /catalog/subscription with the\
@@ -1717,8 +1715,8 @@ paths:
         \ lookup by subscription ID.\n\nAdditional preconditions: The caller's identity\
         \ is derived from the Authorization header keyId. Only subscriptions owned\
         \ by the calling BAP are returned.\n\nFabric context: This endpoint is hosted\
-        \ by the CS. The CS filters the subscription store by the caller's subscriber_id\
-        \ and returns matching records with pagination metadata.\n\nA 200 response\
+        \ by the CS. The CS returns only subscriptions belonging to the calling BAP,\
+        \ with pagination metadata.\n\nA 200 response\
         \ returns a CatalogSubscriptionResponse envelope containing the matching subscriptions\
         \ and pagination metadata. When subscriptionId is provided, at most one subscription\
         \ is returned. When status is omitted, subscriptions of all statuses are returned.\
@@ -1801,7 +1799,7 @@ paths:
         \ toDate inclusive).\n\nCallback\
         \ relationship: The CS processes the pull request asynchronously and delivers\
         \ results via POST to the /catalog/on_pull callback. When the payload is\
-        \ small it is returned inline; when it exceeds the configured inline threshold\
+        \ small it is returned inline; when the result is too large to return inline\
         \ the callback carries an objectUrl for downloading the result.\
         \ The response Ack confirms acceptance; the requestId is delivered in the\
         \ /catalog/on_pull callback.\n\nA 200 Ack confirms the pull request was accepted;\
@@ -1863,9 +1861,8 @@ paths:
         \ is triggered. The callback is correlated to the originating request via\
         \ the requestId field in CatalogPullCallbackAction.\n\nFabric context: This\
         \ callback is sent by the CS after asynchronously processing the pull request.\
-        \ The CS resolves the BAP's callback URL from the DeDi registry using the\
-        \ subscriberId and recordId from the original /catalog/pull Authorization\
-        \ header.\n\nThe message MUST contain a CatalogPullCallbackAction with the\
+        \ The CS resolves the BAP's registered callback URL from the DeDi registry\
+        \ and delivers the results to the BAP's endpoint.\n\nThe message MUST contain a CatalogPullCallbackAction with the\
         \ requestId echoed from the pull request, a status of COMPLETED or FAILED,\
         \ and either an inline catalogs array (small payload) or an objectUrl for\
         \ downloading the result (large payload).\n\nA 200 Ack confirms the callback\
@@ -4479,7 +4476,8 @@ components:
         \ of a POST /catalog/subscription request; the CS consumes it to create or\
         \ update the subscription record.\n\nFabric context: Processed by the CS,\
         \ which validates the subscription criteria and persists the subscription\
-        \ for use during catalog evaluation.\n\nRelationship: Composes a subscription\
+        \ to determine which subscribers receive catalog/push callbacks when new catalogs\
+        \ are published.\n\nRelationship: Composes a subscription\
         \ object specifying networkIds and optional schemaTypes. At least one of\
         \ networkIds or schemaTypes MUST be provided — providing neither results in\
         \ 400 NackBadRequest. Updating an inactive subscription reactivates it."
@@ -4514,9 +4512,10 @@ components:
         \ phase. The CS produces it as a response to POST /catalog/subscription (creation\
         \ or update) and GET /catalog/subscriptions (listing). The subscriber consumes\
         \ it to confirm subscription state.\n\nFabric context: Managed exclusively\
-        \ by the CS, which evaluates ACTIVE subscriptions against newly indexed catalogs\
-        \ to determine delivery targets. Callback URLs are resolved at delivery time\
-        \ from the DeDi registry — they are never stored on the subscription.\n\nRelationship:\
+        \ by the CS, which uses ACTIVE subscriptions to determine which subscribers\
+        \ receive catalog/push callbacks when catalogs are published. Callback URLs\
+        \ are resolved at delivery time from the DeDi registry — they are never stored\
+        \ on the subscription.\n\nRelationship:\
         \ The status field MUST be one of ACTIVE (subscription is matched during evaluation)\
         \ or INACTIVE (temporarily paused; can be reactivated via POST update)."
       required:
@@ -4696,9 +4695,9 @@ components:
         \ Pull phase. The CS produces it as the message payload of the async callback;\
         \ the subscriber consumes it to retrieve the requested catalog data.\n\nFabric\
         \ context: Produced by the CS after asynchronously processing the pull request.\
-        \ When the payload is small it is returned inline in `catalogs`; when it\
-        \ exceeds the configured threshold the callback carries an `objectUrl` for\
-        \ downloading the result.\n\nRelationship: Composed as the message payload\
+        \ When the result is small it is returned inline in `catalogs`; when the\
+        \ result is too large to return inline the callback carries an `objectUrl`\
+        \ for downloading the result.\n\nRelationship: Composed as the message payload\
         \ of the /catalog/on_pull callback. References the originating pull request\
         \ via `requestId`."
       additionalProperties: false
