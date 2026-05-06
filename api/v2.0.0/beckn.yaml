@@ -155,8 +155,7 @@ paths:
                     properties:
                       action:
                         type: string
-                        enum:
-                        - discover
+                        const: discover
                 message:
                   $ref: '#/components/schemas/DiscoverAction'
       responses:
@@ -1274,9 +1273,7 @@ paths:
                     properties:
                       action:
                         type: string
-                        enum:
-                        - catalog/publish
-                        - catalog_publish
+                        const: catalog/publish
                 message:
                   $ref: '#/components/schemas/CatalogPublishAction'
       responses:
@@ -1333,9 +1330,7 @@ paths:
                     properties:
                       action:
                         type: string
-                        enum:
-                        - on_catalog_publish
-                        - catalog/on_publish
+                        const: catalog/on_publish
                 message:
                   $ref: '#/components/schemas/CatalogOnPublishAction'
       responses:
@@ -1350,6 +1345,50 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
+  /catalog/push:
+    post:
+      summary: Push catalogs to a Network Participant's edge discovery service
+      description: >-
+        Endpoint implemented by the edge discovery service owned by
+        a Network Participant. The catalog system pushes catalog
+        updates matching the subscriber's networkIds and schema types.
+      operationId: catalogPush
+      tags:
+      - Fabric API - Cataloging Service
+      parameters:
+      - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+              - context
+              - message
+              properties:
+                context:
+                  allOf:
+                  - $ref: '#/components/schemas/Context'
+                  - type: object
+                    properties:
+                      action:
+                        type: string
+                        const: catalog/push
+                message:
+                  $ref: '#/components/schemas/CatalogPublishAction'
+      responses:
+        '200':
+          $ref: '#/components/responses/Ack'
+        '400':
+          $ref: '#/components/responses/NackBadRequest'
+        '401':
+          $ref: '#/components/responses/NackUnauthorized'
+        '409':
+          $ref: '#/components/responses/AckNoCallback'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
   /catalog/subscription:
     post:
       summary: Subscribe to catalog distribution events
@@ -1358,17 +1397,28 @@ paths:
       - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
-      description: "The BAP creates a new catalog subscription on the DS (Discovery\
-        \ Service), declaring which networks and schema types it wishes to receive\
-        \ ongoing /on_discover callbacks for when matching catalogs are indexed.\n\n\
-        Additional preconditions: At least one networkId MUST be provided. An empty\
-        \ schemaTypes array is treated as a wildcard matching all schema types for\
-        \ the specified networks.\n\nThe message MUST contain a CatalogSubscribeAction\
-        \ with a subscription object specifying networkIds, optional schemaTypes, optional\
-        \ callback URL override, and an optional delivery policy. The subscriber identity\
-        \ is derived from context.bapId and context.bapUri; the callback URL defaults\
-        \ to context.bapUri if not overridden.\n\nResponse codes: Ack, NackBadRequest,\
-        \ NackUnauthorized, ServerError."
+      - name: subscriptionId
+        in: query
+        required: false
+        description: >-
+          When provided, updates the existing subscription with this ID instead
+          of creating a new one. The caller must be the subscription owner.
+        schema:
+          type: string
+          format: uuid
+        example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+      description: "Creates a new catalog subscription or updates an existing one\
+        \ on the CS (Cataloging Service). The subscriber declares which networks\
+        \ and schema types it wishes to receive ongoing catalog/push callbacks for\
+        \ when matching catalogs are indexed.\n\nAdditional preconditions: At least\
+        \ one networkId or schemaType MUST be provided (anyOf). An empty schemaTypes\
+        \ array is treated as a wildcard matching all schema types for the specified\
+        \ networks. The subscriber identity is derived from the Authorization header\
+        \ keyId.\n\nThe message MUST contain a CatalogSubscribeAction with a subscription\
+        \ object specifying networkIds and optional schemaTypes.\n\nResponse codes:\
+        \ Ack, NackBadRequest, NackUnauthorized, NackForbidden, NackNotFound (on update\
+        \ with unknown subscriptionId), 409 duplicate (identical networkIds+schemaTypes\
+        \ combination already active), ServerError."
       requestBody:
         required: true
         content:
@@ -1404,216 +1454,126 @@ paths:
                   - retail
                   schemaTypes:
                   - https://schema.beckn.org/retail/schema/1.1.0/item.json#ItemType
-                  deliveryPolicy:
-                    retryPolicy:
-                      maxRetries: 3
-                      backoffMultiplier: 2.0
       responses:
         '200':
-          description: Subscription created
+          description: Subscription created or updated successfully.
           content:
             application/json:
               schema:
-                type: object
-                required:
-                - context
-                - message
-                properties:
-                  context:
-                    allOf:
-                    - $ref: '#/components/schemas/Context'
-                    - type: object
-                      properties:
-                        action:
-                          type: string
-                          const: catalog/on_subscription
-                  message:
-                    type: object
-                    required:
-                    - subscriptions
-                    properties:
-                      subscriptions:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/CatalogSubscription'
+                $ref: '#/components/schemas/CatalogSubscriptionResponse'
         '400':
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
-        '429':
-          $ref: '#/components/responses/NackTooManyRequests'
+        '403':
+          $ref: '#/components/responses/NackForbidden'
+        '404':
+          $ref: '#/components/responses/NackNotFound'
+        '409':
+          description: A subscription with identical networkIds and schemaTypes already exists for this subscriber.
+          headers:
+            Signature:
+              $ref: '#/components/headers/SignatureHeader'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NackBadRequest'
+        '500':
+          $ref: '#/components/responses/ServerError'
+    delete:
+      summary: Deactivate a catalog subscription
+      operationId: catalogSubscribeDelete
+      tags:
+      - Fabric API - Cataloging Service
+      description: >-
+        Deactivates a subscription so the subscriber stops receiving
+        catalog updates. Can be reactivated later via POST update.
+      parameters:
+      - $ref: '#/components/parameters/AuthorizationHeader'
+      - name: subscriptionId
+        in: query
+        required: true
+        description: UUID of the subscription to deactivate.
+        schema:
+          type: string
+          format: uuid
+        example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+      responses:
+        '200':
+          description: Subscription deactivated successfully.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CatalogSubscriptionResponse'
+        '400':
+          $ref: '#/components/responses/NackBadRequest'
+        '401':
+          $ref: '#/components/responses/NackUnauthorized'
+        '403':
+          $ref: '#/components/responses/NackForbidden'
+        '404':
+          $ref: '#/components/responses/NackNotFound'
         '500':
           $ref: '#/components/responses/ServerError'
 
   /catalog/subscriptions:
     get:
       summary: List catalog subscriptions for a BAP
-      description: "The BAP retrieves all catalog subscriptions associated with a\
-        \ given BAP identifier from the DS (Discovery Service), with optional\
-        \ pagination.\n\nAdditional preconditions: The subscriberId query parameter\
-        \ MUST be supplied.\n\nResponse codes: Ack, NackBadRequest, ServerError."
+      description: >-
+        Returns the caller's subscriptions, optionally filtered by status.
+        Returns all statuses when omitted. Supports pagination and lookup by ID.
       operationId: catalogSubscribeList
       tags:
       - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
-      - name: subscriberId
+      - name: subscriptionId
         in: query
-        required: true
-        description: BAP URI, BAP ID, or internal subscriber UUID
-        schema:
-          type: string
-        example: https://bap.example.com
-      responses:
-        '200':
-          description: List of matching subscriptions
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                - context
-                - message
-                properties:
-                  context:
-                    allOf:
-                    - $ref: '#/components/schemas/Context'
-                    - type: object
-                      properties:
-                        action:
-                          type: string
-                          const: catalog/on_subscription
-                  message:
-                    type: object
-                    required:
-                    - subscriptions
-                    properties:
-                      subscriptions:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/CatalogSubscription'
-                      pagination:
-                        $ref: '#/components/schemas/Pagination'
-        '400':
-          $ref: '#/components/responses/NackBadRequest'
-        '429':
-          $ref: '#/components/responses/NackTooManyRequests'
-        '500':
-          $ref: '#/components/responses/ServerError'
-
-  /catalog/subscription/{subscriptionId}:
-    get:
-      summary: Get subscription by ID
-      description: "The BAP retrieves a single catalog subscription record by its\
-        \ UUID from the DS (Discovery Service).\n\nAdditional preconditions: The subscriptionId\
-        \ path parameter MUST be a valid UUID.\n\nResponse codes: Ack, NackBadRequest,\
-        \ NackUnauthorized, ServerError."
-      operationId: catalogSubscribeGet
-      tags:
-      - Fabric API - Cataloging Service
-      parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
-      - name: subscriptionId
-        in: path
-        required: true
-        description: Subscription UUID
+        required: false
+        description: Return a single subscription by its subscription ID.
         schema:
           type: string
           format: uuid
         example: f47ac10b-58cc-4372-a567-0e02b2c3d479
+      - name: status
+        in: query
+        required: false
+        description: Filter by subscription status. Returns all statuses when omitted.
+        schema:
+          type: string
+          enum:
+          - ACTIVE
+          - INACTIVE
+      - name: limit
+        in: query
+        required: false
+        description: Page size (default 20, max 100).
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+      - name: offset
+        in: query
+        required: false
+        description: Pagination offset (default 0).
+        schema:
+          type: integer
+          minimum: 0
+          default: 0
       responses:
         '200':
-          description: Subscription details
+          description: Matching subscriptions with pagination metadata.
           content:
             application/json:
               schema:
-                type: object
-                required:
-                - context
-                - message
-                properties:
-                  context:
-                    allOf:
-                    - $ref: '#/components/schemas/Context'
-                    - type: object
-                      properties:
-                        action:
-                          type: string
-                          const: catalog/subscription
-                  message:
-                    type: object
-                    required:
-                    - subscriptions
-                    properties:
-                      subscriptions:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/CatalogSubscription'
+                $ref: '#/components/schemas/CatalogSubscriptionResponse'
         '400':
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
         '404':
-          $ref: '#/components/responses/NackBadRequest'
-        '429':
-          $ref: '#/components/responses/NackTooManyRequests'
-        '500':
-          $ref: '#/components/responses/ServerError'
-    delete:
-      summary: Delete (deactivate) subscription
-      operationId: catalogSubscribeDelete
-      tags:
-      - Fabric API - Cataloging Service
-      description: "The BAP deactivates a catalog subscription on the DS (Discovery\
-        \ Service) by setting its status to DELETED.\n\nAdditional preconditions:\
-        \ The subscriptionId path parameter MUST be a valid UUID.\n\nResponse codes:\
-        \ Ack, NackBadRequest, NackUnauthorized, ServerError."
-      parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
-      - name: subscriptionId
-        in: path
-        required: true
-        description: Subscription UUID
-        schema:
-          type: string
-          format: uuid
-        example: f47ac10b-58cc-4372-a567-0e02b2c3d479
-      responses:
-        '200':
-          description: Subscription deactivated
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                - context
-                - message
-                properties:
-                  context:
-                    allOf:
-                    - $ref: '#/components/schemas/Context'
-                    - type: object
-                      properties:
-                        action:
-                          type: string
-                          const: catalog/on_subscription
-                  message:
-                    type: object
-                    required:
-                    - subscriptions
-                    properties:
-                      subscriptions:
-                        type: array
-                        items:
-                          $ref: '#/components/schemas/CatalogSubscription'
-        '400':
-          $ref: '#/components/responses/NackBadRequest'
-        '401':
-          $ref: '#/components/responses/NackUnauthorized'
-        '404':
-          $ref: '#/components/responses/NackBadRequest'
-        '429':
-          $ref: '#/components/responses/NackTooManyRequests'
+          $ref: '#/components/responses/NackNotFound'
         '500':
           $ref: '#/components/responses/ServerError'
 
@@ -1634,11 +1594,10 @@ paths:
         \ (returns all catalog versions indexed between fromDate and toDate inclusive).\
         \ Optional filters narrow the result by networkIds or schemaTypes.\n\nCallback\
         \ relationship: The CS processes the pull request asynchronously and delivers\
-        \ results via POST to context.bapUri/on_catalog_pull. When the payload is\
+        \ results via POST to the /catalog/on_pull callback. When the payload is\
         \ small it is returned inline; when it exceeds the configured inline threshold\
-        \ the callback carries an objectUrl pointing to GET /catalog/pull/result/{requestId}/catalogs.json.\
-        \ The response Ack carries a requestId UUID that the BAP MUST retain for correlation\
-        \ and for constructing the result download URL.\n\nResponse codes: Ack, NackBadRequest,\
+        \ the callback carries an objectUrl for downloading the result.\
+        \ The response Ack confirms acceptance; the requestId is delivered in the /catalog/on_pull callback.\n\nResponse codes: Ack, NackBadRequest,\
         \ NackUnauthorized, ServerError."
       requestBody:
         required: true
@@ -1654,6 +1613,8 @@ paths:
                   allOf:
                   - $ref: '#/components/schemas/Context'
                   - type: object
+                    required:
+                    - transactionId
                     properties:
                       action:
                         type: string
@@ -1669,70 +1630,58 @@ paths:
                 type: object
                 required:
                 - status
-                - requestId
                 properties:
                   status:
                     type: string
                     const: ACK
-                  requestId:
-                    type: string
-                    format: uuid
-                    description: UUID v4 generated for this pull request; echoed in callback and result download path
         '400':
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
-        '429':
-          $ref: '#/components/responses/NackTooManyRequests'
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /catalog/pull/result/{requestId}/{filename}:
-    get:
-      operationId: getPullResult
+  /catalog/on_pull:
+    post:
+      summary: Receive catalog pull results
+      description: >-
+        Callback endpoint implemented by the Network Participant
+        to receive the results of a `/catalog/pull` request.
+      operationId: onCatalogPull
       tags:
       - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
-      - name: requestId
-        in: path
+      requestBody:
         required: true
-        description: UUID v4 returned in the pull ACK response
-        schema:
-          type: string
-          pattern: ^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$
-        example: f47ac10b-58cc-4372-a567-0e02b2c3d479
-      - name: filename
-        in: path
-        required: true
-        description: Result filename — must be `catalogs.json`
-        schema:
-          type: string
-          enum:
-          - catalogs.json
-        example: catalogs.json
-      summary: Download large pull result file
-      description: "The BAP downloads the full catalog result file from the CS (Cataloging\
-        \ Service) when the catalog pull payload exceeds the configured inline threshold.\n\
-        \nAdditional preconditions: The BAP MUST have received a pull callback with\
-        \ a non-null objectUrl pointing to this endpoint. The requestId MUST match\
-        \ the UUID v4 pattern generated in the pull Ack response. The filename parameter\
-        \ is validated against an allowlist; only catalogs.json is permitted. Requests\
-        \ failing either check MUST receive HTTP 400 without a body.\n\nResponse codes:\
-        \ Ack, NackBadRequest, NackUnauthorized, ServerError."
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              required:
+              - context
+              - message
+              properties:
+                context:
+                  allOf:
+                  - $ref: '#/components/schemas/Context'
+                  - type: object
+                    properties:
+                      action:
+                        type: string
+                        const: catalog/on_pull
+                message:
+                  $ref: '#/components/schemas/CatalogPullCallbackAction'
       responses:
         '200':
-          description: Pull result as JSON
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PullResultFile'
+          $ref: '#/components/responses/Ack'
         '400':
-          description: Invalid requestId format or disallowed filename
+          $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
-        '404':
-          description: Result file not found (processing may still be in progress)
+        '500':
+          $ref: '#/components/responses/ServerError'
 
   /catalog/master/search:
     post:
@@ -1742,7 +1691,7 @@ paths:
         \ identifiers and schema type URIs with paginated results.\n\nThe message\
         \ MUST contain a MasterSearchAction with optional filters for networkIds and\
         \ schemaTypes, and optional pagination parameters. All responses are wrapped\
-        \ in a Beckn envelope with action set to \"on_catalog_master_search\".\n\n\
+        \ in a Beckn envelope with action set to \"catalog/on_master_search\".\n\n\
         Response codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
       operationId: masterSearch
       tags:
@@ -1787,7 +1736,7 @@ paths:
                       properties:
                         action:
                           type: string
-                          const: on_catalog_master_search
+                          const: catalog/on_master_search
                   message:
                     type: object
                     required:
@@ -1797,8 +1746,7 @@ paths:
                       catalogs:
                         type: array
                         items:
-                          type: object
-                          additionalProperties: true
+                          $ref: '#/components/schemas/Catalog'
                       pagination:
                         $ref: '#/components/schemas/Pagination'
         '400':
@@ -1840,7 +1788,7 @@ paths:
                       properties:
                         action:
                           type: string
-                          const: on_catalog_master_search
+                          const: catalog/on_master_search
                   message:
                     type: object
                     required:
@@ -1857,22 +1805,23 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /catalog/master/{masterItemId}:
+  /catalog/master/{masterResourceId}:
     get:
       summary: Get single master item
       description: "The BAP or BPP retrieves a single master catalog item by its\
         \ identifier from the CS (Cataloging Service) canonical repository, returned\
-        \ in a standard Beckn catalog envelope.\n\nAdditional preconditions: The masterItemId\
+        \ in a standard Beckn catalog envelope.\n\nAdditional preconditions: The masterResourceId\
         \ MUST match the allowed character pattern defined in the path parameter schema.\n\
         \nResponse codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
-      operationId: getMasterItem
+      operationId: getMasterResource
       tags:
       - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
-      - name: masterItemId
+      - name: masterResourceId
         in: path
         required: true
+        description: Identifier of the master resource
         schema:
           type: string
           pattern: ^[a-zA-Z0-9_\-:.]+$
@@ -1894,7 +1843,7 @@ paths:
                       properties:
                         action:
                           type: string
-                          const: on_catalog_master_search
+                          const: catalog/on_master_search
                   message:
                     type: object
                     required:
@@ -1905,12 +1854,13 @@ paths:
                         minItems: 1
                         maxItems: 1
                         items:
-                          type: object
-                          additionalProperties: true
+                          $ref: '#/components/schemas/Catalog'
         '400':
           $ref: '#/components/responses/NackBadRequest'
+        '401':
+          $ref: '#/components/responses/NackUnauthorized'
         '404':
-          $ref: '#/components/responses/NackBadRequest'
+          $ref: '#/components/responses/NackNotFound'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
         '500':
@@ -2002,80 +1952,145 @@ components:
           items:
             $ref: '#/components/schemas/Catalog'
         publishDirectives:
-          description: Directives controlling publish behavior for master/regular catalog flow. Deprecated and planned for removal in a future release.
-          type: object
-          additionalProperties: false
-          required:
-          - catalogType
-          properties:
-            catalogId:
-              description: ID of the catalog for which this resource is valid
-              type: string
-            catalogType:
-              type: string
-              enum:
+          description: >-
+            Publish directives define per-catalog processing
+            instructions, matched by `catalogId`. When not defined,
+            the catalog service determines the type from content —
+            catalogs with offers are treated as `regular`; catalogs
+            with only resources are treated as `master`. Default
+            update mode is `MERGE`.
+          type: array
+          items:
+            type: object
+            required:
+            - catalogId
+            - catalogType
+            properties:
+              catalogId:
+                type: string
+                description: >-
+                  Identifier of the catalog these instructions apply
+                  to. Must exactly match a catalog `id` in the
+                  `catalogs` array of this request.
+                example: CAT-SUMMER-TECHMART-2026
+              visibleTo:
+                type: array
+                items:
+                  type: string
+                description: >-
+                  Restricts this catalog's visibility to the listed
+                  networks. When omitted, falls back to
+                  `context.networkId`, then to the default global
+                  network (`nfh.global/beckn-nodes`).
+                example:
+                - retail-network
+                - mobility-network
+              catalogType:
+                type: string
+                enum:
                 - master
                 - regular
-              description: master = canonical source catalog; regular = seller/provider extension catalog
-            updateMode:
-              type: string
-              enum:
+                description: >-
+                  Declares the type of this catalog.
+
+                  `master` — Canonical resource definitions reusable
+                  across the network.
+
+                  `regular` — Provider-specific catalog that can
+                  optionally extend master resources.
+                example: regular
+              updateMode:
+                type: string
+                enum:
                 - FULL
                 - MERGE
-              default: FULL
-              description: Used for regular updates. FULL replaces overlay; MERGE applies JSON Merge Patch semantics.
-            resourceDirectives:
-              description: Optional per-resource extension mapping for regular catalogs
-              type: array
-              items:
-                type: object
-                additionalProperties: false
-                required:
+                default: MERGE
+                description: >-
+                  Controls how the catalog is updated.
+
+                  `MERGE` (default) — Upserts resources by `id`;
+                  existing resources not in this request are
+                  retained.
+
+                  `FULL` — Replaces the entire catalog with this
+                  request.
+                example: MERGE
+              resourceDirectives:
+                description: >-
+                  Links individual resources in a regular catalog to
+                  master resources they inherit from, and optionally
+                  marks them as variants. Only applies when
+                  `catalogType` is `regular`.
+                type: array
+                items:
+                  type: object
+                  required:
                   - resourceId
                   - extends
-                properties:
-                  resourceId:
-                    type: string
-                    description: Seller/provider resource identifier in this catalog
-                  extends:
-                    type: object
-                    additionalProperties: false
-                    required:
-                      - masterResourceId
-                    properties:
-                      masterResourceId:
-                        type: string
-                        description: Canonical master resource identifier being extended
-            offerDirectives:
-              type: array
-              items:
-                type: object
-                properties:
-                  availableTo:
-                    type: array
-                    description: 'Optional visibility constraint indicating which network participants(by participantId / networkId / role) are allowed to discover or transact on this entity. If omitted, the entity is assumed to be visible to all participants in the addressed network(s).'
-                    items:
+                  properties:
+                    resourceId:
+                      type: string
+                      description: >-
+                        The provider's resource identifier in this
+                        catalog. Must match a resource `id` in the
+                        `catalogs` array of this request.
+                      example: ITEM-LAPTOP-XPS-15-TECHMART
+                    extends:
                       type: object
+                      additionalProperties: false
                       required:
-                      - offerId
-                      - resourceId
-                      - type
-                      - id
+                      - masterResourceId
+                      description: >-
+                        Declares which master resource this provider
+                        resource inherits from.
+                      properties:
+                        masterResourceId:
+                          type: string
+                          description: >-
+                            The `id` of the master resource to inherit
+                            from. Must refer to a resource that was
+                            previously published in a master catalog
+                            within the same network.
+                          example: MASTER-LAPTOP-XPS-15
+                    variant:
+                      type: object
+                      additionalProperties: true
+                      description: >-
+                        Marks this resource as a named variant of the
+                        master resource it extends. The `type` + `id`
+                        combination uniquely identifies a variant
+                        within a resource. Without this field, the
+                        resource is treated as the base version.
                       properties:
                         type:
                           type: string
-                          enum:
-                          - NETWORK
-                          - PARTICIPANT
-                          - ROLE
-                          description: Scope of visibility constraint.
+                          description: >-
+                            A category that groups related variants
+                            together. Any string value is valid.
+                          example: geo
                         id:
                           type: string
-                          description: Identifier of the network, participant, or role.
-                        offerId:
-                          description: ID of the offer for which this directive is applied
-                        resourceId:
-                          description: ID of the resource for which this offer published
+                          description: >-
+                            Identifier for this specific variant within
+                            the given `type`. The combination of `type`
+                            + `id` must be unique per resource.
+                          example: bangalore
+                        label:
+                          type: string
+                          description: >-
+                            A human-readable name for this variant.
+                          example: Bangalore region
+              offerDirectives:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    offerId:
+                      type: string
+                      description: ID of the offer for which this directive is applied
+                    resourceId:
+                      type: string
+                      description: ID of the resource for which this offer is published
 
     ConfirmAction:
       title: Confirm Action
@@ -4218,136 +4233,69 @@ components:
 
     CatalogSubscribeAction:
       type: object
-      description: "The real-world act by which the BAP declares its subscription\
-        \ preferences to the DS (Discovery Service), specifying which networks and\
-        \ schema types it wishes to receive ongoing catalog delivery callbacks for.\n\
-        \nThis schema appears in the Catalog Publishing phase of the value-exchange\
-        \ lifecycle. The BAP produces it as the message payload of a /catalog/subscription\
-        \ request; the DS consumes it to create and persist a subscription record\
-        \ that governs future catalog delivery.\n\nFabric context: Processed by the\
-        \ DS, which persists the subscription and uses it to determine which newly\
-        \ indexed catalogs to deliver to the subscriber.\n\nAt least one networkId\
-        \ MUST be provided. An empty schemaTypes array is treated as a wildcard matching\
-        \ all schema types for the specified networks.\n\nRelationship: The subscription\
-        \ object within this action composes a DeliveryPolicy schema for retry and\
-        \ timeout configuration."
+      description: >-
+        Subscription request payload. At least one of `networkIds` or
+        `schemaTypes` is required for both creating and updating a subscription.
+        Updating an inactive subscription reactivates it.
       required:
       - subscription
       properties:
         subscription:
           type: object
-          required:
-          - networkIds
+          anyOf:
+          - required:
+            - networkIds
+          - required:
+            - schemaTypes
           properties:
             networkIds:
               type: array
               items:
                 type: string
-              description: Network IDs to subscribe to
+              description: Networks to subscribe to.
             schemaTypes:
               type: array
               items:
                 type: string
-              description: Schema type URIs to filter on (empty = wildcard)
-            callbackUrl:
-              type: string
-              format: uri
-              description: Override callback URL (defaults to context.bapUri)
-            deliveryPolicy:
-              $ref: '#/components/schemas/DeliveryPolicy'
+              description: Schema type URIs to filter on (empty = all types).
 
     CatalogSubscription:
       type: object
-      description: "The persisted subscription record held by the DS (Discovery Service),\
-        \ representing a BAP's declared interest in receiving catalog delivery callbacks\
-        \ for specific networks and schema types, along with its current lifecycle\
-        \ status and delivery configuration.\n\nCatalogSubscription appears in the\
-        \ Catalog Publishing phase. The DS produces it as a response to /catalog/subscription\
-        \ (creation), /catalog/subscriptions (listing), /catalog/subscription/{id}\
-        \ (retrieval), and DELETE /catalog/subscription/{id} (deactivation). The BAP\
-        \ consumes it to confirm subscription state and delivery configuration.\n\n\
-        Fabric context: Managed exclusively by the DS, which evaluates ACTIVE subscriptions\
-        \ against newly indexed catalogs to determine delivery targets.\n\nRelationship:\
-        \ Composes a DeliveryPolicy schema for retry and timeout configuration. The\
-        \ status field MUST be one of ACTIVE (subscription is matched during evaluation),\
-        \ INACTIVE (temporarily paused), or DELETED (soft-deleted; no longer matched)."
+      description: A subscription record.
       required:
-      - id
+      - subscriptionId
+      - subscriberId
       - status
       properties:
-        id:
+        subscriptionId:
           type: string
           format: uuid
-          description: Subscription UUID
+          description: Server-generated unique identifier.
+        subscriberId:
+          type: string
+          description: Subscribing organisation's identity on the network.
         networkIds:
           type: array
           items:
             type: string
-          description: Network IDs covered by this subscription
+          description: Networks this subscription covers.
         schemaTypes:
           type: array
           items:
             type: string
-          description: Schema type URIs filtered by this subscription (empty = wildcard "*")
-        callbackUrl:
-          type: string
-          format: uri
-          description: Delivery callback URL
+          description: Schema types to filter on (empty = all types).
         status:
           type: string
           enum:
           - ACTIVE
           - INACTIVE
-          - DELETED
-          description: Lifecycle status of the subscription
-        deliveryPolicy:
-          $ref: '#/components/schemas/DeliveryPolicy'
+          description: ACTIVE receives updates, INACTIVE does not.
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
-
-    DeliveryPolicy:
-      type: object
-      description: "The retry and timeout configuration governing how the DS (Discovery\
-        \ Service) attempts to deliver catalog callbacks to a subscriber's callback\
-        \ URL, including per-request timeout, maximum payload size, and exponential\
-        \ backoff parameters.\n\nDeliveryPolicy appears in the Catalog Publishing\
-        \ phase. The BAP provides it within a CatalogSubscribeAction to configure\
-        \ delivery behavior; the DS persists it as part of the CatalogSubscription\
-        \ record and applies it when delivering on_discover callbacks to the subscriber.\n\
-        \nFabric context: Applied exclusively by the DS when delivering catalog payloads\
-        \ to subscribers.\n\nRelationship: Composed within CatalogSubscribeAction\
-        \ and CatalogSubscription schemas."
-      properties:
-        timeoutSeconds:
-          type: integer
-          default: 30
-          description: Per-request HTTP timeout in seconds
-        maxPayloadBytes:
-          type: integer
-          description: Maximum callback payload size in bytes
-        retryPolicy:
-          type: object
-          properties:
-            maxRetries:
-              type: integer
-              default: 5
-              description: Maximum retry attempts before sending to DLT
-            initialDelaySeconds:
-              type: integer
-              default: 5
-              description: Base delay before first retry
-            maxDelaySeconds:
-              type: integer
-              default: 300
-              description: Maximum delay cap for exponential backoff
-            backoffMultiplier:
-              type: number
-              default: 2.0
-              description: Delay multiplied by this after each retry
 
     Pagination:
       type: object
@@ -4360,9 +4308,9 @@ components:
         \ to construct subsequent requests.\n\nRelationship: Composed within the response\
         \ message objects of /catalog/subscriptions and /catalog/master/search endpoints."
       properties:
-        count:
+        total:
           type: integer
-          description: Number of items in this page
+          description: Total matching records
         limit:
           type: integer
           description: Page size used in this response
@@ -4381,6 +4329,7 @@ components:
         \ metadata.\n\nFabric context: Processed by the CS, which queries its canonical\
         \ catalog repository for matching master catalog items.\n\nRelationship: Composed\
         \ as the message payload of the /catalog/master/search request body."
+      additionalProperties: false
       properties:
         filters:
           type: object
@@ -4396,96 +4345,213 @@ components:
               items:
                 type: string
               description: Filter by schema type URIs (empty = all types)
-        pagination:
-          type: object
-          properties:
-            limit:
-              type: integer
-              minimum: 1
-              maximum: 100
-              default: 20
-              description: Maximum items per page (clamped to [1, 100])
-            offset:
-              type: integer
-              minimum: 0
-              default: 0
-              description: Zero-based result offset
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+          description: Maximum number of catalogs to return per page
+        offset:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Zero-based result offset for pagination
 
     CatalogPullAction:
       type: object
-      description: "The real-world act by which the BAP initiates an asynchronous\
-        \ bulk catalog retrieval from the CS (Cataloging Service), specifying whether\
-        \ to retrieve the latest version of each matching catalog (FULL mode) or all\
-        \ catalog versions within a date range (INCREMENTAL mode).\n\nThis schema\
-        \ appears in the Catalog Pull phase. The BAP produces it as the message payload\
-        \ of a /catalog/pull request; the CS consumes it to process the pull request\
-        \ asynchronously and deliver results via a callback to the BAP's on_catalog_pull\
-        \ endpoint.\n\nFabric context: Processed by the CS, which retrieves matching\
-        \ catalogs from its store and delivers them asynchronously.\n\nRelationship:\
-        \ Composed as the message payload of the /catalog/pull request body."
+      description: >-
+        Pull request payload. The caller references an active
+        subscription by `subscriptionId` — the catalog system uses
+        the subscription's network and schema-type filters to scope
+        which catalogs are returned. An optional date range narrows
+        results further.
+      additionalProperties: false
       required:
-      - mode
+      - subscriptionId
       properties:
+        subscriptionId:
+          type: string
+          format: uuid
+          description: >-
+            ID of an active CatalogSubscription owned by the caller.
+            The catalog system uses the subscription's networkIds and
+            schemaTypes to determine which catalogs to return.
         mode:
           type: string
           enum:
           - FULL
           - INCREMENTAL
-          description: "- `FULL` — returns the latest version of each matching catalog.\n- `INCREMENTAL` — returns all catalog versions indexed between\n  `fromDate` and `toDate` (inclusive).\n"
-        filters:
-          type: object
-          description: Optional filters narrowing which catalogs are returned
-          properties:
-            networkIds:
-              type: array
-              items:
-                type: string
-              description: Filter by network IDs (empty = all networks)
-              default: []
-            schemaTypes:
-              type: array
-              items:
-                type: string
-              description: Filter by schema type URIs (empty = all types)
-              default: []
-        catalogIds:
-          type: array
-          items:
-            type: string
-          description: Explicit catalog IDs to pull (alternative to filters)
-        limit:
-          type: integer
-          minimum: 1
-          description: Maximum number of catalogs to return (server may apply its own cap)
+          default: FULL
+          description: >-
+            - `FULL` — returns the latest version of each matching
+              catalog.
+            - `INCREMENTAL` — returns all catalog versions published
+              between `fromDate` and `toDate` (inclusive).
         fromDate:
           type: string
           format: date-time
-          description: Inclusive lower bound for INCREMENTAL mode
+          description: >-
+            Inclusive lower bound for INCREMENTAL mode. When omitted
+            in INCREMENTAL mode, defaults to 7 days before the
+            current time.
         toDate:
           type: string
           format: date-time
-          description: Inclusive upper bound for INCREMENTAL mode
+          description: >-
+            Inclusive upper bound for INCREMENTAL mode. When omitted,
+            defaults to the current time.
+        limit:
+          type: integer
+          minimum: 1
+          maximum: 100
+          default: 20
+          description: Maximum number of catalogs to return per page
+        offset:
+          type: integer
+          minimum: 0
+          default: 0
+          description: Zero-based result offset for pagination
 
-    PullResultFile:
+    CatalogPullCallbackAction:
       type: object
-      description: "The JSON body served at GET /catalog/pull/result/{requestId}/catalogs.json\
-        \ when the catalog pull payload exceeds the configured inline threshold and\
-        \ was written to disk by the CS (Cataloging Service) rather than delivered\
-        \ inline in the callback body.\n\nPullResultFile appears in the Catalog Pull\
-        \ phase. The CS produces it and writes it to disk when the result exceeds\
-        \ the inline threshold; the BAP retrieves it by constructing the download\
-        \ URL from the requestId echoed in the pull ACK response and the objectUrl\
-        \ field in the callback.\n\nFabric context: Produced and served exclusively\
-        \ by the CS.\n\nRelationship: The catalogs array carries the same structure\
-        \ as the inline catalog array in the callback payload, consisting of distribution-envelope\
-        \ catalog objects."
+      description: >-
+        Callback payload for pull results. Contains either the
+        requested catalogs inline or a download URL for large
+        results.
+      additionalProperties: false
+      required:
+      - status
       properties:
+        status:
+          type: string
+          enum:
+          - COMPLETED
+          - FAILED
+          description: Status of the pull request result.
         catalogs:
           type: array
+          description: Requested catalogs inline. Present when status is COMPLETED.
           items:
-            type: object
-            description: Full catalog distribution envelope (context + message + meta)
-            additionalProperties: true
+            $ref: '#/components/schemas/Catalog'
+        objectUrl:
+          type: object
+          description: >-
+            Pre-signed download URL for the result payload. Present
+            when status is COMPLETED and the result is too large to
+            return inline.
+          additionalProperties: false
+          required:
+          - url
+          - format
+          - sizeBytes
+          - checksum
+          - expiresAt
+          properties:
+            url:
+              type: string
+              description: Pre-signed object-store download URL.
+            expiresAt:
+              type: string
+              format: date-time
+              description: URL expiry timestamp.
+            format:
+              type: string
+              enum:
+              - json
+              - json.gz
+              description: Format of the downloaded payload.
+            sizeBytes:
+              type: integer
+              minimum: 0
+              description: Size of the payload in bytes.
+            checksum:
+              type: string
+              description: SHA-256 hex digest prefixed with `sha256:`.
+        pagination:
+          $ref: '#/components/schemas/Pagination'
+        error:
+          description: Present when status is FAILED.
+          $ref: '#/components/schemas/Error'
+
+    CatalogSubscriptionResponse:
+      description: Subscription response envelope with `catalog/on_subscription` context.
+      type: object
+      required:
+      - context
+      - message
+      properties:
+        context:
+          allOf:
+          - $ref: '#/components/schemas/Context'
+          - type: object
+            properties:
+              action:
+                type: string
+                const: catalog/on_subscription
+        message:
+          type: object
+          required:
+          - subscriptions
+          properties:
+            subscriptions:
+              type: array
+              items:
+                $ref: '#/components/schemas/CatalogSubscription'
+            pagination:
+              $ref: '#/components/schemas/Pagination'
+
+    NackForbidden:
+      description: "The synchronous rejection body returned when the caller is authenticated\
+        \ but does not have permission to access or modify the requested resource.\n\
+        \nNackForbidden appears as the response body for 403 responses. The implementing\
+        \ actor produces it; the calling actor MUST NOT retry without correcting\
+        \ its authorization.\n\nRelationship: Extends the Ack schema with status constrained\
+        \ to NACK and adds an error field describing the authorization failure."
+      type: object
+      required:
+      - message
+      properties:
+        message:
+          type: object
+          required:
+          - status
+          - messageId
+          - error
+          properties:
+            status:
+              type: string
+              const: NACK
+            messageId:
+              type: string
+            error:
+              $ref: '#/components/schemas/Error'
+
+    NackNotFound:
+      description: "The synchronous rejection body returned when the requested resource\
+        \ does not exist in the system.\n\nNackNotFound appears as the response body\
+        \ for 404 responses. The implementing actor produces it; the calling actor\
+        \ MUST NOT retry without correcting the resource identifier.\n\nRelationship:\
+        \ Extends the Ack schema with status constrained to NACK and adds an error\
+        \ field describing why the resource was not found."
+      type: object
+      required:
+      - message
+      properties:
+        message:
+          type: object
+          required:
+          - status
+          - messageId
+          - error
+          properties:
+            status:
+              type: string
+              const: NACK
+            messageId:
+              type: string
+            error:
+              $ref: '#/components/schemas/Error'
+
   responses:
     Ack:
       description: "The implementer has authenticated the request, accepted it for\
@@ -4575,3 +4641,21 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/NackTooManyRequests'
+    NackForbidden:
+      description: Caller is authenticated but does not have permission to access or modify this resource.
+      headers:
+        Signature:
+          $ref: '#/components/headers/SignatureHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NackForbidden'
+    NackNotFound:
+      description: The requested resource does not exist.
+      headers:
+        Signature:
+          $ref: '#/components/headers/SignatureHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NackNotFound'
