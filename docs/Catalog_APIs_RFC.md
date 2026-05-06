@@ -7,7 +7,7 @@
 - **Created:** 2026-04-22.
 - **Updated:** 2026-04-25.
 - **Version history:** To be published.
-- **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/schema-update/docs/08_Catalog_APIs.md).
+- **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Catalog_APIs_RFC.md).
 - **Implementation report:** To be published by implementation working group.
 - **Stress test report:** To be published by testing and certification working group.
 - **Conformance impact:** Major (introduces catalog lifecycle management APIs for Beckn v2 networks).
@@ -132,7 +132,7 @@ Deactivates an active subscription. Only the Network Participant that created th
 Returns all subscriptions for the calling Network Participant. Use the `?subscriptionId=<uuid>` query parameter to retrieve a specific subscription.
 
 - The catalog system MUST scope results to the calling Network Participant's identity.
-- The caller MAY filter by subscription ID using the `?id=<subscriptionId>` query parameter.
+- The caller MAY filter by subscription ID using the `?subscriptionId=<uuid>` query parameter.
 
 #### 5.1.4 Catalog Pull
 
@@ -370,6 +370,7 @@ These catalog lifecycle APIs are new in Beckn v2 and have no direct equivalent i
     "timestamp": "2026-04-22T10:00:05.000Z"
   },
   "message": {
+    "requestId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
     "status": "COMPLETED",
     "catalogs": [
       {
@@ -394,7 +395,7 @@ Authorization: Signature ...
 {
   "context": {
     "version": "2.0.0",
-    "action": "catalog/master/search",
+    "action": "catalog/master_search",
     "messageId": "770e8400-e29b-41d4-a716-446655440004",
     "transactionId": "770e8400-e29b-41d4-a716-446655440005",
     "timestamp": "2026-04-22T10:00:00.000Z"
@@ -431,4 +432,4 @@ Beckn Protocol contributors and the implementation working group whose feedback 
 - **Governance:** [GOVERNANCE.md](../GOVERNANCE.md).
 - **Keyword definitions:** [2_Keyword_Definitions.md](https://github.com/beckn/protocol-specifications-v2/blob/main/docs/2_Keyword_Definitions.md).
 - **API specification:** [beckn.yaml](../api/v2.0.0/beckn.yaml).
-- **Prior art:** 15_Catalog_Publishing_Service.md, 16_Catalog_Discovery_Service.md.
+- **Prior art:** Supersedes 15_Catalog_Publishing_Service.md and 16_Catalog_Discovery_Service.md.
