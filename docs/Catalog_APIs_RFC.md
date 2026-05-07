@@ -5,7 +5,7 @@
 - **Status:** Draft.
 - **Authors:** Beckn Protocol contributors.
 - **Created:** 2026-04-22.
-- **Updated:** 2026-05-06.
+- **Updated:** 2026-05-07.
 - **Version history:** To be published.
 - **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Catalog_APIs_RFC.md).
 - **Implementation report:** To be published by implementation working group.
@@ -148,6 +148,8 @@ Two modes are supported:
 Requirements:
 
 - A valid `subscriptionId` referencing an active subscription MUST be provided.
+- The catalog system MUST return 403 when the `subscriptionId` belongs to a different subscriber.
+- The catalog system MUST return 404 when the `subscriptionId` does not exist.
 - The `context.transactionId` MUST be provided and MUST persist through to the `/catalog/on_pull` callback.
 - The catalog system MUST return an `ACK` immediately on receipt.
 - The catalog system MUST deliver results to `/catalog/on_pull` asynchronously.
@@ -214,7 +216,7 @@ Requirements:
 - All catalog API endpoints MUST enforce Beckn HTTP Signature authentication. Unauthenticated requests MUST be rejected with HTTP 401.
 - Only the Network Participant that created a subscription MAY deactivate it, enforced via the Beckn auth header identity.
 - Catalog data at rest and in transit SHOULD be protected per the Network Policy Profile.
-- Rate limiting SHOULD be applied per Network Participant on publish and pull endpoints to prevent abuse.
+- Rate limiting SHOULD be applied per Network Participant on all catalog endpoints to prevent abuse.
 - Pre-signed object URLs returned in `/catalog/on_pull` responses are short-lived and MUST NOT be used beyond their `expiresAt` timestamp.
 
 ---
@@ -320,9 +322,9 @@ These catalog lifecycle APIs are new in Beckn v2 and have no direct equivalent i
   "context": {
     "version": "2.0.0",
     "action": "catalog/subscription",
-    "messageId": "550e8400-e29b-41d4-a716-446655440000",
-    "transactionId": "550e8400-e29b-41d4-a716-446655440001",
-    "timestamp": "2026-04-22T10:00:00.000Z",
+    "messageId": "770e8400-e29b-41d4-a716-446655440020",
+    "transactionId": "770e8400-e29b-41d4-a716-446655440021",
+    "timestamp": "2026-04-22T10:05:00.000Z",
     "bapId": "np.example.com",
     "bapUri": "https://np.example.com"
   },
@@ -422,7 +424,7 @@ This RFC defines the full catalog lifecycle API surface for Beckn Protocol v2, c
 | Version | Date | Author | Summary |
 |---|---|---|---|
 | Draft-01 | 2026-04-22 | | Initial draft |
-| Draft-02 | 2026-05-06 | | Refactored catalog APIs |
+| Draft-02 | 2026-05-07 | | Refactored catalog APIs |
 
 ## 7. Acknowledgements
 
