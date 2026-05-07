@@ -2096,7 +2096,6 @@ components:
       type: object
       description: 'Generalized representation of value exchanged under a Contract.
 
-
         Consideration is domain-neutral and may represent:
 
         - Monetary value
@@ -2110,14 +2109,28 @@ components:
         - Compliance artifact'
       required:
       - id
-      - status
       properties:
         id:
           description: Identifier of this consideration
           type: string
         status:
-          description: The status of this consideration
-          $ref: '#/components/schemas/Descriptor'
+          description: >
+            The lifecycle state of this consideration. Required when Consideration
+            appears in Contract.consideration[] from on_select onward
+            (PENDING → QUOTED → ACTIVE → CANCELLED). Optional in Offer.considerations[]
+            (catalog context, where no transaction lifecycle has been established) and
+            in select-phase payloads where the Seeker NP signals intent before the
+            Provider NP has priced the consideration.
+          allOf:
+            - $ref: '#/components/schemas/Descriptor'
+            - type: object
+              properties:
+                code:
+                  enum:
+                    - PENDING
+                    - QUOTED
+                    - ACTIVE
+                    - CANCELLED
         considerationAttributes:
           description: 'Domain-specific attributes of this consideration. For monetary considerations,
 
