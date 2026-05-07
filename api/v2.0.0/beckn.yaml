@@ -1547,9 +1547,7 @@ paths:
         \ context: This endpoint is implemented by the Network Participant. The CS\
         \ signs the request and delivers it to the Network Participant's registered\
         \ endpoint.\n\nThe message MUST contain a CatalogPublishAction with a non-empty\
-        \ catalogs array. The publishDirectives array carries the updateMode (MERGE\
-        \ or FULL) indicating how the receiver should process the catalogs. No on_catalog_push\
-        \ callback is sent.\n\nA 200 Ack confirms the push was received and accepted\
+        \ catalogs array.\n\nA 200 Ack confirms the push was received and accepted\
         \ for processing. A 400 NackBadRequest is returned for an invalid or malformed\
         \ payload. A 401 NackUnauthorized is returned when the Authorization header\
         \ signature is invalid. A 409 AckNoCallback is returned when the receiver\
@@ -1883,6 +1881,10 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
+        '403':
+          $ref: '#/components/responses/NackForbidden'
+        '404':
+          $ref: '#/components/responses/NackNotFound'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
         '500':
