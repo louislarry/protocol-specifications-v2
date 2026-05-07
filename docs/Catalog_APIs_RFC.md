@@ -111,13 +111,21 @@ Endpoint implemented by the edge discovery service owned by a Network Participan
 
 #### 5.1.3 Catalog Subscription
 
-**`POST /catalog/subscription`**
+**`POST /catalog/subscription`** (create)
 
 A Network Participant creates a subscription to receive catalog updates for specified networks and/or schema types.
 
 - At least one of `networkIds` or `schemaTypes` MUST be provided.
 - The catalog system MUST reject the request with 409 when an identical `networkIds` + `schemaTypes` combination is already active for the caller.
 - The catalog system MUST generate and return a unique `subscriptionId` UUID for each new subscription.
+
+**`POST /catalog/subscription?subscriptionId={subscriptionId}`** (update)
+
+A Network Participant updates an existing subscription by passing the `subscriptionId` as a query parameter.
+
+- The caller MUST be the original creator of the subscription.
+- The catalog system MUST return 403 when the `subscriptionId` belongs to a different subscriber.
+- The catalog system MUST return 404 when the `subscriptionId` does not exist.
 
 **`DELETE /catalog/subscription?subscriptionId={subscriptionId}`**
 
