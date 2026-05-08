@@ -45,6 +45,7 @@ This document defines the authentication and trust model for Beckn Protocol v2.0
         - [3.1 Body Digest](#31-body-digest)
         - [3.2 Standard Signing String](#32-standard-signing-string)
         - [3.3 Callback Signing String](#33-callback-signing-string)
+        - [3.4 Ack Response Signing String](#34-ack-response-signing-string)
       - [4. Request Signing — BAP and BPP](#4-request-signing--bap-and-bpp)
       - [5. Synchronous Response Signing](#5-synchronous-response-signing)
       - [6. Callback Signing — BPP to BAP](#6-callback-signing--bpp-to-bap)
@@ -114,7 +115,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 - **keyId:** A structured string that uniquely identifies a signing key registered on a dedi-protocol registry.
 - **Signing string:** The canonical byte sequence that is signed and verified using Ed25519.
 - **Body digest:** The BLAKE2b-512 hash of the HTTP request or response body, encoded as described in §3.1.
-- **request-signature:** The raw Ed25519 signature value extracted from a BAP's `Authorization` header and included verbatim in a BPP's callback signing string to chain the two message legs together.
+- **request-signature:** The raw Ed25519 signature value extracted from an incoming request's `Authorization` header and included verbatim in either a BPP's callback signing string (§3.3) or a responding NP's Ack response signing string (§3.4), cryptographically binding the outgoing message to the specific request that triggered it.
 - **Implicit keyId:** A keyId that uses a path-only format and is resolved exclusively via the GRR at `fabric.nfh.global/registry`.
 - **Explicit keyId:** A keyId that embeds the full registry URL, allowing resolution against any dedi-protocol compliant registry.
 - **Provider-initiated notification:** A callback sent by a BPP to a BAP's `/on_*` endpoint without a preceding BAP request in the current message exchange. Only endpoints designated as supporting provider-initiated notifications in the Beckn Protocol API specification may send them.
@@ -251,6 +252,22 @@ request-signature: {bap_signature_value}
 
 The `headers` attribute of the BPP's callback `Authorization` header MUST declare all four fields in order: `"(created) (expires) digest request-signature"`.
 
+##### 3.4 Ack Response Signing String
+
+Used for every synchronous HTTP response. The responding NP MUST append a fourth line containing the incoming request's signature:
+
+```
+(created): {created_unix_ts}
+(expires): {expires_unix_ts}
+digest: {response_body_digest}
+request-signature: {incoming_request_signature_value}
+```
+
+- `{response_body_digest}` — digest of the **response** body (not the inbound request body).
+- `{incoming_request_signature_value}` — the raw Base64-encoded Ed25519 signature value extracted from the incoming request's `Authorization` header's `signature="..."` field. This MUST be the literal string value of the `signature` attribute only, without the surrounding quotes or any other Authorization header components. Extraction procedure is identical to §3.3.
+
+The `headers` attribute of the `Signature` response header MUST declare all four fields in order: `"(created) (expires) digest request-signature"`.
+
 #### 4. Request Signing — BAP and BPP
 
 Every Beckn HTTP request — whether initiated by a BAP (to a BPP or DS) or by a BPP (callback to a BAP) — MUST carry an `Authorization` header in the following format:
@@ -267,7 +284,7 @@ Attribute definitions:
 | `algorithm` | string | MUST be `ed25519`. |
 | `created` | integer string | Unix timestamp of signature creation. |
 | `expires` | integer string | Unix timestamp of signature expiry. |
-| `headers` | string | Space-separated list of fields included in the signing string. For BAP requests and provider-initiated notifications: `"(created) (expires) digest"`. For BPP solicited callbacks: `"(created) (expires) digest request-signature"`. |
+| `headers` | string | Space-separated list of fields included in the signing string. For BAP requests and provider-initiated notifications: `"(created) (expires) digest"`. For BPP solicited callbacks: `"(created) (expires) digest request-signature"`. For synchronous responses (`Signature` header): `"(created) (expires) digest request-signature"`. |
 | `signature` | string | Standard Base64 encoding of the Ed25519 signature over the signing string. |
 
 The signing procedure for a request is:
@@ -281,29 +298,30 @@ The signing procedure for a request is:
 
 #### 5. Synchronous Response Signing
 
-Every synchronous HTTP response — regardless of status code (200, 400, 401, 409, 429, 500) — MUST carry a `Signature` response header. This header proves that the responding NP authenticated, received, and processed the request, establishing non-repudiation for the synchronous leg.
+Every synchronous HTTP response — regardless of status code (200, 400, 401, 409, 429, 500) — MUST carry a `Signature` response header. This header proves that the responding NP received and authenticated the specific inbound request, establishing non-repudiation for the synchronous leg.
 
 The `Signature` response header uses the same format as the request `Authorization` header but:
 
 - The header name is `Signature`, not `Authorization`.
 - The body digest is computed over the **response** body.
-- The signing string is the standard signing string (§3.2).
+- The signing string is the Ack response signing string (§3.4), which chains the response to the inbound request's signature via `request-signature`.
 - The signer is the responding NP (BPP or DS for incoming requests; BAP for incoming callbacks).
 
 ```
-Signature: keyId="{keyId}",algorithm="ed25519",created="{created}",expires="{expires}",headers="(created) (expires) digest",signature="{base64_signature}"
+Signature: keyId="{keyId}",algorithm="ed25519",created="{created}",expires="{expires}",headers="(created) (expires) digest request-signature",signature="{base64_signature}"
 ```
 
 The signing procedure for a synchronous response is:
 
 1. Serialize the response body to UTF-8.
 2. Compute the body digest (§3.1).
-3. Construct the standard signing string (§3.2).
-4. Sign the UTF-8 encoding of the signing string using the responding NP's Ed25519 private key.
-5. Base64-encode the 64-byte signature.
-6. Add the `Signature` header to the HTTP response.
+3. Extract the raw Base64 signature value from the incoming request's `Authorization` header `signature="..."` field.
+4. Construct the Ack response signing string (§3.4).
+5. Sign the UTF-8 encoding of the signing string using the responding NP's Ed25519 private key.
+6. Base64-encode the 64-byte signature.
+7. Add the `Signature` header to the HTTP response.
 
-The sending NP SHOULD verify the `Signature` response header upon receiving a synchronous response, using the responding NP's public key fetched via the key lookup procedure (§2.3). A missing or invalid `Signature` response header does not invalidate the transaction but SHOULD be logged and MAY be treated as a degraded trust signal.
+The sending NP SHOULD verify the `Signature` response header upon receiving a synchronous response, using the responding NP's public key fetched via the key lookup procedure (§2.3). The sender SHOULD confirm the `request-signature` field in the response matches the `signature` value from its own outbound `Authorization` header for that request. A missing or invalid `Signature` response header does not invalidate the transaction but SHOULD be logged and MAY be treated as a degraded trust signal.
 
 #### 6. Callback Signing — BPP to BAP
 
@@ -375,7 +393,7 @@ Upon receiving a request from a BAP, the BPP or DS MUST perform the following ve
 4. Fetch the BAP's public key using the key lookup procedure (§2.3).
 5. Reconstruct the standard signing string (§3.2) using the `created` and `expires` values and the BLAKE2b-512 digest of the received request body.
 6. Verify the decoded `signature` against the signing string using the BAP's public key.
-7. Return `200 Ack` with the responding NP's `Signature` response header (§5), or the appropriate error response.
+7. Return the appropriate response with the responding NP's `Signature` response header (§5). The `Signature` header MUST use the Ack response signing string (§3.4), with the `request-signature` field set to the raw Base64 value extracted from the incoming request's `Authorization` header.
 
 #### 9. Pre-call NP Verification
 
@@ -442,6 +460,7 @@ A BPP sending a provider-initiated notification MUST assign a unique `messageId`
 | CON-004-20 | A BPP provider-initiated notification MUST carry a `transactionId` matching an active, confirmed transaction between that BAP and BPP. | MUST |
 | CON-004-21 | When both the sending and receiving NP are members of the same subnet, the sending NP SHOULD perform a `subscriber_reference` registry lookup for the receiving NP immediately before dispatching a message. | SHOULD |
 | CON-004-22 | A BPP SHOULD verify that its own signing key has not expired before sending a solicited callback. | SHOULD |
+| CON-004-23 | Every synchronous response `Signature` header MUST use the Ack response signing string (§3.4) with `headers="(created) (expires) digest request-signature"`. The `request-signature` value MUST be the raw Base64 `signature` attribute value from the incoming request's `Authorization` header. | MUST |
 
 ### Cross-cutting considerations
 
@@ -472,7 +491,7 @@ The following v1.x patterns are breaking changes in v2.0:
 1. **BG removed:** There is no `X-Gateway-Authorization` header in v2.0. BG routing infrastructure MUST be decommissioned or bypassed. Direct BAP ↔ BPP/DS connectivity is required.
 2. **Registry protocol change:** The v1.x Beckn Protocol-compliant registry lookup is replaced by dedi protocol-compliant lookup against `fabric.nfh.global/registry`. All registry query code MUST be updated to the dedi protocol API.
 3. **Request-signature chaining:** Solicited callbacks now carry the BAP's original signature as the `request-signature` field in the signing string. v1.x callback implementations MUST add this field with `headers="(created) (expires) digest request-signature"`.
-4. **Synchronous response signing:** Every response now requires a `Signature` header. v1.x implementations that returned unsigned responses MUST add this.
+4. **Synchronous response signing:** Every response now requires a `Signature` header using the Ack response signing string (§3.4), which includes `request-signature`. v1.x implementations that returned unsigned responses MUST add this; implementations that used a 3-line signing string for responses MUST add the `request-signature` field.
 5. **keyId format change:** The v1.x format `{subscriber_id}|{unique_key_id}|{algorithm}` is replaced by the path-based implicit format `{namespace_id}/{registry_id}/{record_id}|{algorithm}`. Existing key registrations MUST be migrated to the new namespace structure in the GRR before go-live on v2.0.
 
 ### Examples
@@ -511,17 +530,44 @@ Content-Type: application/json
 
 #### Example 2: BPP Synchronous Ack Response
 
-**Scenario:** BPP receives the `/select` request, verifies it, and returns a synchronous `200 Ack`.
+**Scenario:** BPP receives the `/select` request from Example 1, verifies it, and returns a synchronous `200 Ack`.
+
+##### Step 1 — Extract BAP's request signature
+
+```
+bap_signature_value = "Base64EncodedEd25519SignatureHere=="
+```
+
+This is the raw Base64 value from the `signature="..."` field of the BAP's `Authorization` header in Example 1.
+
+##### Step 2 — Compute Ack body digest
+
+```
+ack_body = '{"message":{"status":"ACK","messageId":"550e8400-e29b-41d4-a716-446655440000"}}'
+digest = "BLAKE2b-512=" + Base64( BLAKE2b-512( UTF-8(ack_body) ) )
+       = "BLAKE2b-512=AckBodyDigestHere..."
+```
+
+##### Step 3 — Construct Ack signing string
+
+```
+(created): 1746518401
+(expires): 1746518701
+digest: BLAKE2b-512=AckBodyDigestHere...
+request-signature: Base64EncodedEd25519SignatureHere==
+```
+
+##### Step 4 — Assemble Ack response
 
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json
-Signature: keyId="bpp.example.com/keys/k002|ed25519",algorithm="ed25519",created="1746518401",expires="1746518701",headers="(created) (expires) digest",signature="BPPSignatureOverAckBodyHere=="
+Signature: keyId="bpp.example.com/keys/k002|ed25519",algorithm="ed25519",created="1746518401",expires="1746518701",headers="(created) (expires) digest request-signature",signature="BPPAckSignatureHere=="
 
 {"message":{"status":"ACK","messageId":"550e8400-e29b-41d4-a716-446655440000"}}
 ```
 
-The BPP's `Signature` header signs the `{"message":{"status":"ACK","messageId":"550e8400-e29b-41d4-a716-446655440000"}}` body using the BPP's Ed25519 private key. The `messageId` echoes the `messageId` from the originating `/select` request's `context` object.
+The BPP's `Signature` header signs a four-line string that covers the Ack body digest and the BAP's original request signature. The BAP verifies the BPP's `Signature` and confirms the `request-signature` field matches the `signature` value it sent in its own `Authorization` header.
 
 #### Example 3: BPP Solicited Callback to BAP
 
