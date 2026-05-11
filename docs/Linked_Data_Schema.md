@@ -24,8 +24,21 @@ This RFC defines how implementers should navigate Beckn schema assets across Ope
 
 ## Table of Contents
 
+- [Document Details](#document-details)
+- [Abstract](#abstract)
 - [Introduction](#introduction)
 - [Specification](#specification)
+  - [Definitions](#definitions)
+  - [Canonical contract interpretation](#canonical-contract-interpretation)
+  - [Core schema handling](#core-schema-handling)
+  - [`Attributes` extensibility model](#attributes-extensibility-model)
+  - [Dual validation requirement](#dual-validation-requirement)
+  - [Registry artifact model](#registry-artifact-model)
+  - [Versioned schema pack expectations](#versioned-schema-pack-expectations)
+  - [Semantic stability and migration](#semantic-stability-and-migration)
+  - [Implementation sequence and example](#implementation-sequence-and-example)
+  - [Conformance requirements](#conformance-requirements)
+  - [Security and trust considerations](#security-and-trust-considerations)
 - [Conclusion](#conclusion)
 - [Acknowledgements](#acknowledgements)
 - [References](#references)
@@ -41,6 +54,9 @@ The guidance in this RFC follows four principles: contract fidelity, so `beckn.y
 ## Specification
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described [here](./Keyword_Definitions.md). These definitions aim to ensure that the terms are understood precisely and consistently to avoid confusion in the interpretation of standards, specifications, and protocols.
+
+### Definitions
+To be added
 
 ### Canonical contract interpretation
 

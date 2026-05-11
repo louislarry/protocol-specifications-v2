@@ -38,51 +38,55 @@ Legacy exceptions will be progressively evaluated for migration toward conforman
 
 ## Table of Contents
 
-- [Specification Design Guide](#specification-design-guide)
-  - [Status of this document](#status-of-this-document)
-  - [Copyright Notice](#copyright-notice)
-  - [Document Details](#document-details)
-  - [Abstract](#abstract)
-  - [Disclaimer](#disclaimer)
-  - [Table of Contents](#table-of-contents)
-  - [Introduction](#introduction)
+- [Status of this document](#status-of-this-document)
+- [Copyright Notice](#copyright-notice)
+- [Document Details](#document-details)
+- [Abstract](#abstract)
+- [Disclaimer](#disclaimer)
+- [Introduction](#introduction)
+- [Specification](#specification)
   - [Definitions](#definitions)
-  - [Scope and Audience](#scope-and-audience)
-  - [Core Principles](#core-principles)
-    - [Naming](#naming)
-  - [Designing API Endpoints](#designing-api-endpoints)
-    - [Naming Convention](#naming-convention)
-      - [For Stateless APIs](#for-stateless-apis)
-      - [For Stateful APIs](#for-stateful-apis)
-        - [Path Parameters](#path-parameters)
-        - [Async Callbacks](#async-callbacks)
-      - [Casing Rules](#casing-rules)
-    - [Writing Descriptions](#writing-descriptions)
-    - [Examples](#examples)
-      - [✓ Preferred — `/confirm`](#-preferred--confirm)
-      - [✗ Avoid — `/confirm`](#-avoid--confirm)
-  - [Designing Schema](#designing-schema)
-    - [Design Principles](#design-principles)
-    - [Naming the Schema](#naming-the-schema)
-      - [Naming Rules](#naming-rules)
-      - [Casing Rules](#casing-rules-1)
-    - [Describing a Schema](#describing-a-schema)
-    - [Examples](#examples-1)
-      - [✓ Preferred — `Contract` schema](#-preferred--contract-schema)
-      - [✗ Avoid — `Contract` schema](#-avoid--contract-schema)
-    - [Managing Exceptions and Offending Schemas](#managing-exceptions-and-offending-schemas)
-  - [Schema Organization](#schema-organization)
-    - [Schema Source Directory](#schema-source-directory)
-    - [Schema Directory Structure](#schema-directory-structure)
-  - [JSON-LD Conventions](#json-ld-conventions)
-  - [RFC Approval Gate](#rfc-approval-gate)
-  - [Schema Authoring and Validation Gates](#schema-authoring-and-validation-gates)
-    - [Artifact Precedence](#artifact-precedence)
-  - [Change Management and Compatibility](#change-management-and-compatibility)
-  - [Cross-Artifact Checklist](#cross-artifact-checklist)
-  - [Examples and Normalization Patterns](#examples-and-normalization-patterns)
-  - [Conformance Requirements](#conformance-requirements)
-  - [Security and Interoperability Considerations](#security-and-interoperability-considerations)
+- [Scope and Audience](#scope-and-audience)
+- [Core Principles](#core-principles)
+  - [Naming](#naming)
+- [Designing API Endpoints](#designing-api-endpoints)
+  - [Naming Convention](#naming-convention)
+    - [For Stateless APIs](#for-stateless-apis)
+    - [For Stateful APIs](#for-stateful-apis)
+      - [Path Parameters](#path-parameters)
+      - [Async Callbacks](#async-callbacks)
+    - [Casing Rules](#casing-rules)
+  - [Writing Descriptions](#writing-descriptions)
+  - [Examples](#examples)
+    - [✓ Preferred — `/confirm`](#preferred-confirm)
+    - [✓ Preferred — `GET /catalog/subscription/{subscriptionId}` (stateful REST async)](#preferred-get-catalogsubscriptionsubscriptionid-stateful-rest-async)
+    - [✗ Avoid — `/confirm`](#avoid-confirm)
+- [Designing Schema](#designing-schema)
+  - [Design Principles](#design-principles)
+  - [Naming the Schema](#naming-the-schema)
+    - [Naming Rules](#naming-rules)
+    - [Casing Rules](#casing-rules-1)
+  - [Describing a Schema](#describing-a-schema)
+  - [Examples](#examples-1)
+    - [✓ Preferred — `Contract` schema](#preferred-contract-schema)
+    - [✗ Avoid — `Contract` schema](#avoid-contract-schema)
+  - [Managing Exceptions and Offending Schemas](#managing-exceptions-and-offending-schemas)
+- [Schema Organization](#schema-organization)
+  - [Schema Source Directory](#schema-source-directory)
+  - [Schema Directory Structure](#schema-directory-structure)
+- [JSON-LD Conventions](#json-ld-conventions)
+- [RFC Approval Gate](#rfc-approval-gate)
+  - [Gate Conditions](#gate-conditions)
+  - [Handling a Failed Gate](#handling-a-failed-gate)
+  - [Scope Alignment](#scope-alignment)
+  - [Why This Gate Exists](#why-this-gate-exists)
+- [Schema Authoring and Validation Gates](#schema-authoring-and-validation-gates)
+  - [Artifact Precedence](#artifact-precedence)
+- [Change Management and Compatibility](#change-management-and-compatibility)
+- [Cross-Artifact Checklist](#cross-artifact-checklist)
+- [Examples and Normalization Patterns](#examples-and-normalization-patterns)
+- [Conformance Requirements](#conformance-requirements)
+- [Security and Interoperability Considerations](#security-and-interoperability-considerations)
 - [Conclusion](#conclusion)
 - [Acknowledgements](#acknowledgements)
 - [References](#references)
@@ -91,11 +95,11 @@ Legacy exceptions will be progressively evaluated for migration toward conforman
 
 Beckn Protocol specifications are authored across multiple repositories, and small inconsistencies in naming, schema semantics, endpoint tokenization, and documentation-example alignment can accumulate into interoperability debt. This guide establishes a common authoring baseline so artifacts evolve predictably, remain validation-aligned, and reduce the risk of unsafe parsing or inconsistent policy enforcement.
 
-## Definitions
+## Specification
 
-The key words MUST, SHOULD, and MAY in this document are to be interpreted as described in the [Keyword Definitions](./Keyword_Definitions.md) document.
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described [here](./Keyword_Definitions.md). These definitions aim to ensure that the terms are understood precisely and consistently to avoid confusion in the interpretation of standards, specifications, and protocols.
 
-Henceforth, all references to "fabric" will refer to the Universal Value-exchange Fabric hosted by the Networks for Humanity Foundation, unless explicitly mentioned otherwise. 
+### Definitions
 
 - **Machine contract:** Authoritative artifacts such as `attributes.yaml` and `schema.json` that define enforceable structure.
 - **Semantic artifacts:** `context.jsonld` and `vocab.jsonld` files that define linked-data meaning and term mapping.
@@ -103,6 +107,8 @@ Henceforth, all references to "fabric" will refer to the Universal Value-exchang
 - **Cross-artifact consistency:** The requirement that contracts, semantic files, examples, and prose stay aligned.
 - **Backward-compatible evolution:** An additive, mapped, deprecated-first change strategy for renames or replacements.
 - **Canonical naming:** Governed, consistent naming for types, properties, enums, and endpoint actions.
+
+> Note: Henceforth, all references to "fabric" will refer to the Universal Value-exchange Fabric operated by the Networks for Humanity Foundation, unless explicitly mentioned otherwise. 
 
 ## Scope and Audience
 

@@ -24,8 +24,23 @@ This RFC explains the Beckn v2.0.0 endpoint surface, covering action and callbac
 
 ## Table of Contents
 
+- [Document Details](#document-details)
+- [Abstract](#abstract)
 - [Introduction](#introduction)
 - [Specification](#specification)
+  - [Definitions](#definitions)
+  - [API fundamentals](#api-fundamentals)
+  - [Common envelope semantics and acknowledgements](#common-envelope-semantics-and-acknowledgements)
+  - [Lifecycle mapping](#lifecycle-mapping)
+  - [Endpoint groups](#endpoint-groups)
+    - [Discovery](#discovery)
+    - [Transaction](#transaction)
+    - [Fulfillment](#fulfillment)
+    - [Post-fulfillment](#post-fulfillment)
+    - [Catalog infrastructure](#catalog-infrastructure)
+    - [Master resource search](#master-resource-search)
+  - [Operation behavior and conformance requirements](#operation-behavior-and-conformance-requirements)
+  - [Security and compatibility considerations](#security-and-compatibility-considerations)
 - [Conclusion](#conclusion)
 - [Acknowledgements](#acknowledgements)
 - [References](#references)
@@ -41,6 +56,9 @@ Implementations are expected to preserve three design foundations throughout thi
 ## Specification
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described [here](./Keyword_Definitions.md). These definitions aim to ensure that the terms are understood precisely and consistently to avoid confusion in the interpretation of standards, specifications, and protocols.
+
+### Definitions
+To be added
 
 ### API fundamentals
 

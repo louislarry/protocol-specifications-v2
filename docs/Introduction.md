@@ -26,22 +26,19 @@ This RFC defines the architectural philosophy and derived principles that guide 
 
 ## Table of Contents
 
-- [Beckn Architecture Design Philosophy and Principles](#beckn-architecture-design-philosophy-and-principles)
-        - [Request for Comments](#request-for-comments)
-  - [Document Details](#document-details)
-  - [Abstract](#abstract)
-  - [Table of Contents](#table-of-contents)
-  - [Introduction](#introduction)
-  - [Specification](#specification)
-    - [Design Principles](#design-principles)
-    - [Network Actors](#network-actors)
-    - [API Surface and Interaction Model](#api-surface-and-interaction-model)
-    - [Conformance Requirements and Alignment Notes](#conformance-requirements-and-alignment-notes)
-    - [Security, Migration, and Evolution Notes](#security-migration-and-evolution-notes)
-    - [Examples](#examples)
-  - [Conclusion](#conclusion)
-  - [Acknowledgements](#acknowledgements)
-  - [References](#references)
+- [Document Details](#document-details)
+- [Abstract](#abstract)
+- [Introduction](#introduction)
+- [Specification](#specification)
+  - [Design Principles](#design-principles)
+  - [Network Actors](#network-actors)
+  - [API Surface and Interaction Model](#api-surface-and-interaction-model)
+  - [Conformance Requirements and Alignment Notes](#conformance-requirements-and-alignment-notes)
+  - [Security, Migration, and Evolution Notes](#security-migration-and-evolution-notes)
+  - [Examples](#examples)
+- [Conclusion](#conclusion)
+- [Acknowledgements](#acknowledgements)
+- [References](#references)
 
 ## Introduction
 

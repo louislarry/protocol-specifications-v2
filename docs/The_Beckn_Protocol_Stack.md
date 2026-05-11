@@ -24,30 +24,29 @@ This RFC defines the Beckn v2 protocol stack as six layers and explains how netw
 
 ## Table of Contents
 
-- [The Beckn Protocol Stack](#the-beckn-protocol-stack)
-  - [Document Details](#document-details)
-  - [Abstract](#abstract)
-  - [Table of Contents](#table-of-contents)
-  - [Introduction](#introduction)
-  - [Specification](#specification)
-    - [Stack definition](#stack-definition)
-    - [Layer 1: Networking Layer](#layer-1-networking-layer)
-      - [Network Architecture](#network-architecture)
-      - [Endpoint Pattern and Action Surface](#endpoint-pattern-and-action-surface)
-      - [Request Modes and Message Exchange](#request-modes-and-message-exchange)
-      - [Discovery on Beckn](#discovery-on-beckn)
-    - [Layer 2: Trust Layer](#layer-2-trust-layer)
-    - [Layer 3: Core Data Layer](#layer-3-core-data-layer)
-    - [Layer 4: Linked Data Layer](#layer-4-linked-data-layer)
-    - [Layer 5: Policy Layer](#layer-5-policy-layer)
-    - [Layer 6: Application Layer](#layer-6-application-layer)
-    - [Interaction examples](#interaction-examples)
-    - [Conformance requirements](#conformance-requirements)
-    - [Security considerations](#security-considerations)
-    - [Migration notes](#migration-notes)
-  - [Conclusion](#conclusion)
-  - [Acknowledgements](#acknowledgements)
-  - [References](#references)
+- [Document Details](#document-details)
+- [Abstract](#abstract)
+- [Introduction](#introduction)
+- [Specification](#specification)
+  - [Definitions](#definitions)
+  - [Stack definition](#stack-definition)
+  - [Layer 1: Networking Layer](#layer-1-networking-layer)
+    - [Network Architecture](#network-architecture)
+    - [Endpoint Pattern and Action Surface](#endpoint-pattern-and-action-surface)
+    - [Request Modes and Message Exchange](#request-modes-and-message-exchange)
+    - [Discovery on Beckn](#discovery-on-beckn)
+  - [Layer 2: Trust Layer](#layer-2-trust-layer)
+  - [Layer 3: Core Data Layer](#layer-3-core-data-layer)
+  - [Layer 4: Linked Data Layer](#layer-4-linked-data-layer)
+  - [Layer 5: Policy Layer](#layer-5-policy-layer)
+  - [Layer 6: Application Layer](#layer-6-application-layer)
+  - [Interaction examples](#interaction-examples)
+  - [Conformance requirements](#conformance-requirements)
+  - [Security considerations](#security-considerations)
+  - [Migration notes](#migration-notes)
+- [Conclusion](#conclusion)
+- [Acknowledgements](#acknowledgements)
+- [References](#references)
 
 ## Introduction
 
@@ -60,6 +59,9 @@ The stack is guided by four implementation principles: each layer MUST own a cle
 ## Specification
 
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described [here](./Keyword_Definitions.md). These definitions aim to ensure that the terms are understood precisely and consistently to avoid confusion in the interpretation of standards, specifications, and protocols.
+
+### Definitions
+To be added
 
 ### Stack definition
 
