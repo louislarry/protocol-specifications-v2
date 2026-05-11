@@ -8,13 +8,11 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 ### Before Proposing Changes
 
-Any contributor proposing amendments, additions, or revisions to this specification MUST read and demonstrate understanding of the following documents before opening an issue, pull request, or discussion:
-
-- [Code of Conduct](../CODE_OF_CONDUCT.md) — Governs the standards of conduct expected of all participants in the Beckn protocol community.
-- [Governance Model](../GOVERNANCE.md) — Defines the decision-making structure, working group responsibilities, and RFC lifecycle by which this specification evolves.
-- [Contributing Guide](../CONTRIBUTING.md) — Specifies the contribution workflow, branch conventions, review process, and acceptance criteria for proposed changes.
-
-Proposals that do not comply with these documents are subject to immediate closure without review.
+> **Required reading before opening any issue, pull request, or discussion:**
+>
+> - [Code of Conduct](../CODE_OF_CONDUCT.md)
+> - [Governance Model](../GOVERNANCE.md)
+> - [Contributing Guide](../CONTRIBUTING.md)
 
 ### Suggested Order of Reading
 
