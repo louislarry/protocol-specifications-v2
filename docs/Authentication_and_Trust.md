@@ -1,7 +1,7 @@
 # Authentication and Trust
 
 ## Document Details
-- **ID:** NFH-004
+- **ID:** NFH-007
 - **Status:** Draft
 - **Authors:**
   - [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity](https://networksforhumanity.org)
@@ -15,9 +15,9 @@
 - **Security/privacy implications:** This RFC defines the complete authentication and non-repudiation model for all Beckn Protocol interactions. Incorrect implementation of any normative requirement creates exploitable vulnerabilities including message forgery, replay attacks, and man-in-the-middle substitution.
 - **Replaces / Relates to:** Supersedes BECKN-006 Signing Beckn APIs in HTTP Draft-01. Relates to [Identity and Addressing](./Identity_and_Addressing.md).
 - **Feedback:**
-  - Issues: Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22NFH-004%22)
-  - Discussions: Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22NFH-004%22)
-  - Pull Requests: Click [here](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22NFH-004%22)
+  - Issues: Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22NFH-007%22)
+  - Discussions: Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22NFH-007%22)
+  - Pull Requests: Click [here](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22NFH-007%22)
 - **Errata:** To be published.
 
 ## Abstract

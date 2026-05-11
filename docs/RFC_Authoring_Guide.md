@@ -12,7 +12,7 @@ Copyright © 2026 Networks for Humanity Foundation. Licensed under [CC-BY-NC-SA 
 
 | Field | Value |
 |---|---|
-| **ID** | NFH-TBD *(auto-assigned by the CWG upon merge to `main`)* |
+| **ID** | NFH-010 |
 | **Publication Status** | Draft |
 | **Authors** | [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity](https://networksforhumanity.org) |
 | **Created** | 2026-05-11 |
@@ -23,7 +23,7 @@ Copyright © 2026 Networks for Humanity Foundation. Licensed under [CC-BY-NC-SA 
 | **Stress test report** | Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main. |
 | **Conformance impact** | Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main. |
 | **Security/privacy implications** | Incomplete RFCs produce incomplete security models. This guide reduces the risk of insecure protocol features entering the specification unexamined. |
-| **Replaces / Relates to** | Supplements [NFH-005 Specification Design Guide](./Design_Guide.md) · [GOVERNANCE.md](https://github.com/beckn/protocol-specifications/blob/master/GOVERNANCE.md) · [CONTRIBUTING.md](https://github.com/beckn/protocol-specifications-v2/blob/main/CONTRIBUTING.md). Does NOT replace any of these documents. |
+| **Replaces / Relates to** | Supplements [NFH-009 Specification Design Guide](./Design_Guide.md) · [GOVERNANCE.md](https://github.com/beckn/protocol-specifications/blob/master/GOVERNANCE.md) · [CONTRIBUTING.md](https://github.com/beckn/protocol-specifications-v2/blob/main/CONTRIBUTING.md). Does NOT replace any of these documents. |
 | **Feedback** | See subheadings below. |
 | **Errata** | To be published. |
 
@@ -171,7 +171,7 @@ The key words MUST, SHOULD, and MAY in this document are to be interpreted as de
 - **Normative reference:** A document that an implementer MUST read and conform to. Referenced in the RFC body with a normative keyword.
 - **Informative reference:** Background reading that aids understanding but is NOT required for conformance.
 - **Legacy submission:** An RFC submitted before the adoption of this guide that does NOT conform to its requirements.
-- **Fabric:** The Universal Value-exchange Fabric hosted by the Networks for Humanity Foundation, as defined in [NFH-005](./Design_Guide.md).
+- **Fabric:** The Universal Value-exchange Fabric hosted by the Networks for Humanity Foundation, as defined in [NFH-009](./Design_Guide.md).
 - **AI Agent:** An autonomous software entity capable of participating in protocol interactions without direct human instruction at the time of the interaction.
 
 ---
@@ -185,7 +185,7 @@ This RFC applies to:
 - Working Group Administrators who manage the review lifecycle and declare consensus
 - Any community member contributing feedback on open RFC submissions
 
-Readers are expected to have working knowledge of the Beckn Protocol, familiarity with the [NFH-005 Design Guide](./Design_Guide.md), and the ability to read and write OpenAPI 3.1 YAML.
+Readers are expected to have working knowledge of the Beckn Protocol, familiarity with the [NFH-009 Design Guide](./Design_Guide.md), and the ability to read and write OpenAPI 3.1 YAML.
 
 ---
 
@@ -518,7 +518,7 @@ This describes only the happy path. What happens if the signature is invalid? If
 
 For every new or modified schema introduced by this RFC:
 
-**For new schemas:** State the schema name and justify why an existing schema at [schema.beckn.io](https://schema.beckn.io) or in `beckn.yaml` cannot be reused or extended. Provide a description that opens with the real-world concept the schema models — NOT its structural composition. State every property with: what it represents, who assigns its value, any constraints beyond JSON type, and for enumerations, what each value means in this context. All NFH-005 conformance requirements (CON-005-01 through CON-005-15) apply to all new schemas.
+**For new schemas:** State the schema name and justify why an existing schema at [schema.beckn.io](https://schema.beckn.io) or in `beckn.yaml` cannot be reused or extended. Provide a description that opens with the real-world concept the schema models — NOT its structural composition. State every property with: what it represents, who assigns its value, any constraints beyond JSON type, and for enumerations, what each value means in this context. All NFH-009 conformance requirements (CON-005-01 through CON-005-15) apply to all new schemas.
 
 **For modified schemas:** State what was changed and why. State whether the change is backward-compatible. If NOT, provide the migration path per Section 14.
 
@@ -554,7 +554,7 @@ Required when the RFC removes, renames, or changes the meaning of any existing e
 |---|---|---|---|
 | `GET /example/result/{id}` | `resultUrl` in callback payload | Implementers MUST implement the callback endpoint; the CS MUST include `resultUrl` in all callback responses | v2.1.0 |
 
-The migration path MUST be specific enough that an independent implementer can execute it. "Update your implementation" is NOT a migration path. The preferred change sequence from [NFH-005](./Design_Guide.md) applies: add the new artifact while retaining the old, mark the old as deprecated with `owl:deprecated` in `vocab.jsonld`, publish migration notes, and remove the old artifact only in a planned major release.
+The migration path MUST be specific enough that an independent implementer can execute it. "Update your implementation" is NOT a migration path. The preferred change sequence from [NFH-009](./Design_Guide.md) applies: add the new artifact while retaining the old, mark the old as deprecated with `owl:deprecated` in `vocab.jsonld`, publish migration notes, and remove the old artifact only in a planned major release.
 
 ---
 
@@ -801,7 +801,7 @@ To understand working group processes — including meeting cadence, role defini
 | CON-TBD-20 | Every breaking change MUST be documented in Section 14 with a specific, executable migration path. | MUST |
 | CON-TBD-21 | Every RFC introducing new named terms in `beckn.yaml` MUST link a cross-artifact alignment plan for `context.jsonld` and `vocab.jsonld`. | MUST |
 | CON-TBD-22 | A PR MUST NOT be marked ready for review until all items in the Pre-Submission Checklist (Appendix B) are satisfied. | MUST |
-| CON-TBD-23 | All RFC schema designs MUST comply with NFH-005 conformance requirements CON-005-01 through CON-005-15. | MUST |
+| CON-TBD-23 | All RFC schema designs MUST comply with NFH-009 conformance requirements CON-005-01 through CON-005-15. | MUST |
 | CON-TBD-24 | Every RFC MUST include a Roles and Actors table. The BG (Beckn Gateway) MUST NOT appear in new RFCs targeting this repository. | MUST |
 | CON-TBD-25 | Every protocol flow MUST include a statement confirming that the flow is exercisable by an AI Agent without human input at any protocol step. | MUST |
 | CON-TBD-26 | Domain-specific vocabulary — including "order", "seller", "buyer", "product", and "item" — MUST NOT appear in the normative text of any core protocol RFC. | MUST NOT |
@@ -822,7 +822,7 @@ Ambiguity in normative text — through missing normative keywords, undefined ac
 
 This RFC establishes a normative authoring standard for Beckn Protocol RFCs, grounded in the seven Beckn design principles and modelled on the quality bar of IETF and W3C process documents. The standard is NOT aspirational — it is a merge gate. An RFC that does NOT satisfy the requirements stated here MUST NOT be merged, regardless of the quality of its accompanying schema changes.
 
-An RFC is a necessary but NOT sufficient artifact for any protocol change. The schema and API specification artifacts that accompany it carry equal weight and are subject to the quality standard governed by [NFH-005](./Design_Guide.md).
+An RFC is a necessary but NOT sufficient artifact for any protocol change. The schema and API specification artifacts that accompany it carry equal weight and are subject to the quality standard governed by [NFH-009](./Design_Guide.md).
 
 The working group is encouraged to treat this document as a living specification. Where gaps, ambiguities, or missing guidance are identified, contributors are invited to propose improvements via the feedback channels in the Document Details section.
 
@@ -830,7 +830,7 @@ The working group is encouraged to treat this document as a living specification
 
 ## Acknowledgements
 
-This document reflects input from Beckn Protocol contributors and the Core Working Group. It is grounded in the design principles established in [GOVERNANCE.md](https://github.com/beckn/protocol-specifications/blob/master/GOVERNANCE.md) and the authoring standards of [NFH-005](./Design_Guide.md).
+This document reflects input from Beckn Protocol contributors and the Core Working Group. It is grounded in the design principles established in [GOVERNANCE.md](https://github.com/beckn/protocol-specifications/blob/master/GOVERNANCE.md) and the authoring standards of [NFH-009](./Design_Guide.md).
 
 ---
 
@@ -838,7 +838,7 @@ This document reflects input from Beckn Protocol contributors and the Core Worki
 
 ### Normative References
 
-- **[NFH-005]** Ravi Prakash V, *Specification Design Guide*, Networks for Humanity Foundation, 2026. [Design_Guide.md](./Design_Guide.md)
+- **[NFH-009]** Ravi Prakash V, *Specification Design Guide*, Networks for Humanity Foundation, 2026. [Design_Guide.md](./Design_Guide.md)
 - **[AUTH-TRUST]** Beckn Core Working Group, *Authentication and Trust*. [Authentication_and_Trust.md](./Authentication_and_Trust.md)
 - **[GOVERNANCE]** Beckn Core Working Group, *Specification Governance*. [GOVERNANCE.md](https://github.com/beckn/protocol-specifications/blob/master/GOVERNANCE.md)
 - **[CONTRIBUTING]** Beckn Core Working Group, *Contributing to Beckn Protocol*. [CONTRIBUTING.md](https://github.com/beckn/protocol-specifications-v2/blob/main/CONTRIBUTING.md)
@@ -913,7 +913,7 @@ The author MUST complete this checklist before marking a PR ready for review. If
 - [ ] BG (Beckn Gateway) does NOT appear in any actor definition or flow
 
 **Cross-Artifact and Schema**
-- [ ] All new schemas comply with NFH-005 (CON-005-01 through CON-005-15)
+- [ ] All new schemas comply with NFH-009 (CON-005-01 through CON-005-15)
 - [ ] JSON-LD alignment plan or companion PR linked for all new named terms
 - [ ] Section 14 (Breaking Changes) is complete with specific, executable migration paths
 

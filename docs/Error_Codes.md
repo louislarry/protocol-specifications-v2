@@ -17,7 +17,7 @@
 - **Stress test report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
 - **Conformance impact:** Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main.
 - **Security/privacy implications:** Defines error representations for authentication and non-repudiation failures; incorrect error signaling may mask signature or replay-attack failures across hops.
-- **Replaces / Relates to:** Supersedes [BECKN-005](https://github.com/beckn/protocol-specifications/blob/master/docs/BECKN-005-Error-Codes-Draft-01.md) (v1 numeric error codes). Relates to [NFH-003: The Beckn Protocol Stack](./The_Beckn_Protocol_Stack.md), [NFH-006: API Endpoints](./API.md), and [NFH-007: Schema Navigation](./Core_Data_Schema.md).
+- **Replaces / Relates to:** Supersedes [BECKN-005](https://github.com/beckn/protocol-specifications/blob/master/docs/BECKN-005-Error-Codes-Draft-01.md) (v1 numeric error codes). Relates to [NFH-003: The Beckn Protocol Stack](./The_Beckn_Protocol_Stack.md), [NFH-006: API Endpoints](./API.md), and [NFH-004: Schema Navigation](./Core_Data_Schema.md).
 - **Feedback:**
   - [Issues](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22NFH-008%22)
   - [Discussions](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22NFH-008%22)
@@ -1181,7 +1181,7 @@ This RFC is based on the proposal by [Abhishek Jain (abhimail)](https://github.c
 - **[BECKN-005](https://github.com/beckn/protocol-specifications/blob/master/docs/BECKN-005-Error-Codes-Draft-01.md) (v1 Error Codes)**
 - **NFH-003: The Beckn Protocol Stack:** Click [here](./The_Beckn_Protocol_Stack.md).
 - **NFH-006: Beckn API Endpoints (v2.0.0):** Click [here](./API.md).
-- **NFH-007: Navigating the Beckn Schema:** Click [here](./Core_Data_Schema.md).
+- **NFH-004: Navigating the Beckn Schema:** Click [here](./Core_Data_Schema.md).
 - **Governance:** Click [here](../GOVERNANCE.md).
 - **Keyword definitions:** Click [here](./Keyword_Definitions.md).
 - **Discussion #148:** [https://github.com/beckn/protocol-specifications-v2/discussions/148](https://github.com/beckn/protocol-specifications-v2/discussions/148)
