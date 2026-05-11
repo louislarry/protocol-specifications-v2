@@ -6,7 +6,7 @@ This document is a Working Draft of the Beckn Protocol Specification, published 
 
 ## Copyright Notice
 
-Copyright © 2026 Networks for Humanity Foundation. All rights reserved.
+Copyright © 2026 Networks for Humanity Foundation. Licensed under [CC-BY-NC-SA 4.0 International](https://creativecommons.org/licenses/by-nc-sa/4.0/).
 
 ## Document Details
 
@@ -16,7 +16,7 @@ Copyright © 2026 Networks for Humanity Foundation. All rights reserved.
   - Ravi Prakash V, Networks for Humanity Foundation 
 - **Created:** 2026-04-10.
 - **Updated:** 2026-04-10.
-- **Version history:** Draft-01 (2026-04-10): Initial publication as RFC-005. Restructured from `05_Specification_Authoring_Style_Guide.md` into RFC form.
+- **Version history:** Draft-01 (2026-04-10): Initial publication as RFC-005. Restructured from `05_Specification_Authoring_Style_Guide.md` into RFC form. Draft-02 (2026-05-11): Mandated path parameters for stateful resource identifiers; replaced `on_*` callback convention for stateful async APIs with REST callback convention; added RFC Approval Gate section; added CON-005-16, CON-005-17, CON-005-18, and CON-005-19.
 - **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/release-v2.0.0-lts/docs/Design_Guide.md).
 - **Implementation report:** Not applicable (authoring and governance guidance RFC).
 - **Stress test report:** Not applicable.
@@ -54,6 +54,8 @@ Legacy exceptions will be progressively evaluated for migration toward conforman
     - [Naming Convention](#naming-convention)
       - [For Stateless APIs](#for-stateless-apis)
       - [For Stateful APIs](#for-stateful-apis)
+        - [Path Parameters](#path-parameters)
+        - [Async Callbacks](#async-callbacks)
       - [Casing Rules](#casing-rules)
     - [Writing Descriptions](#writing-descriptions)
     - [Examples](#examples)
@@ -73,6 +75,7 @@ Legacy exceptions will be progressively evaluated for migration toward conforman
     - [Schema Source Directory](#schema-source-directory)
     - [Schema Directory Structure](#schema-directory-structure)
   - [JSON-LD Conventions](#json-ld-conventions)
+  - [RFC Approval Gate](#rfc-approval-gate)
   - [Schema Authoring and Validation Gates](#schema-authoring-and-validation-gates)
     - [Artifact Precedence](#artifact-precedence)
   - [Change Management and Compatibility](#change-management-and-compatibility)
@@ -152,21 +155,56 @@ For an action name, the ideal number of syllables is *one* but the recommended l
 
 #### For Stateful APIs
 
-Stateful Fabric service APIs MUST follow REST conventions. Resources MUST be identified by noun-based URL paths, and HTTP methods MUST convey the nature of the operation:
+Stateful Fabric service APIs MUST follow REST conventions uniformly — for both synchronous and asynchronous interactions. Resources MUST be identified by noun-based URL paths, and HTTP methods MUST convey the nature of the operation:
 
 | HTTP Method | Semantic | Example |
 |---|---|---|
-| `POST` | Create a new resource instance | `POST /catalog` |
-| `GET` | Retrieve a resource or list | `GET /catalog/{id}` |
-| `PUT` | Replace a resource in full | `PUT /catalog/{id}` |
-| `PATCH` | Partially update a resource | `PATCH /catalog/{id}` |
-| `DELETE` | Remove a resource | `DELETE /catalog/{id}` |
+| `POST` | Create a new resource instance | `POST /catalog/subscription` |
+| `GET` | Retrieve a resource or its current state | `GET /catalog/subscription/{subscriptionId}` |
+| `PUT` | Replace a resource in full | `PUT /catalog/subscription/{subscriptionId}` |
+| `PATCH` | Partially update a resource | `PATCH /catalog/subscription/{subscriptionId}` |
+| `DELETE` | Remove a resource | `DELETE /catalog/subscription/{subscriptionId}` |
 
-Where a stateful operation has an asynchronous outcome, the callback endpoint MUST follow the pattern `/{resource}/on_{action}`, where `action` is a verb describing the specific operation performed (e.g. `POST /catalog` → callback at `/catalog/on_publish`).
+##### Path Parameters
+
+Resource identifiers MUST be expressed as **path parameters**. Query parameters MUST only be used for optional, non-identifying modifiers such as pagination controls (`limit`, `offset`) or sort order. A resource whose identity is known at call time MUST appear in the URL path, not the query string.
+
+```text
+✓  GET /catalog/subscription/{subscriptionId}
+✗  GET /catalog/subscription?subscriptionId={subscriptionId}
+
+✓  DELETE /catalog/subscription/{subscriptionId}
+✗  DELETE /catalog/subscription?subscriptionId={subscriptionId}
+```
+
+Query parameter names, where used for optional modifiers, MUST follow `lowerCamelCase` per CON-005-01.
+
+##### Async Callbacks
+
+Stateful async operations follow the same REST path conventions as their initiating requests. **The `on_*` callback convention applies exclusively to stateless P2P transaction endpoints** (e.g., `/confirm` → `/on_confirm`). It MUST NOT be used for stateful Fabric service API callbacks.
+
+Where a stateful operation initiates an asynchronous outcome, the implementer MUST:
+
+1. Return a synchronous `Ack` immediately upon receiving the request.
+2. Deliver the async result by calling the requester's registered callback URI at the **same resource path** as the initiating request, using the HTTP method appropriate to the delivery semantics (typically `POST`, as the implementer is delivering new content to the caller).
+
+```text
+Initiating request:   GET  /catalog/subscription/{subscriptionId}   →  Ack
+Async callback:       POST /catalog/subscription/{subscriptionId}
+                      (called by CS on the BAP's registered callback URI,
+                       carrying the assembled catalog as the request body)
+
+Initiating request:   POST /catalog                                  →  Ack
+Async callback:       POST /catalog/{catalogId}
+                      (called by CS on the BPP's registered callback URI,
+                       confirming acceptance and carrying the assigned catalogId)
+```
+
+The same resource path in the callback preserves the REST resource identity across both legs of the exchange. The caller correlates the callback to the initiating request via the resource path and any resource identifier present in both.
 
 Legacy endpoint exceptions MUST be explicitly documented and MUST NOT become new precedent.
 
-> **Legacy Exception — Catalog APIs:** The catalog service endpoints (`catalog/publish`, `catalog/subscription`, `catalog/pull`) were designed before this style guide and use an RPC-style `resource/action` naming pattern rather than REST HTTP verbs. These endpoints are recognized as legacy exceptions and MUST NOT be used as a model for new stateful API design. They will be evaluated for migration to REST-conformant design in a future release, subject to ecosystem impact assessment.
+> **Legacy Exception — Catalog APIs:** The catalog service endpoints (`/catalog/publish`, `/catalog/on_publish`, `/catalog/subscription`, `/catalog/pull`, `/catalog/on_pull`) were designed before this style guide. They use an RPC-style `resource/action` naming pattern, the `on_*` callback convention, and query parameters for resource identification — all of which are inconsistent with the REST conventions required for stateful APIs. These endpoints are recognized as legacy exceptions and MUST NOT be used as a model for new stateful API design. They will be evaluated for migration to REST-conformant design in a future release, subject to ecosystem impact assessment.
 
 #### Casing Rules
 - Endpoints MUST use `snake_case` path tokens.
@@ -186,7 +224,7 @@ Each endpoint description MUST include the following:
 
 **5. Response semantics.** Every response family (`Ack`, `AckNoCallback`, `NackBadRequest`, `NackUnauthorized`, `ServerError`) that the implementer may return MUST be described. The description MUST state what each response means in the context of this specific endpoint's behavior — it MUST NOT merely restate the HTTP status code.
 
-**6. Callback relationship.** For request endpoints that have an `on_*` callback counterpart, the description MUST state when and by whom the callback is triggered, what it carries, and how the caller MUST interpret it.
+**6. Callback relationship.** For stateless P2P request endpoints that have an `on_*` callback counterpart, the description MUST state when and by whom the callback is triggered, what it carries, and how the caller MUST interpret it. For stateful REST endpoints with an async outcome, the description MUST state that the implementer delivers the result by calling the same resource path on the caller's registered callback URI, what the delivery payload carries, and what the caller MUST do upon receipt.
 
 **Tone and grammar.** Descriptions MUST be written in formal technical prose. The passive voice SHOULD be used only when the active actor is genuinely indeterminate. Descriptions MUST NOT contain colloquial phrasing, unexplained abbreviations, or normative requirements expressed in informal language. Every normative statement MUST use the keywords `MUST`, `SHOULD`, or `MAY` as defined in [Keyword Definitions](./Keyword_Definitions.md).
 
@@ -199,6 +237,12 @@ Each endpoint description MUST include the following:
 > The BAP invokes this endpoint to request the BPP to confirm a previously initialized order contract. This endpoint MUST only be invoked after a successful `on_init` response has been received by the BAP, establishing an active initialized transaction identified by `context.transactionId`. The BPP MUST validate the signature on the request as described in [Authentication and Trust](./Authentication_and_Trust.md) before processing. Upon successful validation and processing, the BPP MUST return an `Ack` synchronously and subsequently invoke the `/on_confirm` callback on the BAP's registered callback URI, carrying the confirmed `Contract` object in the `message` field. If signature validation fails, the BPP MUST return a `NackUnauthorized` response and MUST NOT invoke the callback. If the request body is structurally invalid or the `transactionId` does not correspond to an active initialized transaction, the BPP MUST return a `NackBadRequest` response. For the role of a confirmed contract within the NFH Fabric's value-exchange lifecycle, refer to [Value Exchange Lifecycle](./Value_Exchange_Lifecycle.md).
 
 Both actor names are present, the precondition is explicit, every response family is described with business semantics, the callback relationship is fully stated, and two canonical documents are linked inline.
+
+#### ✓ Preferred — `GET /catalog/subscription/{subscriptionId}` (stateful REST async)
+
+> The BAP invokes this endpoint to request the CS to assemble and deliver the catalog snapshot scoped to the specified subscription. The `{subscriptionId}` path parameter MUST reference a `CatalogSubscription` record in `ACTIVE` status owned by the calling BAP, as identified by the signing key in the Authorization header. The CS MUST validate the signature as described in [Authentication and Trust](./Authentication_and_Trust.md) before processing. Upon successful validation, the CS MUST return an `Ack` synchronously and subsequently deliver the assembled catalog by invoking `POST /catalog/subscription/{subscriptionId}` on the BAP's registered callback URI, carrying the catalog payload in the request body. If the `subscriptionId` does NOT exist, the CS MUST return `NackNotFound`. If the subscription exists but is owned by a different BAP, the CS MUST return `NackForbidden`. If the subscription is in `INACTIVE` status, the CS MUST return `NackBadRequest`.
+
+The resource identifier appears in the path, NOT the query string. The callback uses the same resource path on the BAP's registered URI. No `on_*` verb pattern is used.
 
 #### ✗ Avoid — `/confirm`
 
@@ -223,6 +267,14 @@ Uses domain-specific language ("order", "seller") that assumes a commerce contex
 > "Called by the buyer app after the seller acknowledges the terms. Returns a confirmed contract object."
 
 "Returns a confirmed contract object" describes the `/on_confirm` callback, not the `/confirm` request, which returns only a synchronous `Ack`. This description conflates two distinct legs of the exchange, making it impossible to implement either correctly.
+
+---
+
+**Variant D — Query parameter used for resource identifier (stateful API anti-pattern)**
+
+> `DELETE /catalog/subscription?subscriptionId={subscriptionId}`
+
+The subscription is a known, identified resource. Its identifier MUST appear in the path: `DELETE /catalog/subscription/{subscriptionId}`. Using a query parameter for a resource identifier makes the endpoint semantically indistinguishable from a filtered collection operation and prevents REST-idiomatic client behaviour such as caching and addressability.
 
 ## Designing Schema
 
@@ -440,6 +492,47 @@ Every schema published within the Beckn Protocol ecosystem MUST include a `conte
 
 Each term in `@context` maps a human-readable property name to its canonical IRI under the `beckn:` namespace. The `@version: 1.1` declaration enables JSON-LD 1.1 features including `@protected`, which prevents downstream context files from overriding these mappings and guarantees stable semantic grounding across all implementations.
 
+## RFC Approval Gate
+
+An approved RFC is a **mandatory prerequisite** for any Pull Request that introduces or modifies schema, API endpoints, JSON-LD artifacts, or behavioral specification in any Beckn Protocol repository. This gate is enforced before any technical review of the Pull Request begins.
+
+### Gate Conditions
+
+A Pull Request MUST NOT be reviewed until all three gate conditions are satisfied:
+
+| # | Condition | Enforcement |
+|---|---|---|
+| G-1 | The PR links to a specific RFC by ID | PR description MUST contain a direct link to the RFC document |
+| G-2 | The linked RFC has reached **Proposed Standard** status or higher | RFC status MUST be declared in the RFC's Document Details block |
+| G-3 | The PR diff scope aligns precisely with what the approved RFC specifies | Verified by the reviewer as Step 0 before any other review activity |
+
+A Pull Request that fails any gate condition MUST be returned to the author immediately. No further review steps apply.
+
+### Handling a Failed Gate
+
+| Failure | Required action |
+|---|---|
+| No RFC linked | Author MUST draft and obtain RFC approval before resubmitting |
+| RFC is `Draft` status | PR MUST be converted to Draft status; resubmit after RFC reaches Proposed Standard |
+| PR scope exceeds the RFC | Author MUST either remove the excess changes from the PR, or update the RFC to cover them and obtain re-approval before resubmitting |
+| PR scope is narrower than the RFC | Acceptable — a PR may implement a subset of an approved RFC |
+
+### Scope Alignment
+
+Once the gate conditions are satisfied, the reviewer MUST verify that the diff aligns with the RFC before conducting any technical review. Specifically:
+
+- Every endpoint, schema, property, enum value, or behavioral rule introduced in the diff MUST be explicitly described in the approved RFC.
+- No endpoint, schema, property, enum value, or behavioral rule may appear in the diff that is NOT described in the RFC.
+- If the diff contains changes that are NOT covered by the approved RFC, the Pull Request MUST be rejected without further review. The reviewer MUST cite the specific diff elements that lack RFC coverage.
+
+Reviewers are NOT responsible for evaluating the merit of changes that were NOT covered by an approved RFC. Scope introduced at the PR stage bypasses the working group's design authority. Such changes MUST be rejected without prejudice to the underlying idea — the idea belongs in a new or updated RFC.
+
+### Why This Gate Exists
+
+The RFC process exists to separate design decisions from implementation. A reviewer who encounters unexpected schema elements at diff-review time is being asked to perform a design review inside an implementation review — two distinct activities with different audiences, different criteria, and different working-group members. This gate keeps those activities separate and preserves the integrity of both.
+
+An RFC that passes working-group review but whose implementation diverges from the approved design defeats the purpose of the RFC process entirely.
+
 ## Schema Authoring and Validation Gates
 
 Each schema bundle MUST pass:
@@ -482,7 +575,8 @@ The preferred migration path is:
 Before merge, authors SHOULD verify:
 
 - canonical naming and casing consistency
-- action and callback pairing with deterministic action derivation
+- action and callback pairing: stateless P2P endpoints use `on_*` callback pattern; stateful REST endpoints use the same resource path on the caller's registered URI
+- resource identifiers expressed as path parameters, NOT query parameters
 - alignment across `attributes.yaml`, `schema.json`, `context.jsonld`, and `vocab.jsonld`
 - examples validate against canonical contracts
 - migration notes exist for renames and deprecations
@@ -499,11 +593,30 @@ http/get -> HTTP_GET
 filters.type -> filters.expressionType
 ```
 
-Example action and callback pairing:
+Example action and callback pairing — stateless P2P:
 
 ```text
-/select -> /on_select
-/catalog/publish -> /catalog/on_publish
+/select              ->  /on_select
+/catalog/publish     ->  /catalog/on_publish   (legacy exception — do not model)
+```
+
+Example resource and callback pairing — stateful REST async:
+
+```text
+GET  /catalog/subscription/{subscriptionId}   →  Ack
+POST /catalog/subscription/{subscriptionId}       (CS calls BAP's registered URI — delivers catalog)
+
+POST /catalog                                 →  Ack
+POST /catalog/{catalogId}                         (CS calls BPP's registered URI — confirms acceptance)
+```
+
+Example path parameter vs query parameter:
+
+```text
+✓  GET    /catalog/subscription/{subscriptionId}   — resource identifier in path
+✓  GET    /catalog/subscription?limit=20&offset=0  — pagination modifiers in query
+✗  GET    /catalog/subscription?subscriptionId=xyz — identifier in query (MUST NOT)
+✗  DELETE /catalog/subscription?subscriptionId=xyz — identifier in query (MUST NOT)
 ```
 
 ## Conformance Requirements
@@ -521,10 +634,16 @@ Example action and callback pairing:
 | CON-005-09 | Every property of a schema MUST have a description stating what it represents and who assigns its value. | MUST |
 | CON-005-10 | All endpoint and schema descriptions MUST be written in formal technical prose using normative keywords as defined in [Keyword Definitions](./Keyword_Definitions.md). | MUST |
 | CON-005-11 | Schema names that describe an action MUST append the suffix `Action` (e.g. `PaymentAction`, not `Payment`). | MUST |
-| CON-005-12 | Stateful Fabric service APIs MUST use noun-based URL paths with standard HTTP verbs (GET, POST, PUT, PATCH, DELETE) following REST conventions. | MUST |
+| CON-005-12 | Stateful Fabric service APIs MUST use noun-based URL paths with standard HTTP verbs (GET, POST, PUT, PATCH, DELETE) following REST conventions, for both synchronous and asynchronous interactions. | MUST |
 | CON-005-13 | Each schema's directory name MUST exactly match the schema name, including case (e.g. the `Catalog` schema MUST reside in a directory named `Catalog`). | MUST |
 | CON-005-14 | Each versioned schema pack MUST include `attributes.yaml`, `attributes.jsonschema.yaml`, `context.jsonld`, `vocab.jsonld`, and `README.md`. | MUST |
 | CON-005-15 | Every schema term MUST map to an IRI in the `beckn:` namespace or a recognized external vocabulary declared in the schema's `context.jsonld`. | MUST |
+| CON-005-16 | Resource identifiers in stateful API endpoints MUST be expressed as path parameters. Query parameters MUST only be used for optional, non-identifying modifiers such as pagination or sort order. | MUST |
+| CON-005-17 | Stateful async callbacks MUST use the same resource path as the initiating request on the caller's registered callback URI. The `on_*` callback pattern MUST NOT be used for stateful Fabric service API callbacks. | MUST |
+| CON-005-18 | A Pull Request introducing schema, API, or artifact changes MUST link to an RFC at Proposed Standard status or higher before it may be reviewed. Pull Requests without an approved RFC MUST be rejected without review. | MUST |
+| CON-005-19 | The scope of changes in a Pull Request MUST correspond precisely to the approved RFC. Changes NOT covered by the RFC MUST be removed from the PR or the RFC MUST be updated and re-approved before review proceeds. | MUST |
+
+> Contributors SHOULD read [CONTRIBUTING.md](https://github.com/beckn/protocol-specifications-v2/blob/main/CONTRIBUTING.md), [CODE_OF_CONDUCT.md](https://github.com/beckn/protocol-specifications-v2/blob/main/CODE_OF_CONDUCT.md), and [GOVERNANCE.md](https://github.com/beckn/protocol-specifications/blob/master/GOVERNANCE.md) before making any contributions to this repository. Repeated violations of the conformance requirements in this document or of the broader governance model may result in the suspension of a contributor's Pull Request submission privileges, followed by their ability to submit Issues and participate in Discussions, and ultimately in their removal from the organization. A contributor who has been removed and wishes to be reinstated MUST submit a formal written request to the Working Group Administrator identifying the root cause of the violation and the remediation taken. The Core Working Group reserves the right to accept or deny such a request.
 
 ## Security and Interoperability Considerations
 
@@ -532,7 +651,7 @@ Ambiguous naming, schema and documentation drift, and untracked semantic changes
 
 ## Conclusion
 
-This RFC consolidates the style guide into a single ordered structure while preserving the original normative guidance for naming, artifact precedence, validation, compatibility, and semantic alignment. Draft-01 records this RFC-form restructuring, and future governance work may standardize JSON-LD extension patterns and automated pull-request gates for minimum cross-artifact checks.
+This RFC consolidates the style guide into a single ordered structure while preserving the original normative guidance for naming, artifact precedence, validation, compatibility, and semantic alignment. Draft-01 records this RFC-form restructuring. Draft-02 refines the stateful API design rules: resource identifiers are now mandated as path parameters (CON-005-16); the async callback convention for stateful APIs is aligned with REST — the `on_*` verb pattern is now explicitly restricted to stateless P2P transaction endpoints only (CON-005-17); the RFC Approval Gate is introduced as a mandatory prerequisite for all Pull Request reviews, with scope alignment enforced before any technical review begins (CON-005-18, CON-005-19). Future governance work may standardize JSON-LD extension patterns and automated pull-request gates for minimum cross-artifact checks.
 
 ## Acknowledgements
 
@@ -543,4 +662,3 @@ This document reflects input from Beckn Protocol contributors maintaining protoc
 - **Schema.org style guide:** Click [here](https://schema.org/docs/styleguide.html)
 - **Related pull request 67:** Click [here](https://github.com/beckn/protocol-specifications-v2/pull/67)
 - **Related pull request 68:** Click [here](https://github.com/beckn/protocol-specifications-v2/pull/68)
-
