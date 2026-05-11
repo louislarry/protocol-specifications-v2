@@ -1,4 +1,4 @@
-# Beckn Protocol 2.0 Specifications — Document Index
+# Beckn Protocol 2.0 Specifications
 
 ## Specification
 
@@ -14,18 +14,43 @@ Any contributor proposing amendments, additions, or revisions to this specificat
 
 Proposals that do not comply with these documents are subject to immediate closure without review.
 
-## Table of Contents
+## Suggested Order of Reading
 
-| RFC ID | Title | Description | Authors | Last Updated | Type |
-|--------|-------|-------------|---------|--------------|------|
-| [NFH-001](./Specification.md) | Specification: Architecture, Design Philosophy and Principles | Defines the architectural philosophy and derived principles that govern Beckn Protocol v2 design decisions. | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-002](./Keyword_Definitions.md) | Keyword Definitions | Defines normative interpretations of requirement-level keywords used across all Beckn protocol documents. | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-003](./The_Beckn_Protocol_Stack.md) | The Beckn Protocol Stack | Defines the Beckn v2 protocol stack as six layers and specifies how networking, trust, data, semantics, policy, and application concerns interact. | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-004](./Core_Data_Schema.md) | Core Data Schema | Defines how implementers navigate Beckn schema assets across OpenAPI contracts, core schema objects, and registry-published versioned artifacts. | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-005](./Linked_Data_Schema.md) | Linked Data Schema | Defines how implementers navigate JSON-LD extension containers and linked data artifacts for semantic interoperability. | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-006](./API.md) | Beckn API Endpoints | Defines the Beckn v2.0.0 endpoint surface, action and callback lifecycle semantics, and implementation constraints derived from the canonical OpenAPI contract. | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-007](./Authentication_and_Trust.md) | Authentication and Trust | Specifies the Ed25519-based authentication and non-repudiation model governing all message legs between Beckn network participants. | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-008](./Error_Codes.md) | Handling Exceptions and Errors | Defines the canonical error taxonomy, ACK/NACK semantics, and error propagation model replacing BECKN-005 numeric codes. | [Abhishek Jain](https://github.com/abhimail), [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-009](./Design_Guide.md) | Specification Design Guide | Defines authoring rules for Beckn API specifications, schemas, and artifacts to ensure naming, semantic, and evolution consistency. | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-010](./RFC_Authoring_Guide.md) | RFC Authoring Guide | Process and governance guide for authoring, reviewing, and publishing Beckn RFC submissions to the protocol-specifications-v2 repository. | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-011](./RFC_Template.md) | RFC Template | Canonical template for authoring new Beckn Protocol RFC submissions. | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
+The documents in this specification are best read in the following sequence. Each document builds on the concepts established by those before it.
+
+### 1. [NFH-001 — Specification: Architecture, Design Philosophy and Principles](./Specification.md)
+Start here. Establishes the *why* behind Beckn Protocol v2 — the architectural philosophy, design constraints, and derived principles that govern every decision in the specification. Reading this first ensures the remainder of the specification is understood in the correct context.
+
+### 2. [NFH-002 — Keyword Definitions](./Keyword_Definitions.md)
+Defines the normative interpretation of requirement-level keywords (`MUST`, `SHOULD`, `MAY`, etc.) used throughout all documents. Read before proceeding to any normative specification content.
+
+### 3. [NFH-003 — The Beckn Protocol Stack](./The_Beckn_Protocol_Stack.md)
+Describes the six-layer structure of the protocol — networking, trust, data, semantics, policy, and application. Provides the structural map needed to understand where each subsequent document fits.
+
+### 4. [NFH-004 — Core Data Schema](./Core_Data_Schema.md)
+Defines how implementers navigate Beckn schema assets across OpenAPI contracts and core schema objects. Read before the API document, since the API operates on these data structures.
+
+### 5. [NFH-005 — Linked Data Schema](./Linked_Data_Schema.md)
+Covers the JSON-LD semantic layer built on top of the core schema. Explains how Beckn achieves semantic interoperability across domains and regions through linked data artifacts.
+
+### 6. [NFH-006 — Beckn API Endpoints](./API.md)
+Defines the full endpoint surface for Beckn v2.0.0 — action and callback lifecycle semantics, common envelopes, and implementation constraints derived from the canonical OpenAPI contract.
+
+### 7. [NFH-007 — Authentication and Trust](./Authentication_and_Trust.md)
+Specifies the Ed25519-based authentication and non-repudiation model that secures every message leg between network participants. Read after the API document to understand what is being secured and how.
+
+### 8. [NFH-008 — Handling Exceptions and Errors](./Error_Codes.md)
+Defines the canonical error taxonomy, ACK/NACK semantics, and error propagation model. Read after understanding the API and authentication layers that produce these errors.
+
+### 9. [NFH-009 — Specification Design Guide](./Design_Guide.md)
+Normative authoring rules for Beckn API specifications, schemas, and artifacts. Required reading for anyone contributing to or extending the specification.
+
+### 10. [NFH-010 — RFC Authoring Guide](./RFC_Authoring_Guide.md)
+Process and governance guide for authoring, reviewing, and publishing RFC submissions. Read this before opening any Proposal Discussion or Pull Request.
+
+### 11. [NFH-011 — RFC Template](./RFC_Template.md)
+The canonical template to be used when authoring a new RFC. Use in conjunction with NFH-010.
+
+---
+
+For a full publication summary including authors, dates, and status, see [RFC_Publication_Summary.md](./RFC_Publication_Summary.md).
