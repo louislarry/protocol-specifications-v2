@@ -5,8 +5,8 @@
 - **Status:** Draft
 - **Authors:**
   - [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity](https://networksforhumanity.org)
-- **Created:** 2026-05-05
-- **Updated:** 2026-05-05
+- **Created:** 2026-05-11
+- **Updated:** 2026-05-11
 - **Version history:** Draft-01 (2026-05-05): Initial publication.
 - **Latest editor's draft:** [Authentication_and_Trust.md](./Authentication_and_Trust.md)
 - **Implementation report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.

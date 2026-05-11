@@ -6,8 +6,8 @@
 - **Status:** Draft.
 - **Authors:**
   - [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity](https://networksforhumanity.org)
-- **Created:** 2026-04-08.
-- **Updated:** 2026-04-08.
+- **Created:** 2026-05-11
+- **Updated:** 2026-05-11
 - **Version history:** No commits found on `main` for `docs/07_Navigating_The_Beckn_Schema.md`.
 - **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/07_Navigating_The_Beckn_Schema.md)
 - **Implementation report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.

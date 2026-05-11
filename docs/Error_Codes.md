@@ -9,8 +9,8 @@
   - [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity](https://networksforhumanity.org)
 - **Editors:**
   - [Ravi Prakash](https://github.com/ravi-prakash-v), Networks for Humanity Foundation
-- **Created:** 2026-05-04.
-- **Updated:** 2026-05-05.
+- **Created:** 2026-05-11
+- **Updated:** 2026-05-11
 - **Version history:** Click [here](https://github.com/beckn/protocol-specifications-v2/commits/main/docs/Error_Codes.md).
 - **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Error_Codes.md).
 - **Implementation report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
