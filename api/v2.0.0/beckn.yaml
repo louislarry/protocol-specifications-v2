@@ -2116,21 +2116,11 @@ components:
         status:
           description: >
             The lifecycle state of this consideration. Required when Consideration
-            appears in Contract.consideration[] from on_select onward
-            (PENDING → QUOTED → ACTIVE → CANCELLED). Optional in Offer.considerations[]
+            appears in Contract.consideration[] from on_select onward. Optional in Offer.considerations[]
             (catalog context, where no transaction lifecycle has been established) and
             in select-phase payloads where the Seeker NP signals intent before the
             Provider NP has priced the consideration.
-          allOf:
-            - $ref: '#/components/schemas/Descriptor'
-            - type: object
-              properties:
-                code:
-                  enum:
-                    - PENDING
-                    - QUOTED
-                    - ACTIVE
-                    - CANCELLED
+          $ref: '#/components/schemas/Descriptor'
         considerationAttributes:
           description: 'Domain-specific attributes of this consideration. For monetary considerations,
 
