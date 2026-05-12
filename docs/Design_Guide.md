@@ -192,7 +192,7 @@ Stateful async operations follow the same REST path conventions as their initiat
 Where a stateful operation initiates an asynchronous outcome, the implementer MUST:
 
 1. Return a synchronous `Ack` immediately upon receiving the request.
-2. Deliver the async result by calling the requester's registered callback URI at the **same resource path** as the initiating request, using the HTTP method appropriate to the delivery semantics (typically `POST`, as the implementer is delivering new content to the caller).
+2. Deliver the async result by calling the requester's registered callback URI at the **same resource path** as the initiating request, using the HTTP POST method appropriate to the delivery semantics as the implementer is delivering new content to the caller.
 
 ```text
 Initiating request:   GET  /catalog/subscription/{subscriptionId}   →  Ack
