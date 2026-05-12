@@ -16,7 +16,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 The documents in this specification are best read in the following sequence. Each document builds on the concepts established by those before it.
 
-**1. [NFH-001 — Specification: Architecture, Design Philosophy and Principles](./Specification.md)**
+**1. [NFH-001 — Specification: Architecture, Design Philosophy and Principles](./Introduction.md)**
 Start here. Establishes the *why* behind Beckn Protocol v2 — the architectural philosophy, design constraints, and derived principles that govern every decision in the specification. Reading this first ensures the remainder of the specification is understood in the correct context.
 
 **2. [NFH-002 — Keyword Definitions](./Keyword_Definitions.md)**
@@ -43,10 +43,13 @@ Defines the canonical error taxonomy, ACK/NACK semantics, and error propagation 
 **9. [NFH-009 — Specification Design Guide](./Design_Guide.md)**
 Normative authoring rules for Beckn API specifications, schemas, and artifacts. Required reading for anyone contributing to or extending the specification.
 
-**10. [NFH-010 — RFC Authoring Guide](./RFC_Authoring_Guide.md)**
+**10. [NFH-012 — Managing Schemas in Beckn](./Managing_Schemas.md)**
+Governs the full lifecycle of Beckn schema artifacts — why and when schemas may be created or changed (abstraction → composition → extension → creation), where they are published (`beckn/schemas`, `beckn/DEG`), who is authorised to publish them, and how production implementations apply them. Read after the Design Guide; the principles defined here build directly on it.
+
+**11. [NFH-010 — RFC Authoring Guide](./RFC_Authoring_Guide.md)**
 Process and governance guide for authoring, reviewing, and publishing RFC submissions. Read this before opening any Proposal Discussion or Pull Request.
 
-**11. [NFH-011 — RFC Template](./RFC_Template.md)**
+**12. [NFH-011 — RFC Template](./RFC_Template.md)**
 The canonical template to be used when authoring a new RFC. Use in conjunction with NFH-010.
 
 ---

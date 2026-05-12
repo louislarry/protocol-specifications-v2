@@ -1,3 +1,5 @@
 .DS_Store
 .cursor/*
 TODOs.md
+.claude/scratch/
+__pycache__/
