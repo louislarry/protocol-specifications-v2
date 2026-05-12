@@ -17,19 +17,31 @@ SKIP_FILES = {'README.md', 'RFC_Publication_Summary.md'}
 
 
 def make_anchor(text):
-    """Convert heading text to a GitHub-style anchor slug."""
-    # Strip inline markdown: bold, italic, code, links
+    """Convert heading text to a GitHub-style anchor slug.
+
+    Matches GitHub's actual heading-id algorithm:
+      1. Strip inline markdown (keep inner text of bold/italic/code/links).
+      2. Lowercase.
+      3. Replace each whitespace character with a hyphen (NOT collapsed —
+         consecutive whitespace becomes consecutive hyphens, which preserves
+         the double-hyphen GitHub emits for headings with em-dashes etc.).
+      4. Strip anything that is not a letter, digit, hyphen, or underscore.
+
+    Leading and trailing hyphens are NOT stripped — GitHub keeps them when a
+    heading begins or ends with a non-letter character (e.g. emoji, em-dash).
+    """
+    # 1. Strip inline markdown.
     text = re.sub(r'\*\*(.+?)\*\*', r'\1', text)
     text = re.sub(r'\*(.+?)\*', r'\1', text)
     text = re.sub(r'`(.+?)`', r'\1', text)
     text = re.sub(r'\[([^\]]+)\]\([^)]+\)', r'\1', text)
-    # Lowercase
+    # 2. Lowercase.
     text = text.lower()
-    # Remove anything that is not alphanumeric, underscore, space, or hyphen
-    text = re.sub(r'[^\w\s\-]', '', text)
-    # Collapse whitespace to hyphens
-    text = re.sub(r'\s+', '-', text.strip())
-    return text.strip('-')
+    # 3. Replace each whitespace character with a hyphen (no collapsing).
+    text = re.sub(r'\s', '-', text)
+    # 4. Strip anything that is not a letter, digit, hyphen, or underscore.
+    text = re.sub(r'[^\w\-]', '', text)
+    return text
 
 
 def generate_toc(lines):
@@ -44,10 +56,6 @@ def generate_toc(lines):
         level = len(m.group(1))
         text = m.group(2).strip()
 
-        # Skip H1 (document title) and the TOC heading itself
-        if level == 1 or text == 'Table of Contents':
-            continue
-
         anchor = make_anchor(text)
 
         # Deduplicate anchors (GitHub appends -1, -2, ...)
@@ -58,7 +66,7 @@ def generate_toc(lines):
             anchor_counts[anchor] = 0
             unique_anchor = anchor
 
-        indent = '  ' * (level - 2)  # ##=0, ###=2sp, ####=4sp, ...
+        indent = '  ' * (level - 1)  # #=0, ##=2sp, ###=4sp, ...
         entries.append(f'{indent}- [{text}](#{unique_anchor})')
 
     return entries
