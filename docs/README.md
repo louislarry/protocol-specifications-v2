@@ -43,8 +43,8 @@ Defines the canonical error taxonomy, ACK/NACK semantics, and error propagation 
 **9. [NFH-009 — Specification Design Guide](./Design_Guide.md)**
 Normative authoring rules for Beckn API specifications, schemas, and artifacts. Required reading for anyone contributing to or extending the specification.
 
-**10. [NFH-012 — Managing Schemas in Beckn](./Managing_Schemas.md)**
-Governs the full lifecycle of Beckn schema artifacts — why and when schemas may be created or changed (abstraction → composition → extension → creation), where they are published (`beckn/schemas`, `beckn/DEG`), who is authorised to publish them, and how production implementations apply them. Read after the Design Guide; the principles defined here build directly on it.
+**10. [NFH-012 — Schema Design Guide](./Schema_Design_Guide.md)**
+Governs how Beckn schemas are designed, authored, published, and consumed. Establishes Agent-First Design — schemas authored *with* AI for AI agents — alongside Semantic Invariance, Unification over Standardization, and the abstraction → composition → extension → creation precedence. Read after the Specification Design Guide; the principles defined here build directly on it.
 
 **11. [NFH-010 — RFC Authoring Guide](./RFC_Authoring_Guide.md)**
 Process and governance guide for authoring, reviewing, and publishing RFC submissions. Read this before opening any Proposal Discussion or Pull Request.

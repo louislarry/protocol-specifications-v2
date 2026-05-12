@@ -1,4 +1,4 @@
-# Managing Schemas in Beckn
+# Schema Design Guide
 
 ## Status of this document
 
@@ -17,8 +17,8 @@ Copyright © 2026 Networks for Humanity Foundation. Licensed under [CC-BY-NC-SA 
 | **Authors** | [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity](https://networksforhumanity.org) |
 | **Created** | 2026-05-12 |
 | **Updated** | 2026-05-12 |
-| **Version history** | Draft-01 (2026-05-12): Initial publication. |
-| **Latest editor's draft** | [github.com/beckn/protocol-specifications-v2/blob/draft/docs/Managing_Schemas.md](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Managing_Schemas.md) |
+| **Version history** | Draft-01 (2026-05-12): Initial publication as `Managing_Schemas.md`. Draft-02 (2026-05-12): Renamed to `Schema_Design_Guide.md`. Added [Principle 3: Agent-First Design](#principle-3-agent-first-design) and its closing [What it all means…](#what-it-all-means) subsection framing the architectural inversion from AI-wrapped-over-tools to tools-wrapped-over-AI, the [Authoring with AI](#authoring-with-ai) subsection establishing AI as the primary instrument for schema authoring, the [Anti-pattern: Overdesigning schemas in an AI-first world](#anti-pattern-overdesigning-schemas-in-an-ai-first-world) section arguing for thin `Attributes` containers and dense `Descriptor` content (with the recommendation that `Attributes` be reserved for regulatory / legal / compliance facts), the [Alignment with modern discovery paradigms](#alignment-with-modern-discovery-paradigms-non-normative) non-normative subsection framing products as multi-platform living organisms with their handles in the publisher's database, and the [Context Engineering](#context-engineering) subsection framing schema design as context engineering at the protocol layer (a separate RFC on *Context Engineering for Fabric-Enabled Ecosystems* is in preparation). CON-012-27, CON-012-28, and CON-012-29 added. |
+| **Latest editor's draft** | [github.com/beckn/protocol-specifications-v2/blob/draft/docs/Schema_Design_Guide.md](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Schema_Design_Guide.md) |
 | **Implementation report** | Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main. |
 | **Stress test report** | Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main. |
 | **Conformance impact** | Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main. |
@@ -45,13 +45,13 @@ Copyright © 2026 Networks for Humanity Foundation. Licensed under [CC-BY-NC-SA 
 
 ## Abstract
 
-Beckn Protocol separates structural transport contracts from semantic schema artifacts so that domain-specific meaning can evolve independently of the core protocol. This RFC defines the full lifecycle of a Beckn schema artifact: the conditions that justify creating or extending a schema, where schemas may be published, who is authorized to publish them, the process for creating and extending them, and how production implementations discover and apply them correctly.
+This RFC defines how Beckn schemas are designed, authored, published, and consumed. It establishes the design principles that govern the schema layer — **Semantic Invariance**, **Unification over Standardization**, and **Agent-First Design** — and applies them across the schema lifecycle: when a schema needs to be created or changed (abstraction → composition → extension → creation), where it may be published, who is authorised to publish it, and how production implementations validate and apply it. Schema authoring under this guide is an AI-leveraged discipline; the curatorial role of the human author is made explicit throughout. The RFC is normative for all schema artifacts published in `beckn/schemas` and `beckn/DEG`.
 
 ---
 
 ## Table of Contents
 
-- [Managing Schemas in Beckn](#managing-schemas-in-beckn)
+- [Schema Design Guide](#schema-design-guide)
   - [Status of this document](#status-of-this-document)
   - [Copyright Notice](#copyright-notice)
   - [Document Details](#document-details)
@@ -67,6 +67,23 @@ Beckn Protocol separates structural transport contracts from semantic schema art
     - [Design Principles](#design-principles)
       - [Principle 1: Semantic Invariance across regions](#principle-1-semantic-invariance-across-regions)
       - [Principle 2: Unification over Standardization](#principle-2-unification-over-standardization)
+      - [Principle 3: Agent-First Design](#principle-3-agent-first-design)
+        - [What it all means…](#what-it-all-means)
+      - [Anti-pattern: Overdesigning schemas in an AI-first world](#anti-pattern-overdesigning-schemas-in-an-ai-first-world)
+        - [Why tree-shaped schemas hinder AI agents](#why-tree-shaped-schemas-hinder-ai-agents)
+        - [The shift already in `beckn.yaml`](#the-shift-already-in-becknyaml)
+        - [What this means for schema authoring](#what-this-means-for-schema-authoring)
+        - [Worked comparison — a portable Bluetooth speaker](#worked-comparison--a-portable-bluetooth-speaker)
+- [Anti-pattern: dense tree, opinionated structure, closed enums.](#anti-pattern-dense-tree-opinionated-structure-closed-enums)
+        - [Alignment with modern discovery paradigms (non-normative)](#alignment-with-modern-discovery-paradigms-non-normative)
+        - [Worked comparison — `GroceryItem` today, evolving forward](#worked-comparison--groceryitem-today-evolving-forward)
+        - [Where to draw the line](#where-to-draw-the-line)
+        - [The trajectory](#the-trajectory)
+      - [Context Engineering](#context-engineering)
+        - [What context engineering is](#what-context-engineering-is)
+        - [Why this is a schema concern, not just an application concern](#why-this-is-a-schema-concern-not-just-an-application-concern)
+        - [Context engineering takes precedence over object-oriented design](#context-engineering-takes-precedence-over-object-oriented-design)
+        - [A separate RFC is underway](#a-separate-rfc-is-underway)
     - [Why do schemas need to be created or changed](#why-do-schemas-need-to-be-created-or-changed)
       - [1. Abstraction (preferred)](#1-abstraction-preferred)
       - [2. Composition](#2-composition)
@@ -92,6 +109,13 @@ Beckn Protocol separates structural transport contracts from semantic schema art
     - [How schemas are created and extended](#how-schemas-are-created-and-extended)
       - [Design principles for schema authors](#design-principles-for-schema-authors)
         - [Core design principles](#core-design-principles)
+        - [Authoring with AI](#authoring-with-ai)
+          - [Naming](#naming)
+          - [Drafting descriptions](#drafting-descriptions)
+          - [Semantic mapping and superset identification](#semantic-mapping-and-superset-identification)
+          - [Vocabulary alignment](#vocabulary-alignment)
+          - [What AI does not (yet) do](#what-ai-does-not-yet-do)
+          - [A note on attribution](#a-note-on-attribution)
         - [Naming a schema](#naming-a-schema)
         - [NOT RECOMMENDED — generic suffixes such as `Attributes`, `Item`, `Offer`, `Resource`](#not-recommended--generic-suffixes-such-as-attributes-item-offer-resource)
           - [Expressing the carrier without polluting the name](#expressing-the-carrier-without-polluting-the-name)
@@ -135,6 +159,8 @@ Beckn Protocol separates structural transport contracts from semantic schema art
   - [Conclusion](#conclusion)
   - [Acknowledgements](#acknowledgements)
   - [References](#references)
+    - [Beckn Protocol and governance](#beckn-protocol-and-governance)
+    - [Context engineering — contemporary industry guidance](#context-engineering--contemporary-industry-guidance)
 
 ## Introduction
 
@@ -145,6 +171,8 @@ Beckn resolves this tension through its schema extension mechanism. Core objects
 This separation is load-bearing. It is the reason a protocol change is not required every time a new domain or use case is added to the ecosystem. It is also the reason the schema layer itself must be governed carefully: schemas are shared semantic contracts, not private implementation details. A vocabulary term published in a shared schema affects every participant that reads it, in every domain and region that references that schema version. Careless schema publication creates the same kind of silent semantic divergence that careless protocol changes create.
 
 This RFC governs the full schema lifecycle for all Beckn schema artifacts, from the initial question of whether a schema is needed at all, through creation, publication, extension, versioning, and production use.
+
+A note on authoring. Beckn's architectural premise, defined in [NFH-001](./Introduction.md), is that AI agents are first-class participants in value-exchange transactions. The schema layer is the surface those agents reason over — and, by direct consequence, AI is also the appropriate instrument for *authoring* that surface. This RFC treats schema authoring as an AI-leveraged discipline. The expectations on contributors and the criteria by which reviewers evaluate schema contributions are set with that posture as the default, not as an option. See [Principle 3: Agent-First Design](#principle-3-agent-first-design) and [Authoring with AI](#authoring-with-ai) for the normative shape of this expectation.
 
 ---
 
@@ -176,7 +204,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 ### Design Principles
 
-Two principles underpin every other rule in this RFC. Authors and reviewers of schema contributions SHOULD return to these whenever a specific design question is unclear. They are the foundational design principles of the Beckn schema layer; the more granular authoring rules in [Design principles for schema authors](#design-principles-for-schema-authors) are derived from them.
+Three principles underpin every other rule in this RFC. Authors and reviewers of schema contributions SHOULD return to these whenever a specific design question is unclear. They are the foundational design principles of the Beckn schema layer; the more granular authoring rules in [Design principles for schema authors](#design-principles-for-schema-authors) are derived from them.
 
 #### Principle 1: Semantic Invariance across regions
 
@@ -204,22 +232,22 @@ The cost of attribute growth is mitigated by two architectural choices:
 
 **Abstraction upward, not subdivision downward.** When attributes on a single schema cluster naturally around technology- or category-specific concerns, the schema author MAY break them out into **derived schemas** that specialize the parent — for example, `Television` may eventually be specialized into `CRTTelevision`, `LEDTelevision`, `3DTelevision`. Attributes shared by all of these (display diagonal, resolution, refresh rate) get abstracted **upward** into a parent schema such as `DisplayDevice`. This abstraction continues as the ecosystem matures:
 
-```text
-                            Tool
-                              ↑
-                           Device
-                              ↑
-                         Appliance
-                              ↑
-                    ConsumerAppliance
-                              ↑
-                   ConsumerElectronics
-                              ↑
-                       DisplayDevice
-                              ↑
-                       Television
-                       ↗      ↑      ↖
-            CRTTelevision  LEDTelevision  3DTelevision
+```mermaid
+flowchart BT
+    CRTTelevision --> Television
+    LEDTelevision --> Television
+    ThreeDTelevision["3DTelevision"] --> Television
+    Television --> DisplayDevice
+    DisplayDevice --> ConsumerElectronics
+    ConsumerElectronics --> ConsumerAppliance
+    ConsumerAppliance --> Appliance
+    Appliance --> Device
+    Device --> Tool
+
+    classDef leaf fill:#fff8e1,stroke:#b8860b,stroke-width:1px;
+    classDef root fill:#e8f0fe,stroke:#1d4e89,stroke-width:2px;
+    class CRTTelevision,LEDTelevision,ThreeDTelevision leaf;
+    class Tool root;
 ```
 
 At every level, the more general schema is the canonical reference for properties that apply to all its descendants. A property declared on `Device` is automatically available to `Tool`, `Appliance`, `ConsumerElectronics`, `Television`, and every leaf type below. A JSON-LD processor that understands only `Device` can still meaningfully process a payload describing a `3DTelevision` — it sees the terms it recognizes and ignores the rest, without semantic confusion.
@@ -232,6 +260,215 @@ This is **unification**: the ecosystem converges on shared, increasingly general
 2. **Welcome attribute growth.** Resist the urge to gatekeep attributes. If a manufacturer or NFO proposes adding `displayBezelMaterial` to `Television`, the default disposition is to accept it unless it semantically duplicates an existing attribute or violates the design principles.
 3. **Watch for abstraction opportunities.** When the same attribute appears across multiple sibling schemas (`Television.refreshRate`, `Monitor.refreshRate`, `Projector.refreshRate`), that is a signal that it belongs on the common ancestor (`DisplayDevice.refreshRate`). Raise the abstraction in a follow-up contribution.
 4. **Do not subdivide prematurely.** A schema with 30 attributes is not a problem to be solved by forking it into ten narrower schemas. A schema with 200 attributes used across three genuinely distinct product categories may be.
+
+#### Principle 3: Agent-First Design
+
+Beckn's architectural premise, established in [NFH-001](./Introduction.md), is that AI agents are first-class participants in value-exchange transactions. The protocol's evolution is required to be enabled for AI agents first, with human enablement following. **The schema layer is the surface those agents reason over** — every term they recognise, every relationship they traverse, every disambiguation they make depends on a schema vocabulary that is precise, complete, and well-named. Agent-First Design has two directions, and both are normative.
+
+**Schemas MUST be designed for AI agents.** A schema that is comprehensible to a human reader but illegible to an AI agent fails this principle. Beckn's commitment to AI-first interoperability is not negotiable at the schema layer. Concretely:
+
+- Schema and property descriptions MUST read as standalone semantic prose, not as abbreviated developer notes, and MUST identify the real-world concept the schema models, the actors that produce or consume it, and its position in the value-exchange lifecycle. See [Describing a schema](#describing-a-schema).
+- Term names MUST align with industry vocabulary an agent has been exposed to. Coined names that have no precedent in published vocabularies SHOULD be replaced with industry-standard terms. See [Naming a schema](#naming-a-schema).
+- `@context` and `@type` linkages MUST let an agent follow the semantic graph without prior knowledge of the specific term. `rdfs:subClassOf`, `skos:broader`, `owl:sameAs`, and equivalent constructs in `vocab.jsonld` are the fallback paths agents rely on when they encounter an unfamiliar IRI.
+- Network-specific terms MUST link back to the most specific superset concept in the domain-agnostic vocabulary. This is what allows an agent on one network to interpret a payload originating on another network without bilateral coordination.
+
+**Schemas SHOULD be designed *with* AI agents.** The corollary follows directly. If schemas are the surface AI agents operate on, AI is also the appropriate instrument with which to author them. Naming a schema, mapping a domain vocabulary, drafting precise descriptions, identifying superset concepts, and aligning to industry-standard terminology are pattern-recognition and recall problems at which contemporary language models excel — and at which they consistently exceed what a single human author can produce by hand. The authoring posture this RFC asks of contributors is therefore:
+
+1. **AI is the primary instrument**, not an optional convenience. Authors SHOULD use it to propose names, generate candidate descriptions, scan for industry-standard terms, suggest superset concepts, and check semantic alignment against published vocabularies. The model's suggestion is the starting draft, not the final word.
+2. **The human role is curatorial.** The author validates suggestions against the principles in this RFC, ensures semantic stability across versions, enforces naming conventions, and confirms domain accuracy. This curation is precisely where human authorship now adds the most value — and where AI cannot yet operate unattended.
+3. **Authoring without AI produces parochial schemas.** A schema authored by hand tends to reflect the individual author's vocabulary, idiom, and reach into industry conventions. The ecosystem-wide cost of those parochialisms is real: every counterparty that processes such a schema pays for the author's reach being narrower than what is available. Continuing to author this way does not preserve rigour; it slows the ecosystem's convergence on shared meaning.
+4. **The capability gap will widen.** AI's fluency in naming, vocabulary alignment, and semantic mapping is already substantial and is improving rapidly. Schema work done today without AI will look increasingly stilted alongside schemas authored with it. Anchoring to a pre-AI authoring style is a choice; this RFC asks that authors not make it.
+
+The point is not that AI replaces schema authors. It is that AI changes what schema authoring is. The discipline is now curatorial, not generative — and Beckn schemas authored under this RFC are expected to reflect that shift. See [Authoring with AI](#authoring-with-ai) for the concrete workflow.
+
+##### What it all means…
+
+Take the implications of Agent-First Design seriously enough, and the architecture of agentic commerce itself inverts. The dominant pattern of the last few years has been **AI wrapped over tools** — a thin language-model layer placed on top of conventional software systems, orchestrating tool calls, interpreting their structured outputs, and translating between human intent and pre-existing APIs. Under that pattern, the tools are the substrate; AI is the chrome.
+
+The Agent-First architecture flips this. **Tools wrapped over AI** is the configuration this RFC is asking schema authors to design for. In it, AI is the substrate: it produces the semantic output — the description, the inference, the recommendation, the resolution of ambiguity, the interpretation of intent. The tools are the layer that runs *over* that semantic output: validating it, settling it, signing it, persisting it, routing it through the value-exchange lifecycle, and bubbling the result up into the user experience. The tools do not generate meaning; they marshal it.
+
+The schema layer this RFC governs is the substrate on which that inversion stands or falls. If schemas are shaped for tools-over-AI, the consequences ripple outward: a `Resource` becomes a handle into a richly-described entity that the AI substrate already understands; a `Catalog` becomes a curated index of those handles; the toolchain — payment, settlement, signature, registry lookup, fulfilment tracking — wraps around the AI's semantic output rather than feeding it pre-digested rows. Conversely, a schema shaped for AI-over-tools (deep trees of structured attributes, closed enums, rigid hierarchies) commits the protocol to the older configuration and forecloses the newer one. This is why the principles, the anti-patterns, and the context-engineering framing in this RFC matter beyond the schemas they directly govern — they are the leading edge of an architectural inversion, and a Beckn schema authored today is either advancing it or quietly holding it back.
+
+#### Anti-pattern: Overdesigning schemas in an AI-first world
+
+The natural corollary of [Principle 3](#principle-3-agent-first-design) cuts in an unexpected direction. If AI agents are the primary consumers of the schema layer, the instinct to encode every domain nuance as a deeply-nested, strongly-typed tree is **the wrong design reflex** — even though it is the most common one inherited from the pre-AI era. Schema authors who continue to design as if the consumer were a deterministic parser produce schemas that are progressively worse fits for the agents that actually read them.
+
+##### Why tree-shaped schemas hinder AI agents
+
+Pre-AI integrations consumed schemas through fixed-path parsers: each property had a known location, a fixed type, and a fixed meaning, and the receiving code branched on those. A rich tree of `dimensions.height.value` with a `unit` enum and a `precision` constraint was a clean way to expose product geometry to such a client.
+
+AI agents do not consume data that way. Modern language and multimodal models build representations of meaning in **high-dimensional vector spaces**, where the relationship between, for instance, "5.2 cm bezel" and "compact handheld device" emerges from statistical co-occurrence across enormous corpora — not from a parser hard-coded to read a `bezelWidthMm` field. A rigid tree fragments the signal: each leaf becomes a separate context that the model has to recompose, often without enough surrounding language to do so well. Properties that would carry continuous semantic meaning together when expressed as prose end up as disconnected leaves in an opinionated hierarchy.
+
+Put differently: every additional level of nesting, and every fragmented field stripped of its surrounding context, is a small barrier between the agent and the semantic continuity it would otherwise infer. Schemas that were tight and elegant for deterministic parsers are now brittle for the consumers Beckn is actually serving.
+
+##### The shift already in `beckn.yaml`
+
+The core schemas in v2 — `Resource`, `Offer`, `Contract`, `Provider`, `Consideration` — were deliberately authored thin. Each carries an `id`, a `Descriptor`, a domain-specific `Attributes` extension container, and a small number of structural references. This shape is intentional. Compare it to what a maximally-structured prior generation of the same concepts would have looked like: per-attribute objects for every measurable property, nested enums for every categorical decision, an explicit type for every numeric range. v2 removed almost all of that.
+
+The replacement is `Descriptor`. Per `api/v2.0.0/beckn.yaml`, `Descriptor` carries `name`, `shortDesc`, `longDesc`, `thumbnailImage`, `mediaFile[]` (each with `label`, `mimeType`, `uri`), and `docs[]` (signed `Document` references). **This is the highest-bandwidth channel from publisher to agent that Beckn provides.** A well-written `longDesc` paragraph plus a set of product `mediaFile` URLs and a `docs` link to a datasheet carries more usable meaning to a modern agent than a tree of two dozen typed leaves.
+
+##### What this means for schema authoring
+
+When designing a new schema or extending an existing one, authors SHOULD prefer:
+
+- **A short list of properties whose meaning is obvious from the name alone.** If a property's purpose can only be understood by reading three layers of structure around it, it almost certainly belongs in `longDesc`, not in a nested type.
+- **A rich, multi-paragraph `Descriptor.longDesc`** that an agent can read as natural language. Long descriptions are not bloat; they are the densest semantic signal a publisher can emit.
+- **Image, document, and media URLs in `Descriptor.mediaFile[]` and `Descriptor.docs[]`** populated with content an agent can actually process: product photos, datasheets, specification PDFs, instructional videos. A vision-capable agent extracts more useful meaning from a single product photo than from a `color: enum [RED, BLUE, ...]` field.
+- **JSON-LD vocabulary linkages in `vocab.jsonld`** rather than restrictive enums in `schema.json`. An open semantic linkage (`rdfs:subClassOf`, `skos:related`, `skos:broader`) gives the agent a reasoning path; a closed enum gives it a hard wall.
+
+And SHOULD avoid:
+
+- **Deep nesting "for cleanliness".** A `Product.specifications.physical.dimensions.length.value` style chain is the canonical anti-pattern. The same data placed inside `longDesc` as natural prose ("5.2 cm wide, weighs 200 g") is more useful to every agent that processes it.
+- **Restricting types beyond what is genuinely needed for validation.** A `weight` field constrained to `integer ≥ 1` will reject "around 250 grams" — exactly the kind of value a merchant or agent might provide. If the value participates in arithmetic (e.g. shipping-cost calculation), keep the constraint. If it is informational, prefer a free-text representation alongside, or move it entirely into `Descriptor`.
+- **Enums where vocabulary linkages would do.** `enum [SMALL, MEDIUM, LARGE]` forces every agent to interpret the literal strings without context. A vocabulary term with `rdfs:label` and `rdfs:comment` is self-describing — and other networks can subclass it.
+- **Repeating in `Attributes` what is already in `longDesc`.** Duplication forces the publisher to keep two sources of the same truth in sync, and the agent to reconcile them on read. Pick one home for each fact — usually `longDesc` for descriptive facts, `Attributes` for facts that participate in machine-comparable filtering or arithmetic.
+
+##### Worked comparison — a portable Bluetooth speaker
+
+Suppose the use case is publishing a portable speaker product. A pre-AI design reflex might author a dense, deeply-nested schema:
+
+```yaml
+# Anti-pattern: dense tree, opinionated structure, closed enums.
+PortableSpeakerProduct:
+  id: string
+  name: string
+  brand:
+    name: string
+    country: string
+  dimensions:
+    length: { value: number, unit: enum [MM, CM, INCH] }
+    width:  { value: number, unit: enum [MM, CM, INCH] }
+    height: { value: number, unit: enum [MM, CM, INCH] }
+  weight:   { value: number, unit: enum [G, KG, OZ, LB] }
+  color:    enum [RED, BLUE, GREEN, BLACK, WHITE, SILVER, OTHER]
+  batteryHours: integer
+  waterResistance:
+    rating: enum [IPX4, IPX5, IPX6, IPX7, IPX8]
+  bluetoothVersion: enum [BT_4_0, BT_4_2, BT_5_0, BT_5_1, BT_5_2, BT_5_3]
+  driverConfiguration:
+    woofer:   { count: integer, sizeMm: number }
+    tweeter:  { count: integer, sizeMm: number }
+    radiator: { count: integer, sizeMm: number }
+  features:
+    - name: string
+      value: string
+```
+
+An agent processing this Resource has to reassemble more than a dozen disconnected leaves into a coherent representation, and is forced into closed enums (`color`, `bluetoothVersion`, IP rating) that lose information at the boundary. Every new colour, every new Bluetooth revision, every new IP rating triggers a schema bump.
+
+The Beckn-aligned design uses the canonical `Resource` from `beckn.yaml` with a thin `Attributes` extension and a rich `Descriptor`:
+
+```json
+{
+  "id": "spk-aurora-portable-mini",
+  "descriptor": {
+    "name": "Aurora Portable Mini Bluetooth Speaker",
+    "shortDesc": "Pocket-sized 360° Bluetooth speaker with 12-hour battery and IPX7 water resistance.",
+    "longDesc": "The Aurora Portable Mini is a 200-gram pocket speaker that delivers omnidirectional sound through a dual-driver configuration — one 40 mm woofer and one 20 mm tweeter — paired with a passive bass radiator. The speaker is rated IPX7, meaning it is fully submersible in fresh water to one metre for up to thirty minutes, and supports Bluetooth 5.3 with Auracast multi-device pairing. Battery runtime is up to twelve hours at moderate volume, recharged in 90 minutes via USB-C fast charging. The aluminium chassis is finished in matte midnight-blue (the brand's Aurora Blue) with a recycled-fabric speaker grille. Suitable for outdoor and bathroom use; not designed for prolonged marine saltwater immersion.",
+    "thumbnailImage": "https://cdn.merchanthub.ae/products/aurora-mini-front-256.jpg",
+    "mediaFile": [
+      { "label": "Front view",     "mimeType": "image/jpeg", "uri": "https://cdn.merchanthub.ae/products/aurora-mini-front.jpg" },
+      { "label": "Side view",      "mimeType": "image/jpeg", "uri": "https://cdn.merchanthub.ae/products/aurora-mini-side.jpg" },
+      { "label": "Lifestyle shot", "mimeType": "image/jpeg", "uri": "https://cdn.merchanthub.ae/products/aurora-mini-lifestyle.jpg" },
+      { "label": "Feature reel",   "mimeType": "video/mp4",  "uri": "https://cdn.merchanthub.ae/videos/aurora-mini-feature.mp4" }
+    ],
+    "docs": [
+      { "label": "Technical datasheet", "mimeType": "application/pdf", "url": "https://cdn.merchanthub.ae/datasheets/aurora-mini-spec.pdf" }
+    ]
+  },
+  "resourceAttributes": {
+    "@context": "https://souqconnect.ae/v2/context.jsonld",
+    "@type": "audio:PortableSpeaker",
+    "genericName": "Portable Bluetooth Speaker",
+    "manufacturerName": "Aurora Audio Industries LLC",
+    "countryOfOrigin": "AE"
+  }
+}
+```
+
+Notes on the differences:
+
+1. **`Descriptor` carries the bulk of the semantic payload.** `longDesc` is a paragraph of natural-language prose, not a set of disconnected leaves. An agent reads it directly, with the relationships between weight, water resistance, driver configuration, and recommended use already in linguistic proximity. Specifications that a pre-AI schema would have hoisted into structured fields — weight, IP rating, Bluetooth version, battery life — stay in the prose where their relationships to each other are preserved.
+2. **`mediaFile[]` and `docs[]` give multimodal agents real signal.** A vision-capable model extracts more useful information from a single product photo than from a `color` enum; a multimodal model that can read PDFs draws the full technical specification from the linked datasheet without the schema enumerating each spec line.
+3. **`resourceAttributes` is reserved for facts mandated by law or trust.** Only `genericName`, `manufacturerName`, and `countryOfOrigin` are surfaced as structured attributes, and each is there because a *statutory* obligation — consumer-protection labelling, manufacturer disclosure, country-of-origin declaration — requires it to be machine-comparable, not because a descriptive nuance about the product needed a typed home. Everything else lives in `Descriptor`.
+   > **Recommendation.** Treat `Attributes` as the surface for **regulatory, legal, and compliance facts** — the small set of fields a Beckn network or its regulator requires for filtering, audit, or settlement (statutory labelling, certifications, tax codes, hazard classes, KYC tokens, age-restriction flags). Resist the urge to add structured fields for marketing or descriptive content; that content belongs in `Descriptor`. A useful rule of thumb is to ask, for each candidate attribute: *"if this fact were missing, would a regulator, an auditor, or the network's settlement layer object?"* If yes, structure it. If no, write it into `longDesc` or link it via `mediaFile[]` / `docs[]`.
+4. **Vocabulary linkage replaces enums.** The `audio:PortableSpeaker` IRI declares `rdfs:subClassOf` `schema:Product` and `rdfs:subClassOf` `audio:Loudspeaker` in `vocab.jsonld`. An agent that has never seen `audio:PortableSpeaker` follows the `subClassOf` chain and processes the resource as a speaker, then as a product — without the schema having to enumerate every possible category code.
+
+##### Alignment with modern discovery paradigms (non-normative)
+
+The case for thin `Attributes` and rich `Descriptor` is reinforced by where consumer product discovery has actually moved. Industry tracking in 2026 puts **more than 60% of consumer product discovery on short-form-video and social platforms** rather than on traditional retail catalogues. Live-commerce sales are projected to exceed **$1 trillion in Asia alone** in 2026; social-commerce gross merchandise value on the leading short-form-video platform alone is on track for roughly **$87B** at ~56% year-over-year growth; the global shoppable-video market is projected to reach **$55B by 2027**. The strongest-performing brands broadcast a single product simultaneously across their own website and across the major short-form-video, photo-social, and long-form-video platforms, with shoppable-video aggregators stitching those clips into a unified buying surface. Several major consumer platforms have shipped or announced AI shopping agents whose job is precisely to traverse those multi-platform product representations on the consumer's behalf.
+
+This is a profound shift in *what a product is* for the purposes of discovery. The product no longer exists as a static row in a merchant's database with a fixed set of attribute columns. **It exists as a living organism distributed across the platforms where its potential customers already are**: a fifteen-second short-form video demo, a long-form video unboxing, a creator-led photo-social reel, a live-shopping session on a regional commerce platform, an audio review on a podcast, a sponsored short on a streaming service. The merchant's database holds, at most, the *handles* — the URLs, the embed codes, the campaign references — that point to where the product currently lives in the consumer's actual attention.
+
+Beckn's schema layer has to speak this reality natively, or it will be bypassed by the agents that increasingly mediate consumer discovery. A `Resource` that publishes a tightly-typed tree of `dimensions`, `color`, and `bluetoothVersion` is describing the product as a database row. A `Resource` whose `Descriptor.mediaFile[]` carries the short-form-video demo URL, the long-form unboxing, the creator-led social reel, and the audio review, whose `Descriptor.docs[]` links the manufacturer datasheet and any verifiable credentials, and whose `longDesc` is the merchant's own narrative voice for the product, is describing the product as it actually exists in the market. The first is a static description; the second is a network of handles into the living organism. Contemporary AI shopping agents — whose job is precisely to traverse those handles, watch the videos, read the captions, and synthesise a recommendation — are built for the second shape, not the first.
+
+The architectural implication runs deeper than schema fields. Where a traditional catalog assumed a `Catalog` object enumerated every product as structured data, an agent-era catalog increasingly looks like an indexed *map of handles* — pointers into platforms the publisher does not own and does not need to replicate. A BPP may legitimately publish a `Catalog` whose `Resource` entries are little more than an `id`, a `Descriptor.name`, a `longDesc`, and a `Descriptor.mediaFile[]` array of social-platform URLs. That `Resource` is not impoverished — it is correctly shaped for a world where the product's semantic richness lives at the URLs, not in the publisher's database. Schemas in `beckn/schemas` and `beckn/DEG` SHOULD be reviewed for whether they make this multi-surface description easy to populate; new schemas that leave no good home for social URLs, live-shopping session references, or creator-led media are encoding a pre-2020 view of commerce into the protocol.
+
+The paradigm shift this describes is non-normative for the present revision of this RFC — but it is the direction every empirical signal in the consumer surface is pointing, and the [Context Engineering](#context-engineering) RFC under preparation is expected to formalise the protocol-layer consequences (catalog publication as handle-aggregation, network-level retrieval across external surfaces, trust and provenance of off-platform media). For now, schema authors are asked to **design `Descriptor` as if it were the canonical map of where the product lives**, not as a verbose label for an entry in a private database.
+
+##### Worked comparison — `GroceryItem` today, evolving forward
+
+The existing [`GroceryItem`](https://github.com/beckn/schemas/tree/main/schema/GroceryItem/v2.0) schema in `beckn/schemas` carries nested sub-objects for `identity`, `physical`, and `nutrition`. That structure was a reasonable design at the time and remains valid. Under Agent-First Design, however, the productive evolution is to **thin the structured tree and thicken `Descriptor`**.
+
+A v2.1 of the schema might:
+
+- **Demote `physical` sub-fields into `longDesc` prose** for most cases — *"500 g pack of premium long-grain basmati rice; pack dimensions roughly 22 × 8 × 4 cm; aged for two years before milling"* — while keeping `weightGrams` as a top-level numeric attribute for filtering.
+- **Move the entire `nutrition` block into a `docs[]` reference** to the regulatory nutrition-facts PDF, with a single top-level boolean (`hasNutritionLabel`) if filtering on presence is useful. A multimodal agent reads the PDF directly; a non-AI client falls back to the link.
+- **Replace `regulatoryCategory` enum-style values with a JSON-LD term** (e.g. `souqconnect:HalalCertified`) that subclasses `beckn:productCategory`, so new regional categories can be added without schema bumps.
+
+The same product, in v2.0 vs. an Agent-First v2.1, looks structurally smaller and semantically richer.
+
+##### Where to draw the line
+
+This is not a licence to abandon all structure. Properties that participate in **arithmetic** (price, quantity, duration, weight where used for shipping), in **deterministic filtering** (status codes with small, stable, semantically-loaded vocabularies such as `ACTIVE` / `CANCELLED` / `COMPLETED`), or in **cross-resource reference** (`coveredResourceId`, `compatibleWith[]`) belong in the structured `Attributes` container. The discipline is to ask, for each candidate property: *would an agent that has read a well-written `longDesc` and looked at the linked images still need this field in structured form, or is it already implicit?* If the latter, demote it to `Descriptor`.
+
+##### The trajectory
+
+As AI agents become more central to value-exchange, the productive direction for the Beckn schema layer is to get **leaner**, not richer. Future schema contributions to `beckn/schemas` and `beckn/DEG` are expected to follow this trajectory: thin `Attributes` containers, dense `Descriptor` content, JSON-LD vocabulary that opens up the semantic graph rather than enums that close it down. Authors who continue to layer nested structure under the well-meaning belief that it improves machine readability are working against the architecture of the consumers their schemas are actually serving.
+
+Taken to its logical conclusion, the trajectory points somewhere stronger than "leaner `Attributes`". **An ideal Agent-First Beckn schema may not need to extend `Resource`, `Contract`, or `Offer` at all.** Everything an agent must understand about the entity — what it is, what it looks like, what its specifications are, what its terms are, what evidence backs it — can live inside the `Descriptor`: prose in `longDesc`, vision-ready imagery in `mediaFile[]`, machine-readable evidence in `docs[]`, and an open semantic anchor via the JSON-LD `@type` on the parent object. In that world, what looked like a missing schema is more often a missing paragraph in `longDesc` or a missing PDF in `docs[]`. **Context engineering takes precedence over object-oriented design** — see the next subsection for the framing.
+
+#### Context Engineering
+
+The Overdesigning anti-pattern points at a deeper architectural shift that Beckn schema authors are increasingly asked to internalise. The discipline that governs *what an AI agent sees, when, and in what form* has acquired its own name in the wider AI engineering community: **context engineering**.
+
+##### What context engineering is
+
+Context engineering is the discipline of curating and maintaining the optimal set of tokens an AI model operates on during inference, including the information that arrives there outside the explicit prompt. It is the explicit successor to prompt engineering. Where prompt engineering asked *"what is the right instruction to send the model?"*, context engineering asks *"what is the right configuration of information for the model to act on?"*
+
+The shift matters because every recent empirical study of LLM performance points the same way: model accuracy degrades as the context window fills with low-signal content — a phenomenon now widely referred to as **context rot**. A canonical industry framework groups context-engineering strategies into four patterns that have become the lingua franca of the field:
+
+| Pattern | What it means |
+|---|---|
+| **Write** | Store information outside the immediate context so an agent can retrieve it later (scratchpads, persistent memory, external knowledge stores). |
+| **Select** | Pull precisely the right items into context when needed (semantic retrieval, tool selection, vocabulary lookup). |
+| **Compress** | Keep only the tokens that carry signal (summarisation, trimming, distillation). |
+| **Isolate** | Split work across sub-agents, sandboxes, or layered contexts so no single agent drowns in the full payload. |
+
+These patterns are the operational vocabulary in which AI-engineering teams now talk about building reliable agents. Beckn schema authors authoring for those agents inherit the vocabulary whether they use the term or not.
+
+##### Why this is a schema concern, not just an application concern
+
+It is tempting to read context engineering as an application-layer concern — something a BAP or BPP does inside its agentic orchestration code. That reading is incomplete. **Every choice a schema author makes is a context-engineering choice at the protocol layer**, because the schema dictates the shape of the context that every downstream agent must construct from a Beckn payload. Concretely:
+
+- A schema that puts product semantics in a 2000-character `longDesc` **writes** high-density context to a single field that agents can select wholesale.
+- A schema that fragments the same semantics across forty nested leaves forces every downstream agent to **select** and **compress** before it can reason — and most will do this badly, with each agent making slightly different choices and producing slightly different downstream behaviour.
+- A schema that links a datasheet via `Descriptor.docs[]` **isolates** the bulky technical detail outside the immediate context, available to be pulled in only when a specific agent task requires it.
+- A `vocab.jsonld` that declares `rdfs:subClassOf` linkages gives agents a **select** path through the semantic graph; an enum gives them a closed wall.
+
+Read this way, the Beckn schema layer is not a passive data contract — it is an explicit context-engineering surface that publishers and protocol authors share with the agents they intend to serve.
+
+##### Context engineering takes precedence over object-oriented design
+
+The implication, taken to its logical conclusion, is the one foreshadowed in [The trajectory](#the-trajectory) above. When a contributor reaches for a new domain-specific `Attributes` schema, the design question is no longer *"what is the right class hierarchy for this concept?"* It is *"what is the right configuration of context to put in front of an agent that has to act on this concept?"*
+
+These two questions have very different answers. The first leads to taxonomies, inheritance trees, and enum proliferation — the natural output of object-oriented design as practised by a generation of API authors raised on it. The second leads to dense descriptive content, well-curated media, open vocabulary links, and a `Descriptor` that does most of the semantic work — the shape that contemporary AI agents are best at consuming. In the schema layer, **context engineering takes precedence over object-oriented design**. Authors should bring the same rigour they previously gave to class hierarchies to the curation of `Descriptor` content, and should reserve structured `Attributes` for the genuinely small set of facts that participate in arithmetic, deterministic filtering, or cross-resource reference.
+
+##### A separate RFC is underway
+
+The protocol-layer implications of context engineering reach well beyond schema design. Catalog publication and subscription, the `schemaContext` array on the Beckn envelope, JSON-LD context layering, Fabric-side retrieval, registry lookup as part of an agent's pre-flight context construction, and the lifecycle of `Descriptor` content as it flows between BAPs, BPPs, and downstream agents are all context-engineering concerns at the network level. A separate RFC, **Context Engineering for Fabric-Enabled Ecosystems**, is in preparation under the same NFH governance. It will define the protocol-level patterns (write / select / compress / isolate) as they apply to the Beckn Fabric and the broader open-network architecture.
+
+This Schema Design Guide stays scoped to the schema-author side of that picture; the cross-layer concerns are deferred to the forthcoming RFC. Authors of new schemas SHOULD nonetheless author with the protocol-level RFC's direction in mind: a schema that respects [The trajectory](#the-trajectory) above is already aligned with where context-engineering guidance for Beckn is heading. For the contemporary industry framing that informs this subsection, see the [References](#references) section at the end of this RFC.
 
 ---
 
@@ -450,6 +687,58 @@ The full normative authoring rules are defined in [NFH-009 Specification Design 
 3. **Backward-safe change.** Renames and removals MUST carry migration paths and ontology mappings using `owl:sameAs` or `owl:deprecated` constructs in `vocab.jsonld`.
 4. **Unification over standardization.** Per [Principle 2: Unification over Standardization](#principle-2-unification-over-standardization), prefer broader-concept schemas that can absorb specialization, over narrow schemas that fragment the vocabulary.
 5. **Composition over Extension.** When a use case appears to need a new schema that combines several existing concepts (X + Y + Z), the schema author MUST first attempt to express it using the composition primitives already provided by `api/v2.0.0/beckn.yaml` — `Offer.resourceIds`, `Offer.addOns`, `AddOn` (`oneOf [Resource, Offer]`), `Catalog.offers`, `Catalog.resources`, and `Resource.id` references. A new schema name MUST NOT be a fused combination of existing concepts. Names of the form `XWithY`, `XAndY`, `XPlusY`, or `XWithYAndZ` are anti-patterns and MUST be rejected at review. If a genuinely missing **relationship semantic** is identified (for example, "this Resource is a bundle of others"), publish a small, focused **relationship schema** that describes only the relationship — never a fused combination type. See [Worked example — Composing a combo product](#worked-example--composing-a-combo-product) for the full pattern.
+6. **Agent-First Design.** Per [Principle 3: Agent-First Design](#principle-3-agent-first-design), schemas MUST be designed for AI agents (the primary consumers of the schema layer) and SHOULD be designed with AI agents (the appropriate authoring instrument). Concretely: descriptions read as standalone semantic prose, names align with industry vocabulary, JSON-LD relations let agents traverse the semantic graph without prior knowledge of any specific term, and the human author's posture is curatorial — validating, refining, and contextualising AI-generated drafts rather than producing them by hand. See [Authoring with AI](#authoring-with-ai) for the concrete workflow.
+
+##### Authoring with AI
+
+This subsection makes [Principle 3: Agent-First Design](#principle-3-agent-first-design) operational. The expectations below apply to every schema PR raised against `beckn/schemas` and `beckn/DEG`. They are not optional process notes — they are the criteria by which maintainers and the CWG evaluate the author's craft.
+
+The intent throughout is unambiguous: **use AI as the primary instrument for naming, description, semantic mapping, and vocabulary alignment, and use human judgement to curate, validate, and finalise.** Reviewers MAY ask an author how each portion of a contribution was developed; an author who cannot articulate the AI workflow they used and the curatorial decisions they made on top of it is likely to be authoring in a pre-AI style that this RFC explicitly discourages.
+
+###### Naming
+
+Before submitting a proposed name, run the candidate through an AI naming pass. A workable prompt template:
+
+> "I am authoring a Beckn Protocol schema for `<concept>`. Suggest an intuitive, industry-recognised name following these constraints: (1) a noun or noun-form-of-verb; (2) one or two words preferred; (3) industry-standard terminology takes precedence over coined names; (4) avoid generic suffixes such as `Item`, `Attributes`, `Resource`, `Offer`; (5) align with vocabularies in active use (schema.org, FHIR, GS1, IEC CIM, ISO standards). Provide three candidates with provenance for each — which vocabulary or standard uses this term and where."
+
+Compare the suggestions against existing schemas at [schema.beckn.io](https://schema.beckn.io). The chosen name MUST satisfy the rules in [Naming a schema](#naming-a-schema); the AI's suggestion is the draft, not the conclusion. Record the provenance in the schema's `README.md`.
+
+###### Drafting descriptions
+
+Schema and property descriptions are read by AI agents as the primary signal of meaning. Use AI to generate a first-pass description that:
+
+- Names the real-world concept the schema models.
+- States which actor produces the value, which consumes it, and where in the value-exchange lifecycle the schema appears.
+- Identifies relationships to related schemas (extends, composes, constrains).
+- Avoids structural restatements such as "an object containing X and Y".
+
+Then curate: ensure the description does not introduce undocumented assumptions, does not over-reach into domain claims the author cannot defend, and aligns with the existing vocabulary in `beckn/schemas`. Descriptions written in the LLM's voice are acceptable; descriptions written by an LLM but never read by the author are not.
+
+###### Semantic mapping and superset identification
+
+When proposing a new schema, ask an AI model: *"What is the most specific parent concept this schema could subclass from, drawing from JSON-LD vocabularies in active use (schema.org, FHIR, GS1, IEC CIM, etc.)? Show me the IRI of each candidate parent and the rationale for the match."*
+
+This step often reveals an existing IRI the new schema can extend rather than a new term the author would otherwise have coined. The output belongs in `vocab.jsonld` as `rdfs:subClassOf`, `skos:broader`, or `owl:sameAs` relations. Authors are reminded that the absence of an explicit `subClassOf` relation is *itself* a design failure under [Principle 3](#principle-3-agent-first-design) — it removes a fallback path that agents on counterparty networks depend on.
+
+###### Vocabulary alignment
+
+For every new term, ask an AI model whether a standard term already exists in any industry vocabulary that maps to the same concept. Where a standard term exists, USE IT and document its provenance in `README.md`. Where no standard exists, the author still SHOULD record the search so reviewers can verify the gap is real.
+
+###### What AI does not (yet) do
+
+The author retains the judgement-bearing decisions that AI is not yet positioned to make autonomously:
+
+- Semantic stability across versions ([Principle 1](#principle-1-semantic-invariance-across-regions)).
+- Whether the proposed schema is the right level of abstraction ([Principle 2](#principle-2-unification-over-standardization)).
+- Which existing primitives compose to express the use case ([Composition over Extension](#core-design-principles)).
+- Which venue the contribution belongs in (`beckn/schemas`, `beckn/DEG`, or a network-specific overlay).
+- The four-step precedence: abstraction → composition → extension → creation.
+
+These remain the author's responsibility. AI's role is to widen the space of well-named, well-described candidates the author chooses from — not to make the choice on the author's behalf.
+
+###### A note on attribution
+
+Schemas authored with AI assistance are not less authored. The provenance of the contribution is the human author who curated, validated, and submitted the PR; that author is credited in `README.md` and in the schema's commit history. The model used (and the prompts that produced foundational naming or description decisions) MAY be recorded in `README.md` as supplementary provenance.
 
 ##### Naming a schema
 
@@ -1398,6 +1687,9 @@ When in doubt, **composition over extension**.
 | CON-012-24 | All example payloads in any document referencing this RFC MUST be strictly conformant with `api/v2.0.0/beckn.yaml` and MUST reference schemas published in `github.com/beckn/schemas` (or `github.com/beckn/DEG` for energy schemas). Fabricated schemas, properties, or endpoints MUST NOT be used in normative examples. | MUST |
 | CON-012-25 | Schema authors MUST NOT introduce schema names that conjoin existing concept names (e.g., names containing `With`, `And`, or `Plus` joining two concept tokens such as `ElectronicsWithWarrantyAndHomeCare`). Bundles, kits, and combo offers MUST be expressed using the composition primitives already defined in `api/v2.0.0/beckn.yaml` (`Offer.resourceIds`, `Offer.addOns`, `AddOn`, `Offer.considerations`, and `Resource.id` references on `resourceAttributes`). | MUST NOT |
 | CON-012-26 | Where existing composition primitives are genuinely insufficient, a new schema MAY be authored only as a domain-neutral **relationship schema** that describes the relationship between member Resources. Such a relationship schema MUST NOT enumerate the attributes of the Resources it relates. | MUST NOT |
+| CON-012-27 | Schemas MUST be designed for AI agents per [Principle 3: Agent-First Design](#principle-3-agent-first-design): descriptions MUST read as standalone semantic prose, term names MUST align with industry vocabulary, and every domain or network-specific term in `vocab.jsonld` MUST carry an explicit `rdfs:subClassOf`, `skos:broader`, `owl:sameAs`, or equivalent relation that links it to a superset concept reachable from the canonical Beckn vocabulary. Schema authoring SHOULD use AI as the primary instrument for naming, description, and semantic mapping per [Authoring with AI](#authoring-with-ai); the human author's role is curatorial. | MUST / SHOULD |
+| CON-012-28 | Schema authors SHOULD prefer **dense `Descriptor` content** (rich `longDesc` prose plus `mediaFile[]` and `docs[]` references) over deeply-nested structured trees in `Attributes`. Structured fields in `Attributes` SHOULD be limited to values that participate in arithmetic, in deterministic filtering, or in cross-resource reference. Restrictive enums in `schema.json` SHOULD be replaced by JSON-LD vocabulary terms with `rdfs:subClassOf` or `skos:broader` linkages in `vocab.jsonld` so that the semantic graph remains open. See [Anti-pattern: Overdesigning schemas in an AI-first world](#anti-pattern-overdesigning-schemas-in-an-ai-first-world). | SHOULD |
+| CON-012-29 | Schema authors SHOULD treat schema design as **context engineering at the protocol layer** per [Context Engineering](#context-engineering): the publisher-side configuration of `Descriptor` content, `Attributes` shape, `mediaFile[]` / `docs[]` references, and `vocab.jsonld` linkages MUST be evaluated for how well they support the **write / select / compress / isolate** patterns downstream agents apply. Where an entity's semantics can be fully expressed inside `Descriptor` (prose, media, documents, JSON-LD `@type`), a new schema extension of `Resource`, `Contract`, or `Offer` SHOULD NOT be authored. | SHOULD |
 
 ---
 
@@ -1415,6 +1707,8 @@ This document reflects the governance model and schema design guidance developed
 
 ## References
 
+### Beckn Protocol and governance
+
 - [NFH-002 Keyword Definitions](./Keyword_Definitions.md)
 - [NFH-003 The Beckn Protocol Stack](./The_Beckn_Protocol_Stack.md)
 - [NFH-004 Core Data Schema](./Core_Data_Schema.md)
@@ -1426,3 +1720,11 @@ This document reflects the governance model and schema design guidance developed
 - [Beckn Schema Registry](https://schema.beckn.io)
 - [beckn/schemas repository](https://github.com/beckn/schemas)
 - [beckn/DEG repository](https://github.com/beckn/DEG)
+
+### Context engineering — contemporary industry guidance
+
+These external sources informed the framing in the [Context Engineering](#context-engineering) subsection. They are listed for reader reference only and do not constitute an endorsement.
+
+- Anthropic, *Effective context engineering for AI agents* — [anthropic.com/engineering/effective-context-engineering-for-ai-agents](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)
+- LangChain, *Context engineering for agents* — [langchain.com/blog/context-engineering-for-agents](https://www.langchain.com/blog/context-engineering-for-agents)
+- DAIR.AI, *Context engineering guide* — [promptingguide.ai/guides/context-engineering-guide](https://www.promptingguide.ai/guides/context-engineering-guide)

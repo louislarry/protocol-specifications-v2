@@ -19,4 +19,4 @@ For the suggested reading order and document descriptions, see [README.md](./REA
 | [NFH-009](./Design_Guide.md) | Specification Design Guide | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
 | [NFH-010](./RFC_Authoring_Guide.md) | RFC Authoring Guide | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
 | [NFH-011](./RFC_Template.md) | RFC Template | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-012](./Managing_Schemas.md) | Managing Schemas in Beckn | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-12 | Draft |
+| [NFH-012](./Schema_Design_Guide.md) | Schema Design Guide | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-12 | Draft |
