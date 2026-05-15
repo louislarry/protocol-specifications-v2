@@ -4007,24 +4007,7 @@ components:
               type: string
               format: uuid
             error:
-              allOf:
-              - $ref: '#/components/schemas/Error'
-              - properties:
-                  code:
-                    type: string
-                    description: "For 401 responses the error code MUST be one of\
-                      \ the AUT_ (authentication and non-repudiation) canonical codes\
-                      \ defined in NFH-008."
-                    enum:
-                    - AUT_SIGNATURE_MISSING
-                    - AUT_SIGNATURE_INVALID
-                    - AUT_SUBSCRIBER_NOT_FOUND
-                    - AUT_KEY_NOT_FOUND
-                    - AUT_KEY_EXPIRED_OR_REVOKED
-                    - AUT_UNAUTHORIZED_ACTION
-                    - AUT_DOMAIN_NOT_ALLOWED
-                    - AUT_REPLAY_DETECTED
-                    - AUT_RATE_LIMITED
+              $ref: '#/components/schemas/Error'
 
     ServerError:
       description: "The response body returned when an unexpected internal failure\
@@ -4170,18 +4153,7 @@ components:
               type: string
               format: uuid
             error:
-              allOf:
-              - $ref: '#/components/schemas/Error'
-              - properties:
-                  code:
-                    type: string
-                    description: "For 403 discretionary NACK responses the error code\
-                      \ MUST be one of the POL_ENGAGEMENT_* codes defined in NFH-008."
-                    enum:
-                    - POL_CALLER_TRUST_INSUFFICIENT
-                    - POL_NP_CAPACITY_EXCEEDED
-                    - POL_NP_DORMANT
-                    - POL_ENGAGEMENT_REFUSED
+              $ref: '#/components/schemas/Error'
 
     NackTooManyRequests:
       description: "The synchronous rejection body returned when the responding NP\
@@ -4210,14 +4182,7 @@ components:
               type: string
               format: uuid
             error:
-              allOf:
-              - $ref: '#/components/schemas/Error'
-              - properties:
-                  code:
-                    type: string
-                    enum:
-                    - AUT_RATE_LIMITED
-                    - POL_NP_CAPACITY_EXCEEDED
+              $ref: '#/components/schemas/Error'
 
     CatalogSubscribeAction:
       type: object
