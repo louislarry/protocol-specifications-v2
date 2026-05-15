@@ -214,7 +214,7 @@ This invariance is what makes a single shared schema usable across the entire ec
 
 - **Mandatory-vs-optional variations** are handled by the **policy layer** (network policy, manufacturer master-catalog policy-as-code, fabric cataloging-service validation).
 - **Language and naming variations** are handled by the **vocabulary layer** (network-specific `context.jsonld` aliases that resolve to the canonical IRIs).
-- **Display-unit variations** (inches vs. centimetres, kWh vs. joules) are handled by the **presentation layer** in BAPs and BPPs at runtime.
+- **Display-unit variations** (inches vs. centimetres, kWh vs. joules) are handled by the **presentation layer** in CNs and PNs at runtime.
 
 When a contributor encounters a perceived need for a regional schema, the right move is to investigate which of these layers the actual variation belongs to. In nearly every real-world case the underlying semantic concept is invariant, and the variation lives in policy, vocabulary, or presentation.
 
@@ -402,7 +402,7 @@ This is a profound shift in *what a product is* for the purposes of discovery. T
 
 Beckn's schema layer has to speak this reality natively, or it will be bypassed by the agents that increasingly mediate consumer discovery. A `Resource` that publishes a tightly-typed tree of `dimensions`, `color`, and `bluetoothVersion` is describing the product as a database row. A `Resource` whose `Descriptor.mediaFile[]` carries the short-form-video demo URL, the long-form unboxing, the creator-led social reel, and the audio review, whose `Descriptor.docs[]` links the manufacturer datasheet and any verifiable credentials, and whose `longDesc` is the merchant's own narrative voice for the product, is describing the product as it actually exists in the market. The first is a static description; the second is a network of handles into the living organism. Contemporary AI shopping agents — whose job is precisely to traverse those handles, watch the videos, read the captions, and synthesise a recommendation — are built for the second shape, not the first.
 
-The architectural implication runs deeper than schema fields. Where a traditional catalog assumed a `Catalog` object enumerated every product as structured data, an agent-era catalog increasingly looks like an indexed *map of handles* — pointers into platforms the publisher does not own and does not need to replicate. A BPP may legitimately publish a `Catalog` whose `Resource` entries are little more than an `id`, a `Descriptor.name`, a `longDesc`, and a `Descriptor.mediaFile[]` array of social-platform URLs. That `Resource` is not impoverished — it is correctly shaped for a world where the product's semantic richness lives at the URLs, not in the publisher's database. Schemas in `beckn/schemas` and `beckn/DEG` SHOULD be reviewed for whether they make this multi-surface description easy to populate; new schemas that leave no good home for social URLs, live-shopping session references, or creator-led media are encoding a pre-2020 view of commerce into the protocol.
+The architectural implication runs deeper than schema fields. Where a traditional catalog assumed a `Catalog` object enumerated every product as structured data, an agent-era catalog increasingly looks like an indexed *map of handles* — pointers into platforms the publisher does not own and does not need to replicate. A PN may legitimately publish a `Catalog` whose `Resource` entries are little more than an `id`, a `Descriptor.name`, a `longDesc`, and a `Descriptor.mediaFile[]` array of social-platform URLs. That `Resource` is not impoverished — it is correctly shaped for a world where the product's semantic richness lives at the URLs, not in the publisher's database. Schemas in `beckn/schemas` and `beckn/DEG` SHOULD be reviewed for whether they make this multi-surface description easy to populate; new schemas that leave no good home for social URLs, live-shopping session references, or creator-led media are encoding a pre-2020 view of commerce into the protocol.
 
 The paradigm shift this describes is non-normative for the present revision of this RFC — but it is the direction every empirical signal in the consumer surface is pointing, and the [Context Engineering](#context-engineering) RFC under preparation is expected to formalise the protocol-layer consequences (catalog publication as handle-aggregation, network-level retrieval across external surfaces, trust and provenance of off-platform media). For now, schema authors are asked to **design `Descriptor` as if it were the canonical map of where the product lives**, not as a verbose label for an entry in a private database.
 
@@ -449,7 +449,7 @@ These patterns are the operational vocabulary in which AI-engineering teams now 
 
 ##### Why this is a schema concern, not just an application concern
 
-It is tempting to read context engineering as an application-layer concern — something a BAP or BPP does inside its agentic orchestration code. That reading is incomplete. **Every choice a schema author makes is a context-engineering choice at the protocol layer**, because the schema dictates the shape of the context that every downstream agent must construct from a Beckn payload. Concretely:
+It is tempting to read context engineering as an application-layer concern — something a CN or PN does inside its agentic orchestration code. That reading is incomplete. **Every choice a schema author makes is a context-engineering choice at the protocol layer**, because the schema dictates the shape of the context that every downstream agent must construct from a Beckn payload. Concretely:
 
 - A schema that puts product semantics in a 2000-character `longDesc` **writes** high-density context to a single field that agents can select wholesale.
 - A schema that fragments the same semantics across forty nested leaves forces every downstream agent to **select** and **compress** before it can reason — and most will do this badly, with each agent making slightly different choices and producing slightly different downstream behaviour.
@@ -466,7 +466,7 @@ These two questions have very different answers. The first leads to taxonomies, 
 
 ##### A separate RFC is underway
 
-The protocol-layer implications of context engineering reach well beyond schema design. Catalog publication and subscription, the `schemaContext` array on the Beckn envelope, JSON-LD context layering, Fabric-side retrieval, registry lookup as part of an agent's pre-flight context construction, and the lifecycle of `Descriptor` content as it flows between BAPs, BPPs, and downstream agents are all context-engineering concerns at the network level. A separate RFC, **Context Engineering for Fabric-Enabled Ecosystems**, is in preparation under the same NFH governance. It will define the protocol-level patterns (write / select / compress / isolate) as they apply to the Beckn Fabric and the broader open-network architecture.
+The protocol-layer implications of context engineering reach well beyond schema design. Catalog publication and subscription, the `schemaContext` array on the Beckn envelope, JSON-LD context layering, Fabric-side retrieval, registry lookup as part of an agent's pre-flight context construction, and the lifecycle of `Descriptor` content as it flows between CNs, PNs, and downstream agents are all context-engineering concerns at the network level. A separate RFC, **Context Engineering for Fabric-Enabled Ecosystems**, is in preparation under the same NFH governance. It will define the protocol-level patterns (write / select / compress / isolate) as they apply to the Beckn Fabric and the broader open-network architecture.
 
 This Schema Design Guide stays scoped to the schema-author side of that picture; the cross-layer concerns are deferred to the forthcoming RFC. Authors of new schemas SHOULD nonetheless author with the protocol-level RFC's direction in mind: a schema that respects [The trajectory](#the-trajectory) above is already aligned with where context-engineering guidance for Beckn is heading. For the contemporary industry framing that informs this subsection, see the [References](#references) section at the end of this RFC.
 
@@ -610,7 +610,7 @@ The network MUST NOT publish a redefinition of any property or class that alread
 
 The URL of each published artifact MUST be registered under the NFO's namespace on [dedi.global](https://dedi.global) so that counterparties can resolve and trust it. See the row for network-local terminology in [Publication venue selection](#publication-venue-selection).
 
-On the wire, **all messages exchanged on a Beckn network MUST use the domain-agnostic vocabulary**. The network-specific context is applied only at the **edges** — by the BAP before sending and by the BPP after receiving — using standard JSON-LD expansion and compaction. This gives every participant the freedom to use the vocabulary that fits its internal system without compromising cross-network interoperability.
+On the wire, **all messages exchanged on a Beckn network MUST use the domain-agnostic vocabulary**. The network-specific context is applied only at the **edges** — by the CN before sending and by the PN after receiving — using standard JSON-LD expansion and compaction. This gives every participant the freedom to use the vocabulary that fits its internal system without compromising cross-network interoperability.
 
 This layering allows the protocol, the domain-agnostic schemas, the domain-specific schemas, and the network-specific vocabularies to evolve **independently with no code changes at any layer**. It is the classic JSON-LD architectural elegance applied to a federated commerce protocol. A worked end-to-end example is provided in [Worked example — UAE retail network](#worked-example--uae-retail-network).
 
@@ -1056,21 +1056,21 @@ To mitigate this risk:
 
 #### Worked example — UAE retail network
 
-This example illustrates how the JSON-LD layering pattern enables a BAP and a BPP with **different internal data models** to interoperate over a Beckn network, even when the network introduces a **region-specific concept** that does not exist in the canonical Beckn vocabulary. Every payload shown is strictly conformant with [`api/v2.0.0/beckn.yaml`](../api/v2.0.0/beckn.yaml) and references a real schema published in [github.com/beckn/schemas](https://github.com/beckn/schemas).
+This example illustrates how the JSON-LD layering pattern enables a CN and a PN with **different internal data models** to interoperate over a Beckn network, even when the network introduces a **region-specific concept** that does not exist in the canonical Beckn vocabulary. Every payload shown is strictly conformant with [`api/v2.0.0/beckn.yaml`](../api/v2.0.0/beckn.yaml) and references a real schema published in [github.com/beckn/schemas](https://github.com/beckn/schemas).
 
 ##### Setup
 
 Consider a Beckn-conformant retail network operating in the United Arab Emirates, **`Souq Connect`**. The network has two active participants:
 
-- **BAP — `ShopGulf`**, a consumer-side shopping app. Internal data model uses `lowerCamelCase` English terms: `brand`, `originCountry`, `regulatoryCategory`, `weightKg`.
-- **BPP — `MerchantHub`**, a merchant catalog service. Internal data model uses different `snake_case` English terms reflecting its legacy schema: `brand_name`, `product_origin`, `classification`, `weight_kg`.
+- **CN — `ShopGulf`**, a consumer-side shopping app. Internal data model uses `lowerCamelCase` English terms: `brand`, `originCountry`, `regulatoryCategory`, `weightKg`.
+- **PN — `MerchantHub`**, a merchant catalog service. Internal data model uses different `snake_case` English terms reflecting its legacy schema: `brand_name`, `product_origin`, `classification`, `weight_kg`.
 
-Both BAP and BPP exchange `Resource` objects whose semantic shape is the **canonical [`GroceryItem` schema](https://github.com/beckn/schemas/tree/main/schema/GroceryItem/v2.0)** published in `beckn/schemas`. That schema defines the `groc:GroceryItemAttributes` type together with sub-fields such as `identity`, `physical`, and `nutrition`. (The name `GroceryItemAttributes` is a legacy offending schema per [NOT RECOMMENDED — generic suffixes](#not-recommended--generic-suffixes-such-as-attributes-item-offer-resource); it is used here because it is the type currently published in `beckn/schemas` and any worked example must reference real artifacts.)
+Both CN and PN exchange `Resource` objects whose semantic shape is the **canonical [`GroceryItem` schema](https://github.com/beckn/schemas/tree/main/schema/GroceryItem/v2.0)** published in `beckn/schemas`. That schema defines the `groc:GroceryItemAttributes` type together with sub-fields such as `identity`, `physical`, and `nutrition`. (The name `GroceryItemAttributes` is a legacy offending schema per [NOT RECOMMENDED — generic suffixes](#not-recommended--generic-suffixes-such-as-attributes-item-offer-resource); it is used here because it is the type currently published in `beckn/schemas` and any worked example must reference real artifacts.)
 
 `Souq Connect` introduces one region-specific concept that does not exist anywhere in the canonical `GroceryItem` vocabulary: **`HalalCertified`** — the regional regulatory category for products certified as Halal by an approved certification body. The network publishes a **single JSON-LD context document** at `https://souqconnect.ae/v2/context.jsonld` that:
 
 1. Internally references the canonical `GroceryItem` context published in `beckn/schemas`, so every canonical term is reachable from this one URL.
-2. Adds the network's own term aliases (mapping both BAP and BPP local terms) onto canonical IRIs.
+2. Adds the network's own term aliases (mapping both CN and PN local terms) onto canonical IRIs.
 3. Declares `souqconnect:HalalCertified` as `rdfs:subClassOf` `beckn:productCategory` in a companion `vocab.jsonld` document on the same host.
 
 The URLs of both `context.jsonld` and `vocab.jsonld` are registered under the `souqconnect` namespace on [dedi.global](https://dedi.global), so any counterparty can resolve and trust them via the trust layer.
@@ -1087,22 +1087,22 @@ flowchart TB
     subgraph Region[Layer 2 — Souq Connect network context]
         R["souqconnect.ae/v2/context.jsonld<br/>imports GroceryItem context<br/>brand, brand_name → schema:brand<br/>originCountry, product_origin → groc:originCountry<br/>souqconnect:HalalCertified<br/>rdfs:subClassOf beckn:productCategory"]
     end
-    subgraph BAP_local[Layer 3a — BAP internal model]
-        BAP["ShopGulf<br/>brand, originCountry, regulatoryCategory, weightKg"]
+    subgraph CN_local[Layer 3a — CN internal model]
+        CN["ShopGulf<br/>brand, originCountry, regulatoryCategory, weightKg"]
     end
-    subgraph BPP_local[Layer 3b — BPP internal model]
-        BPP["MerchantHub<br/>brand_name, product_origin, classification, weight_kg"]
+    subgraph BPP_local[Layer 3b — PN internal model]
+        PN["MerchantHub<br/>brand_name, product_origin, classification, weight_kg"]
     end
     R --> G
-    BAP --> R
-    BPP --> R
+    CN --> R
+    PN --> R
 ```
 
 Layer 1 is maintained as an open-source project in `beckn/schemas` with CWG oversight. Layer 2 is maintained by Souq Connect on its own infrastructure. Layers 3a and 3b are owned by each participant. No layer requires code changes when an adjacent layer evolves — provided the JSON-LD linkages remain valid.
 
 ##### Wire payload — `/discover` request
 
-When `ShopGulf` searches for premium Halal-certified basmati rice, the BAP sends the following payload to the network's DS on `/discover`. The structure conforms strictly to the `/discover` request body in `beckn.yaml`: a `Context` envelope and a `DiscoverAction` message:
+When `ShopGulf` searches for premium Halal-certified basmati rice, the CN sends the following payload to the network's DS on `/discover`. The structure conforms strictly to the `/discover` request body in `beckn.yaml`: a `Context` envelope and a `DiscoverAction` message:
 
 ```json
 {
@@ -1141,7 +1141,7 @@ Notes on this payload:
 
 ##### Wire payload — `/on_discover` callback
 
-After locating matching catalog entries, the DS calls `/on_discover` on the BAP's registered URI, carrying an `OnDiscoverAction` with one or more `Catalog` objects:
+After locating matching catalog entries, the DS calls `/on_discover` on the CN's registered URI, carrying an `OnDiscoverAction` with one or more `Catalog` objects:
 
 ```json
 {
@@ -1221,13 +1221,13 @@ NFOs that need to layer regional vocabulary on top of the canonical Beckn schema
 ```mermaid
 sequenceDiagram
     autonumber
-    participant App as ShopGulf<br/>(BAP internal model)
-    participant BAPLD as BAP JSON-LD<br/>Processor
+    participant App as ShopGulf<br/>(CN internal model)
+    participant BAPLD as CN JSON-LD<br/>Processor
     participant DS as Souq Connect<br/>Discovery Service
-    participant BPPLD as BPP JSON-LD<br/>Processor
-    participant Cat as MerchantHub<br/>(BPP internal model)
+    participant BPPLD as PN JSON-LD<br/>Processor
+    participant Cat as MerchantHub<br/>(PN internal model)
 
-    Note over App,Cat: /discover request (BAP → DS) and /on_discover callback (DS → BAP) per beckn.yaml
+    Note over App,Cat: /discover request (CN → DS) and /on_discover callback (DS → CN) per beckn.yaml
     App->>BAPLD: { brand: "Gulf Foods Select",<br/>originCountry: "AE",<br/>regulatoryCategory: "HalalCertified",<br/>search: "premium basmati rice" }
     Note over BAPLD: 1. Expand using ShopGulf local context<br/>brand → schema:brand<br/>originCountry → groc:originCountry<br/>regulatoryCategory → beckn:regulatoryCategory<br/>HalalCertified → souqconnect:HalalCertified
     Note over BAPLD: 2. Compose /discover envelope<br/>(Context + DiscoverAction)<br/>set resourceAttributes.@context to single URL<br/>https://souqconnect.ae/v2/context.jsonld
@@ -1239,7 +1239,7 @@ sequenceDiagram
     Note over BAPLD: 4. Compact into ShopGulf local context<br/>schema:brand → brand<br/>groc:originCountry → originCountry<br/>beckn:regulatoryCategory → regulatoryCategory
     BAPLD->>App: { brand: "Gulf Foods Select", originCountry: "AE",<br/>regulatoryCategory: "HalalCertified", weightKg: 5 }
 
-    Note over BPPLD,Cat: BPP publication path — Resource is published via Fabric CS, indexed by DS
+    Note over BPPLD,Cat: PN publication path — Resource is published via Fabric CS, indexed by DS
     Cat->>BPPLD: { brand_name: "Gulf Foods Select",<br/>product_origin: "AE",<br/>classification: "HalalCertified", weight_kg: 5 }
     Note over BPPLD: A. Expand using MerchantHub local context<br/>brand_name → schema:brand<br/>product_origin → groc:originCountry<br/>classification → beckn:regulatoryCategory
     Note over BPPLD: B. Compose Resource per beckn.yaml<br/>set resourceAttributes.@context to single URL<br/>https://souqconnect.ae/v2/context.jsonld
@@ -1250,9 +1250,9 @@ Steps 1–2 happen inside `ShopGulf`'s perimeter (outbound `/discover`). Steps 3
 
 ##### Pseudocode — edge processing
 
-The Souq Connect network context is the **single URL on the wire**. Each side loads it once and uses it for both expansion and compaction at its own boundary. The BAP and BPP each load only their own local context plus the network context — never the canonical Beckn context directly, because the network context already chains it.
+The Souq Connect network context is the **single URL on the wire**. Each side loads it once and uses it for both expansion and compaction at its own boundary. The CN and PN each load only their own local context plus the network context — never the canonical Beckn context directly, because the network context already chains it.
 
-**BAP outbound (`ShopGulf` composes a `/discover` request):**
+**CN outbound (`ShopGulf` composes a `/discover` request):**
 
 ```python
 NETWORK_CTX_URL = "https://souqconnect.ae/v2/context.jsonld"
@@ -1303,7 +1303,7 @@ def compose_discover_request(internal_query: dict, ids: dict) -> dict:
     }
 ```
 
-**BAP inbound (`ShopGulf` handles `/on_discover`):**
+**CN inbound (`ShopGulf` handles `/on_discover`):**
 
 ```python
 def handle_on_discover(envelope: dict) -> list[dict]:
@@ -1325,7 +1325,7 @@ def handle_on_discover(envelope: dict) -> list[dict]:
     return out
 ```
 
-**BPP outbound (`MerchantHub` publishes a `Resource` via Fabric CS):**
+**PN outbound (`MerchantHub` publishes a `Resource` via Fabric CS):**
 
 ```python
 def publish_resource(internal_item: dict) -> dict:
@@ -1337,7 +1337,7 @@ def publish_resource(internal_item: dict) -> dict:
     bpp_local_ctx = load("https://merchanthub.ae/context.jsonld")
     network_ctx   = load(NETWORK_CTX_URL)
 
-    # 1. Expand to canonical IRI form using BPP local context.
+    # 1. Expand to canonical IRI form using PN local context.
     expanded = jsonld.expand(internal_item, context=bpp_local_ctx)
 
     # 2. Compact into the network's published vocabulary.
@@ -1384,7 +1384,7 @@ The single URL `https://souqconnect.ae/v2/context.jsonld` that appears on the wi
 
 > Important: the array form above is permitted **inside a published JSON-LD 1.1 context document** — it composes the canonical Beckn-published context with the network's local overlay at the published URL. The wire-format `@context` inside an `Attributes` container is still a single string URL that points to this composed document; both endpoints see a single URL on the wire even though the document at that URL internally composes two contexts.
 
-All term aliases collapse to the same canonical Beckn / `GroceryItem` IRI under expansion. A BAP and a BPP may each prefer a different alias internally; once expanded they are indistinguishable, and once compacted to the network context, all become the canonical term on the wire.
+All term aliases collapse to the same canonical Beckn / `GroceryItem` IRI under expansion. A CN and a PN may each prefer a different alias internally; once expanded they are indistinguishable, and once compacted to the network context, all become the canonical term on the wire.
 
 ##### The Souq Connect vocabulary document
 
@@ -1411,14 +1411,14 @@ All term aliases collapse to the same canonical Beckn / `GroceryItem` IRI under 
 }
 ```
 
-A BPP outside the UAE that receives a payload referencing `souqconnect:HalalCertified` and does not understand the term can still safely treat it as a `beckn:productCategory` by following the `subClassOf` linkage. It is not forced to know what `HalalCertified` means in UAE regulation in order to interpret the message semantically.
+A PN outside the UAE that receives a payload referencing `souqconnect:HalalCertified` and does not understand the term can still safely treat it as a `beckn:productCategory` by following the `subClassOf` linkage. It is not forced to know what `HalalCertified` means in UAE regulation in order to interpret the message semantically.
 
 ##### Roundtrip stability
 
 The JSON-LD pipeline is stable under repeated expansion and compaction. For a multi-turn `discover → on_discover → select → on_select → init → ... → confirm → on_confirm` exchange, the transformation at every hop is the same — and `@context` on the wire is always a single URL:
 
 ```text
-local_BAP   → [expand BAP_local_ctx]     → expanded
+local_BAP   → [expand CN_local_ctx]     → expanded
             → [compact network_ctx]      → wire (single-string @context)
 
 wire        → [expand network_ctx]       → expanded
@@ -1428,10 +1428,10 @@ local_BPP   → [expand BPP_local_ctx]     → expanded
             → [compact network_ctx]      → wire (single-string @context)
 
 wire        → [expand network_ctx]       → expanded
-            → [compact BAP_local_ctx]    → local_BAP
+            → [compact CN_local_ctx]    → local_BAP
 ```
 
-At every hop the expanded form (the canonical IRI representation) is identical regardless of which side produced the message. The canonical Beckn schemas in `beckn/schemas`, the Souq Connect network context, the BAP internal model, and the BPP internal model evolve independently. JSON-LD makes them interoperable without code changes at any layer.
+At every hop the expanded form (the canonical IRI representation) is identical regardless of which side produced the message. The canonical Beckn schemas in `beckn/schemas`, the Souq Connect network context, the CN internal model, and the PN internal model evolve independently. JSON-LD makes them interoperable without code changes at any layer.
 
 This is the architectural property that makes NFO-scoped schemas unnecessary in nearly every case where contributors think they need one.
 
@@ -1607,7 +1607,7 @@ Notes on the design:
 2. **The Offer is the binding artifact.** `Offer.resourceIds` identifies the primary product. `Offer.addOns` lists the supplementary Resources, each of which is an `AddOn` per `beckn.yaml` — which is itself a `oneOf [Resource, Offer]`. The relationship between primary and add-on is structural (which array the resource appears in), not a new semantic type.
 3. **The bundle price lives in `Offer.considerations`.** Bundle pricing belongs in `Consideration.considerationAttributes`, where domain-specific price schemas already apply. There is no need for a new schema to model "bundle pricing" — it is just a `Consideration` like any other.
 4. **Inter-resource relationships are ID references.** `Warranty.coveredResourceId` and `HomeCare.compatibleWith[]` are simple `Resource.id` references defined in the relevant published schema. A consumer that does not understand them can still process each Resource by its own canonical type.
-5. **A consumer that does not understand the combo at all** — e.g., an older BAP that only renders flat catalogs — can still display every Resource correctly because each Resource is independently typed and self-describing. The combo is *additional* semantics in the Offer, not a precondition for processing the Resources.
+5. **A consumer that does not understand the combo at all** — e.g., an older CN that only renders flat catalogs — can still display every Resource correctly because each Resource is independently typed and self-describing. The combo is *additional* semantics in the Offer, not a precondition for processing the Resources.
 
 ##### When a `ComboProduct` relationship schema IS justified
 
@@ -1674,7 +1674,7 @@ When in doubt, **composition over extension**.
 | CON-012-11 | Standalone NFO-scoped schemas are NOT RECOMMENDED. NFOs SHOULD contribute extensions upstream to `beckn/schemas` or `beckn/DEG` rather than fork the vocabulary. | SHOULD NOT |
 | CON-012-12 | Network-specific `context.jsonld` and `vocab.jsonld` artifacts MUST NOT redefine any property or class already defined in the domain-agnostic vocabulary. | MUST NOT |
 | CON-012-13 | Network-specific vocabulary terms MUST link back to the most specific superset concept in the domain-agnostic vocabulary using `rdfs:subClassOf`, `skos:broader`, or an equivalent JSON-LD construct. | MUST |
-| CON-012-14 | All messages exchanged on a Beckn network MUST use the domain-agnostic vocabulary on the wire. Network-specific terminology MUST be applied only at BAP and BPP boundaries via JSON-LD expansion and compaction. | MUST |
+| CON-012-14 | All messages exchanged on a Beckn network MUST use the domain-agnostic vocabulary on the wire. Network-specific terminology MUST be applied only at CN and PN boundaries via JSON-LD expansion and compaction. | MUST |
 | CON-012-15 | NFO-hosted experimental artifacts MUST NOT use `schema.beckn.io` or any `beckn.org` domain as their `@context` URI prefix, and MUST be retired once the corresponding upstream contribution is merged. | MUST NOT |
 | CON-012-16 | `@context` resolution in production MUST use HTTPS with certificate validation. | MUST |
 | CON-012-17 | Implementations SHOULD apply semantic expansion (JSON-LD processing) for cross-network message exchanges. | SHOULD |

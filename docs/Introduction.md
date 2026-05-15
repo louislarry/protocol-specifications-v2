@@ -71,13 +71,13 @@ Beckn Protocol v2 specification is designed to run as a layered stack built on a
 3. Composable Linked-Data Schema
 4. Workflows
 
-Core roles in v2 include BAP, BPP, Discovery Service (DS), and Registry.
+Core roles in v2 include CN, PN, Discovery Service (DS), and Registry.
 
 High-level interaction shape:
 
 ```text
-BPP -> CP -> DS -> BAP discovery
-BAP <-> BPP transaction lifecycle
+PN -> CP -> DS -> CN discovery
+CN <-> PN transaction lifecycle
 All actors <-> Registry for trust resolution
 ```
 
@@ -115,7 +115,7 @@ No protocol wire migration is introduced by this RFC. This update is editorial a
 The following evolution questions remain open and inform future work:
 
 1. Slash and underscore action aliasing may need formal deprecation over a defined release window.
-2. Actor capability profiles for Fabric Nodes, BPP, CS, and DS may need publication as a separate normative RFC.
+2. Actor capability profiles for Fabric Nodes, PN, CS, and DS may need publication as a separate normative RFC.
 
 ### Examples
 

@@ -199,12 +199,12 @@ Where a stateful operation initiates an asynchronous outcome, the implementer MU
 ```text
 Initiating request:   GET  /catalog/subscription/{subscriptionId}   →  Ack
 Async callback:       POST /catalog/subscription/{subscriptionId}
-                      (called by CS on the BAP's registered callback URI,
+                      (called by CS on the CN's registered callback URI,
                        carrying the assembled catalog as the request body)
 
 Initiating request:   POST /catalog                                  →  Ack
 Async callback:       POST /catalog/{catalogId}
-                      (called by CS on the BPP's registered callback URI,
+                      (called by CS on the PN's registered callback URI,
                        confirming acceptance and carrying the assigned catalogId)
 ```
 
@@ -222,9 +222,9 @@ An endpoint description MUST precisely state what the endpoint does in terms of 
 
 Each endpoint description MUST include the following:
 
-**1. Action statement.** A single sentence beginning with a verb that states what the caller requests and what the implementer performs. Both actor names MUST be stated explicitly. For example: *"The BAP invokes this endpoint to request the BPP to confirm a previously initialized order contract."*
+**1. Action statement.** A single sentence beginning with a verb that states what the caller requests and what the implementer performs. Both actor names MUST be stated explicitly. For example: *"The CN invokes this endpoint to request the PN to confirm a previously initialized order contract."*
 
-**2. Preconditions.** Any state or prior API call that must have occurred before this endpoint may be invoked MUST be stated. For example: *"This endpoint MUST only be invoked after a successful `on_confirm` response has been received by the BAP."*
+**2. Preconditions.** Any state or prior API call that must have occurred before this endpoint may be invoked MUST be stated. For example: *"This endpoint MUST only be invoked after a successful `on_confirm` response has been received by the CN."*
 
 **3. Fabric context.** Where the endpoint interacts with or depends on a Fabric service (such as the Discovery Service, Registry, or catalog infrastructure), the relationship MUST be stated and the relevant Fabric component MUST be named. If a canonical document describes that component, a hyperlink to that document MUST be embedded inline within the description text.
 
@@ -242,23 +242,23 @@ Each endpoint description MUST include the following:
 
 #### ✓ Preferred — `/confirm`
 
-> The BAP invokes this endpoint to request the BPP to confirm a previously initialized order contract. This endpoint MUST only be invoked after a successful `on_init` response has been received by the BAP, establishing an active initialized transaction identified by `context.transactionId`. The BPP MUST validate the signature on the request as described in [Authentication and Trust](./Authentication_and_Trust.md) before processing. Upon successful validation and processing, the BPP MUST return an `Ack` synchronously and subsequently invoke the `/on_confirm` callback on the BAP's registered callback URI, carrying the confirmed `Contract` object in the `message` field. If signature validation fails, the BPP MUST return a `NackUnauthorized` response and MUST NOT invoke the callback. If the request body is structurally invalid or the `transactionId` does not correspond to an active initialized transaction, the BPP MUST return a `NackBadRequest` response. For the role of a confirmed contract within the NFH Fabric's value-exchange lifecycle, refer to [Value Exchange Lifecycle](./Value_Exchange_Lifecycle.md).
+> The CN invokes this endpoint to request the PN to confirm a previously initialized order contract. This endpoint MUST only be invoked after a successful `on_init` response has been received by the CN, establishing an active initialized transaction identified by `context.transactionId`. The PN MUST validate the signature on the request as described in [Authentication and Trust](./Authentication_and_Trust.md) before processing. Upon successful validation and processing, the PN MUST return an `Ack` synchronously and subsequently invoke the `/on_confirm` callback on the CN's registered callback URI, carrying the confirmed `Contract` object in the `message` field. If signature validation fails, the PN MUST return a `NackUnauthorized` response and MUST NOT invoke the callback. If the request body is structurally invalid or the `transactionId` does not correspond to an active initialized transaction, the PN MUST return a `NackBadRequest` response. For the role of a confirmed contract within the NFH Fabric's value-exchange lifecycle, refer to [Value Exchange Lifecycle](./Value_Exchange_Lifecycle.md).
 
 Both actor names are present, the precondition is explicit, every response family is described with business semantics, the callback relationship is fully stated, and two canonical documents are linked inline.
 
 #### ✓ Preferred — `GET /catalog/subscription/{subscriptionId}` (stateful REST async)
 
-> The BAP invokes this endpoint to request the CS to assemble and deliver the catalog snapshot scoped to the specified subscription. The `{subscriptionId}` path parameter MUST reference a `CatalogSubscription` record in `ACTIVE` status owned by the calling BAP, as identified by the signing key in the Authorization header. The CS MUST validate the signature as described in [Authentication and Trust](./Authentication_and_Trust.md) before processing. Upon successful validation, the CS MUST return an `Ack` synchronously and subsequently deliver the assembled catalog by invoking `POST /catalog/subscription/{subscriptionId}` on the BAP's registered callback URI, carrying the catalog payload in the request body. If the `subscriptionId` does NOT exist, the CS MUST return `NackNotFound`. If the subscription exists but is owned by a different BAP, the CS MUST return `NackForbidden`. If the subscription is in `INACTIVE` status, the CS MUST return `NackBadRequest`.
+> The CN invokes this endpoint to request the CS to assemble and deliver the catalog snapshot scoped to the specified subscription. The `{subscriptionId}` path parameter MUST reference a `CatalogSubscription` record in `ACTIVE` status owned by the calling CN, as identified by the signing key in the Authorization header. The CS MUST validate the signature as described in [Authentication and Trust](./Authentication_and_Trust.md) before processing. Upon successful validation, the CS MUST return an `Ack` synchronously and subsequently deliver the assembled catalog by invoking `POST /catalog/subscription/{subscriptionId}` on the CN's registered callback URI, carrying the catalog payload in the request body. If the `subscriptionId` does NOT exist, the CS MUST return `NackNotFound`. If the subscription exists but is owned by a different CN, the CS MUST return `NackForbidden`. If the subscription is in `INACTIVE` status, the CS MUST return `NackBadRequest`.
 
-The resource identifier appears in the path, NOT the query string. The callback uses the same resource path on the BAP's registered URI. No `on_*` verb pattern is used.
+The resource identifier appears in the path, NOT the query string. The callback uses the same resource path on the CN's registered URI. No `on_*` verb pattern is used.
 
 #### ✗ Avoid — `/confirm`
 
 **Variant A — Incomplete: real pre-guide description**
 
-> "BAP accepts all terms and provides payment proof/reference, then requests the BPP to confirm the contract into a binding commitment."
+> "CN accepts all terms and provides payment proof/reference, then requests the PN to confirm the contract into a binding commitment."
 
-*This is the actual `/confirm` description in `beckn.yaml` prior to adoption of this guide.* It names the caller (BAP) and implementer (BPP), which is correct. However, it assumes the contract always involves a payment — not all contract types do. It omits the precondition (`on_init` must have been received), all response families, the callback relationship, and any Fabric context. A reader cannot determine from this description what the BPP must do if signature validation fails, or what the `/on_confirm` callback carries.
+*This is the actual `/confirm` description in `beckn.yaml` prior to adoption of this guide.* It names the caller (CN) and implementer (PN), which is correct. However, it assumes the contract always involves a payment — not all contract types do. It omits the precondition (`on_init` must have been received), all response families, the callback relationship, and any Fabric context. A reader cannot determine from this description what the PN must do if signature validation fails, or what the `/on_confirm` callback carries.
 
 ---
 
@@ -353,15 +353,15 @@ A schema description MUST precisely state what real-world concept, entity, or st
 
 **Schema-level description:**
 
-> A `Contract` represents a digitally agreed commitment between two or more participants governing the exchange of economic or non-economic value, mediated by the NFH Fabric. It is produced by the BPP and transmitted to the BAP in the `on_confirm` callback. The schema is domain-neutral: the same `Contract` serves commerce, mobility, healthcare, and energy use cases through JSON-LD context mapping — for example, `retail:Order`, `mobility:Reservation`, and `healthcare:Appointment` are all sub-types of `beckn:Contract`. Once confirmed, it serves as the reference object for all subsequent lifecycle operations including `status`, `update`, `cancel`, and `track`. For the lifecycle in which a `Contract` transitions through states, refer to [Value Exchange Lifecycle](./Value_Exchange_Lifecycle.md).
+> A `Contract` represents a digitally agreed commitment between two or more participants governing the exchange of economic or non-economic value, mediated by the NFH Fabric. It is produced by the PN and transmitted to the CN in the `on_confirm` callback. The schema is domain-neutral: the same `Contract` serves commerce, mobility, healthcare, and energy use cases through JSON-LD context mapping — for example, `retail:Order`, `mobility:Reservation`, and `healthcare:Appointment` are all sub-types of `beckn:Contract`. Once confirmed, it serves as the reference object for all subsequent lifecycle operations including `status`, `update`, `cancel`, and `track`. For the lifecycle in which a `Contract` transitions through states, refer to [Value Exchange Lifecycle](./Value_Exchange_Lifecycle.md).
 
 **Property — `id`:**
 
-> A globally unique identifier for this contract instance, assigned by the BPP before the `/on_confirm` callback and carried in all subsequent `status`, `update`, `cancel`, and `track` requests to identify the transaction. This value MUST remain stable for the entire lifetime of the contract and MUST NOT be reassigned or reused across distinct transactions. It is RECOMMENDED to combine `bppId`, `providerId`, and `id` to guarantee global uniqueness.
+> A globally unique identifier for this contract instance, assigned by the PN before the `/on_confirm` callback and carried in all subsequent `status`, `update`, `cancel`, and `track` requests to identify the transaction. This value MUST remain stable for the entire lifetime of the contract and MUST NOT be reassigned or reused across distinct transactions. It is RECOMMENDED to combine `bppId`, `providerId`, and `id` to guarantee global uniqueness.
 
 **Property — `status`:**
 
-> The current lifecycle state of the contract, expressed as a `Descriptor` whose `code` MUST be one of the standard contract state values. The BPP is responsible for setting and updating this value. `ACTIVE` indicates the contract is in force and execution is ongoing. `CANCELLED` indicates the contract was terminated before fulfillment completion and MUST only appear after a successful `on_cancel` exchange. `COMPLETED` indicates all performance and settlement obligations have been met.
+> The current lifecycle state of the contract, expressed as a `Descriptor` whose `code` MUST be one of the standard contract state values. The PN is responsible for setting and updating this value. `ACTIVE` indicates the contract is in force and execution is ongoing. `CANCELLED` indicates the contract was terminated before fulfillment completion and MUST only appear after a successful `on_cancel` exchange. `COMPLETED` indicates all performance and settlement obligations have been met.
 
 The concept statement is domain-neutral and names the real-world commitment — not the data structure. The lifecycle position (produced at `on_confirm`, referenced through `track`) is explicit. The property descriptions name who sets each value, when, and what each state means in business terms.
 
@@ -612,10 +612,10 @@ Example resource and callback pairing — stateful REST async:
 
 ```text
 GET  /catalog/subscription/{subscriptionId}   →  Ack
-POST /catalog/subscription/{subscriptionId}       (CS calls BAP's registered URI — delivers catalog)
+POST /catalog/subscription/{subscriptionId}       (CS calls CN's registered URI — delivers catalog)
 
 POST /catalog                                 →  Ack
-POST /catalog/{catalogId}                         (CS calls BPP's registered URI — confirms acceptance)
+POST /catalog/{catalogId}                         (CS calls PN's registered URI — confirms acceptance)
 ```
 
 Example path parameter vs query parameter:

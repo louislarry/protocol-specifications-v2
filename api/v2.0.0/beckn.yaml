@@ -22,15 +22,17 @@ info:
 
     2. **Provider:** A verified entity on the fabric that provides the item of value (Resource) to the consumer who wants that resource.
 
-    3. **Beckn Application Platform (BAP)** — A verified, on-fabric application that onboards consumers or consumer-facing agents as clients by creating or verifying their identity on the fabric. It initiates value-exchange transactions on behalf of its clients. It MUST provide an addressable endpoint to routing incoming messages to the respective consumers it onboards. It SHOULD implement a client-facing interface for discovery, contracting, fulfillment and post-fulfillment workflows. 
+    3. **Consumer Node (CN)** — A verified, on-fabric application that onboards consumers or consumer-facing agents as clients by creating or verifying their identity on the fabric. It initiates value-exchange transactions on behalf of its clients. It MUST provide an addressable endpoint to routing incoming messages to the respective consumers it onboards. It SHOULD implement a client-facing interface for discovery, contracting, fulfillment and post-fulfillment workflows. 
 
-    4. **Beckn Provider Platform (BPP)** — A verified, on-fabric application that onboards providers or provider-facing agents as clients by creating or verifying their identity on the fabric. Its network-facing API MUST implement the Beckn Protocol endpoints that receive value-exchange requests from calling BAPs and respond to them via asynchronous callback endpoints implemented by the BAPs. It MUST provide an addressable endpoint to routing incoming messages to the respective providers it has onboarded. It SHOULD provide a client-facing interface for publishing and managing catalogs, contracts, fulfillments, ratings, feedback, and providing support to BAPs.
+    4. **Provider Node (PN)** — A verified, on-fabric application that onboards providers or provider-facing agents as clients by creating or verifying their identity on the fabric. Its network-facing API MUST implement the Beckn Protocol endpoints that receive value-exchange requests from calling CNs and respond to them via asynchronous callback endpoints implemented by the CNs. It MUST provide an addressable endpoint to routing incoming messages to the respective providers it has onboarded. It SHOULD provide a client-facing interface for publishing and managing catalogs, contracts, fulfillments, ratings, feedback, and providing support to CNs.
 
-    5. **Discovery Service (DS)**: — A verified on-fabric application that enables discovery of catalogs only accessible via BAPs. Its network-facing API MUST implement the Beckn Protocol API endpoints that receive catalog discovery requests from BAPs and asynchronously respond with catalogs from various providers. It MUST subscribe to updates from the fabric cataloging service (see next section), and ensure the catalog it has is the most recent. It MAY be implemented as an independent SaaS for BAPs to consume, or implemented by the BAPs themselves.
+    5. **Discovery Service (DS)**: — A verified on-fabric application that enables discovery of catalogs only accessible via CNs. Its network-facing API MUST implement the Beckn Protocol API endpoints that receive catalog discovery requests from CNs and asynchronously respond with catalogs from various providers. It MUST subscribe to updates from the fabric cataloging service (see next section), and ensure the catalog it has is the most recent. It MAY be implemented as an independent SaaS for CNs to consume, or implemented by the CNs themselves.
 
-    6. **Network Facilitator Organization (NFO)** — Entity that manages a subnet on the fabric consisting of BAPs, BPPs, and DSes. 
+    6. **Network Facilitator Organization (NFO)** — Entity that manages a subnet on the fabric consisting of CNs, PNs, and DSes. 
 
     The above actors can exist as separate applications with distinct fabric identities, or can be bundled inside a single application. Each role MUST have a separate identity and public key on the fabric, even if they are all implemented of a single platform.
+
+    **Note on legacy terminology:** *Consumer Node (CN)* and *Provider Node (PN)* were previously referred to as *Beckn Application Platform (BAP)* and *Beckn Provider Platform (BPP)* respectively. The acronyms have been updated throughout this specification, but the corresponding wire-level field names — `bapId`, `bapUri`, `bppId`, `bppUri` — are **retained unchanged** in `context` to preserve backward compatibility with existing integrations. Read `bapId` / `bapUri` as the CN's identity and address, and `bppId` / `bppUri` as the PN's.
 
     ## Required Infrastructure Building Blocks (Threads)
     To perform trusted value-exchange, NPs MUST consume the following services provided on the Fabric. These services are a species of one, and MUST NOT be implemented on any subnet inside the fabric, only consumed.
@@ -45,9 +47,9 @@ info:
 
     ## Prerequisites for Production
 
-    1. **Namespace creation** — Every actor (Consumer, Provider, NFO, BAP, BPP, DS) MUST claim a unique namespace on the fabric created via the namespacing service. For consumers and providers, the namespace can be created by themselves, or by the BAPs and BPPs that have respectively onboarded them. 
+    1. **Namespace creation** — Every actor (Consumer, Provider, NFO, CN, PN, DS) MUST claim a unique namespace on the fabric created via the namespacing service. For consumers and providers, the namespace can be created by themselves, or by the CNs and PNs that have respectively onboarded them. 
 
-    2. **Network address registration** — BAPs and BPPs that are onboarding their respective users (consumers and providers) MUST ensure that their addresses are properly registered on their respective users' namespaces. 
+    2. **Network address registration** — CNs and PNs that are onboarding their respective users (consumers and providers) MUST ensure that their addresses are properly registered on their respective users' namespaces. 
 
     3. **Subnet registration** — Actors participating in a fabric subnet MUST register their network identifier and relevant addresses on the registry managed by that subnet's NFO in its own namespace.
 
@@ -121,16 +123,16 @@ paths:
   /discover:
     post:
       summary: Discover catalogs on a network
-      description: "The BAP sends a discovery request to the DS (Discovery Service),\
+      description: "The CN sends a discovery request to the DS (Discovery Service),\
         \ which searches its indexed catalog store for resources and offers matching\
         \ the supplied intent.\n\nFabric context: The DS maintains a synchronized catalog\
-        \ index by subscribing to the CS (Cataloging Service) on the Fabric. The BAP\
+        \ index by subscribing to the CS (Cataloging Service) on the Fabric. The CN\
         \ does not interact directly with the Fabric for discovery.\n\nThe message\
         \ MUST contain an Intent object. The Intent carries textSearch, JSONPath filter\
         \ expressions per RFC 9535, spatial constraints, and media search inputs that\
         \ the DS evaluates against its indexed catalog store.\n\nCallback relationship:\
         \ When matching catalogs are found, the DS sends an /on_discover callback to\
-        \ the BAP carrying an OnDiscoverAction with the matching catalogs. The BAP\
+        \ the CN carrying an OnDiscoverAction with the matching catalogs. The CN\
         \ MUST correlate the callback using the messageId from Context.\n\nResponse\
         \ codes: Ack, AckNoCallback, NackBadRequest, NackUnauthorized, ServerError."
       operationId: discover
@@ -177,15 +179,15 @@ paths:
 
   /on_discover:
     post:
-      summary: Callback — return catalogs to the BAP
-      description: "The DS (Discovery Service) calls this endpoint on the BAP, delivering\
+      summary: Callback — return catalogs to the CN
+      description: "The DS (Discovery Service) calls this endpoint on the CN, delivering\
         \ catalogs that match the intent submitted in a prior /discover request.\n\n\
-        Additional preconditions: A /discover request MUST have been sent by the BAP\
+        Additional preconditions: A /discover request MUST have been sent by the CN\
         \ and accepted (200 Ack) by the DS before this callback is triggered.\n\nThe\
         \ message MUST contain an OnDiscoverAction with one or more Catalog objects\
         \ matching the original intent.\n\nCallback relationship: Triggered by the\
         \ DS after evaluating the /discover request against its indexed catalog store.\
-        \ The BAP MUST use the messageId in Context to correlate this callback with\
+        \ The CN MUST use the messageId in Context to correlate this callback with\
         \ the originating /discover call.\n\nResponse codes: Ack, NackBadRequest,\
         \ NackUnauthorized, ServerError."
       operationId: onDiscover
@@ -227,18 +229,18 @@ paths:
 
   /select:
     post:
-      summary: BAP selects items/resources and requests a quote
-      description: "The BAP sends a selection to the BPP, identifying specific resources\
+      summary: CN selects items/resources and requests a quote
+      description: "The CN sends a selection to the PN, identifying specific resources\
         \ and offers from a previously discovered catalog and requesting a priced quote.\n\
         \nAdditional preconditions: A /discover request MUST have completed and the\
-        \ BAP MUST have received at least one /on_discover callback containing the\
+        \ CN MUST have received at least one /on_discover callback containing the\
         \ catalog from which the selected items are drawn. No personal identifiable\
         \ information (PII) is shared at this stage.\n\nThe message MUST contain a\
         \ SelectAction with a Contract object specifying the selected commitments, resources,\
         \ and offers. The Contract MUST NOT include billing or fulfillment personal\
         \ details at this stage.\n\nCallback relationship: After computing the priced\
-        \ quote, the BPP MUST send an /on_select callback to the BAP carrying the\
-        \ updated Contract with offer-linked considerations. The BAP MUST correlate\
+        \ quote, the PN MUST send an /on_select callback to the CN carrying the\
+        \ updated Contract with offer-linked considerations. The CN MUST correlate\
         \ the callback using the messageId from Context.\n\nResponse codes: Ack, AckNoCallback,\
         \ NackBadRequest, NackUnauthorized, ServerError."
       operationId: select
@@ -284,16 +286,16 @@ paths:
 
   /on_select:
     post:
-      summary: BPP returns a priced quote
-      description: "The BPP calls this endpoint on the BAP, delivering a priced quote\
+      summary: PN returns a priced quote
+      description: "The PN calls this endpoint on the CN, delivering a priced quote\
         \ computed from the resources and offers submitted in the preceding /select\
         \ request.\n\nAdditional preconditions: A /select request MUST have been sent\
-        \ by the BAP and accepted (200 Ack) by the BPP before this callback is triggered.\n\
+        \ by the CN and accepted (200 Ack) by the PN before this callback is triggered.\n\
         \nThe message MUST contain an OnSelectAction with a Contract object updated\
-        \ to include offer-level considerations and a total priced quote. The BAP uses\
+        \ to include offer-level considerations and a total priced quote. The CN uses\
         \ this quote to decide whether to proceed to /init.\n\nCallback relationship:\
-        \ This endpoint is triggered by the BPP after evaluating the selection and\
-        \ computing a priced quote. The BAP MUST use the messageId in Context to correlate\
+        \ This endpoint is triggered by the PN after evaluating the selection and\
+        \ computing a priced quote. The CN MUST use the messageId in Context to correlate\
         \ this callback with the originating /select call and SHOULD present the returned\
         \ quote to the consumer before proceeding.\n\nResponse codes: Ack, NackBadRequest,\
         \ NackUnauthorized, ServerError."
@@ -336,18 +338,18 @@ paths:
 
   /init:
     post:
-      summary: BAP initiates final contract — submits billing, fulfillment and payment intent
-      description: "The BAP sends billing, fulfillment, and payment intent details\
-        \ to the BPP so that the BPP can generate a final draft contract including\
+      summary: CN initiates final contract — submits billing, fulfillment and payment intent
+      description: "The CN sends billing, fulfillment, and payment intent details\
+        \ to the PN so that the PN can generate a final draft contract including\
         \ personalized payment terms.\n\nAdditional preconditions: A /select request\
-        \ MUST have completed and the BAP MUST have received an /on_select callback\
+        \ MUST have completed and the CN MUST have received an /on_select callback\
         \ with a priced quote before this endpoint may be called.\n\nThe message MUST\
         \ contain an InitAction with a Contract object that includes participant billing\
         \ details, performance (fulfillment) preferences, and initial payment intent.\
-        \ The BPP uses this information to finalize payment terms.\n\nCallback relationship:\
-        \ After generating the final draft contract with payment terms, the BPP MUST\
-        \ send an /on_init callback to the BAP. The BPP MUST NOT request payment before\
-        \ the /on_init stage. The BAP MUST correlate the callback using the messageId\
+        \ The PN uses this information to finalize payment terms.\n\nCallback relationship:\
+        \ After generating the final draft contract with payment terms, the PN MUST\
+        \ send an /on_init callback to the CN. The PN MUST NOT request payment before\
+        \ the /on_init stage. The CN MUST correlate the callback using the messageId\
         \ from Context.\n\nResponse codes: Ack, AckNoCallback, NackBadRequest, NackUnauthorized,\
         \ ServerError."
       operationId: init
@@ -393,18 +395,18 @@ paths:
 
   /on_init:
     post:
-      summary: BPP returns final draft contract with payment terms
-      description: "The BPP calls this endpoint on the BAP, delivering the final draft\
+      summary: PN returns final draft contract with payment terms
+      description: "The PN calls this endpoint on the CN, delivering the final draft\
         \ contract that includes personalized payment terms, billing confirmation,\
         \ and any settlement conditions.\n\nAdditional preconditions: A /init request\
-        \ MUST have been sent by the BAP and accepted (200 Ack) by the BPP before\
-        \ this callback is triggered. The BPP MUST NOT request or collect payment\
+        \ MUST have been sent by the CN and accepted (200 Ack) by the PN before\
+        \ this callback is triggered. The PN MUST NOT request or collect payment\
         \ before this stage.\n\nThe message MUST contain an OnInitAction with a Contract\
         \ object that reflects the finalized draft state including payment terms, billing\
-        \ confirmation, and settlement placeholders. The BAP reviews these terms before\
+        \ confirmation, and settlement placeholders. The CN reviews these terms before\
         \ proceeding to /confirm.\n\nCallback relationship: This endpoint is triggered\
-        \ by the BPP after generating the final draft contract in response to /init.\
-        \ The BAP MUST use the messageId in Context to correlate this callback and\
+        \ by the PN after generating the final draft contract in response to /init.\
+        \ The CN MUST use the messageId in Context to correlate this callback and\
         \ SHOULD present the payment terms to the consumer for acceptance before calling\
         \ /confirm.\n\nResponse codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
       operationId: onInit
@@ -446,19 +448,19 @@ paths:
 
   /confirm:
     post:
-      summary: BAP confirms the contract
-      description: "The BAP signals unconditional acceptance of all negotiated terms\
-        \ and provides payment proof or a payment reference to the BPP, requesting\
-        \ that the BPP convert the draft contract into a binding commitment.\n\nAdditional\
-        \ preconditions: An /on_init callback MUST have been received by the BAP carrying\
+      summary: CN confirms the contract
+      description: "The CN signals unconditional acceptance of all negotiated terms\
+        \ and provides payment proof or a payment reference to the PN, requesting\
+        \ that the PN convert the draft contract into a binding commitment.\n\nAdditional\
+        \ preconditions: An /on_init callback MUST have been received by the CN carrying\
         \ the final draft contract with payment terms. The consumer MUST have accepted\
         \ those terms before this endpoint may be called.\n\nThe message MUST contain\
         \ a ConfirmAction with the full Contract object including payment proof or\
-        \ reference in the settlements array. The BPP uses this evidence to verify\
+        \ reference in the settlements array. The PN uses this evidence to verify\
         \ payment and activate the contract.\n\nCallback relationship: After verifying\
-        \ payment and activating the contract, the BPP MUST send an /on_confirm callback\
-        \ to the BAP carrying the confirmed Contract with its assigned ID and initial\
-        \ fulfillment state. The BAP MUST correlate the callback using the messageId\
+        \ payment and activating the contract, the PN MUST send an /on_confirm callback\
+        \ to the CN carrying the confirmed Contract with its assigned ID and initial\
+        \ fulfillment state. The CN MUST correlate the callback using the messageId\
         \ from Context.\n\nResponse codes: Ack, AckNoCallback, NackBadRequest, NackUnauthorized,\
         \ ServerError."
       operationId: confirm
@@ -504,18 +506,18 @@ paths:
 
   /on_confirm:
     post:
-      summary: BPP returns the confirmed contract
-      description: "The BPP calls this endpoint on the BAP, delivering the confirmed\
-        \ contract with its BPP-assigned identifier and the initial performance state\
+      summary: PN returns the confirmed contract
+      description: "The PN calls this endpoint on the CN, delivering the confirmed\
+        \ contract with its PN-assigned identifier and the initial performance state\
         \ after verifying payment and activating the commitment.\n\nAdditional preconditions:\
-        \ A /confirm request MUST have been sent by the BAP and accepted (200 Ack)\
-        \ by the BPP. The BPP MUST have verified payment proof before triggering this\
+        \ A /confirm request MUST have been sent by the CN and accepted (200 Ack)\
+        \ by the PN. The PN MUST have verified payment proof before triggering this\
         \ callback.\n\nThe message MUST contain an OnConfirmAction with the Contract\
-        \ object whose status is set to ACTIVE, whose id field carries the BPP-assigned\
+        \ object whose status is set to ACTIVE, whose id field carries the PN-assigned\
         \ contract identifier, and whose performance array reflects the initial fulfillment\
-        \ state.\n\nCallback relationship: This endpoint is triggered by the BPP after\
+        \ state.\n\nCallback relationship: This endpoint is triggered by the PN after\
         \ verifying payment and activating the contract in response to /confirm. The\
-        \ BAP MUST use the messageId in Context to correlate this callback and MUST\
+        \ CN MUST use the messageId in Context to correlate this callback and MUST\
         \ store the contract id for subsequent status, track, update, cancel, rate,\
         \ and support interactions.\n\nResponse codes: Ack, NackBadRequest, NackUnauthorized,\
         \ ServerError."
@@ -558,20 +560,20 @@ paths:
 
   /status:
     post:
-      summary: BAP requests the current state of an contract
-      description: "The BAP requests the current state of an active contract from\
-        \ the BPP by providing the contract identifier received in the /on_confirm\
+      summary: CN requests the current state of an contract
+      description: "The CN requests the current state of an active contract from\
+        \ the PN by providing the contract identifier received in the /on_confirm\
         \ callback.\n\nAdditional preconditions: A /confirm request MUST have completed\
-        \ and the BAP MUST have received an /on_confirm callback with a confirmed Contract\
-        \ carrying a valid id before this endpoint may be called. BAPs SHOULD NOT\
-        \ long-poll using repeated /status calls; the BPP MAY push significant state\
+        \ and the CN MUST have received an /on_confirm callback with a confirmed Contract\
+        \ carrying a valid id before this endpoint may be called. CNs SHOULD NOT\
+        \ long-poll using repeated /status calls; the PN MAY push significant state\
         \ changes proactively via /on_status.\n\nThe message MUST contain a StatusAction\
         \ with a Contract object whose id field identifies the contract being queried.\n\
-        \nCallback relationship: After retrieving the contract state, the BPP MUST\
+        \nCallback relationship: After retrieving the contract state, the PN MUST\
         \ send an /on_status callback carrying the full Contract object with the current\
-        \ performance and status fields. The BPP MAY also send /on_status callbacks\
+        \ performance and status fields. The PN MAY also send /on_status callbacks\
         \ proactively for significant state changes without a prior /status request.\
-        \ The BAP MUST correlate solicited callbacks using the messageId from Context.\n\
+        \ The CN MUST correlate solicited callbacks using the messageId from Context.\n\
         \nResponse codes: Ack, AckNoCallback, NackBadRequest, NackUnauthorized, ServerError."
       operationId: status
       tags:
@@ -616,20 +618,20 @@ paths:
 
   /on_status:
     post:
-      summary: BPP returns the current state of the contract
-      description: "The BPP calls this endpoint on the BAP, delivering the current\
+      summary: PN returns the current state of the contract
+      description: "The PN calls this endpoint on the CN, delivering the current\
         \ state of an active contract including performance and fulfillment updates.\
         \ This endpoint covers significant state changes; it is not intended for real-time\
-        \ position or progress tracking, for which the BAP MUST use /track and /on_track.\n\
+        \ position or progress tracking, for which the CN MUST use /track and /on_track.\n\
         \nAdditional preconditions: Either a /status request MUST have been accepted\
-        \ (200 Ack) by the BPP, or the BPP is sending a proactive push for a significant\
-        \ state change on an already-confirmed contract. The BPP MAY send proactive\
+        \ (200 Ack) by the PN, or the PN is sending a proactive push for a significant\
+        \ state change on an already-confirmed contract. The PN MAY send proactive\
         \ /on_status callbacks without a preceding /status request for significant\
         \ contract state transitions.\n\nThe message MUST contain an OnStatusAction\
         \ with the full Contract object reflecting the current status and performance\
-        \ state.\n\nCallback relationship: This endpoint is triggered by the BPP either\
+        \ state.\n\nCallback relationship: This endpoint is triggered by the PN either\
         \ in response to a /status request or proactively when a significant contract\
-        \ state change occurs. The BAP MUST use the messageId in Context to correlate\
+        \ state change occurs. The CN MUST use the messageId in Context to correlate\
         \ solicited callbacks and MUST handle unsolicited callbacks by updating the\
         \ locally held contract state.\n\nResponse codes: Ack, NackBadRequest, NackUnauthorized,\
         \ ServerError."
@@ -672,19 +674,19 @@ paths:
 
   /track:
     post:
-      summary: BAP requests a real-time tracking handle for an active contract
-      description: "The BAP requests a real-time tracking handle from the BPP for\
+      summary: CN requests a real-time tracking handle for an active contract
+      description: "The CN requests a real-time tracking handle from the PN for\
         \ an active fulfillment or performance stage of a confirmed contract. This\
         \ endpoint provides a URL or WebSocket endpoint for continuous position and\
         \ progress updates; it is not intended for contract state change notifications,\
-        \ for which the BAP MUST use /status and /on_status.\n\nAdditional preconditions:\
-        \ A /confirm request MUST have completed and the BAP MUST have received an\
+        \ for which the CN MUST use /status and /on_status.\n\nAdditional preconditions:\
+        \ A /confirm request MUST have completed and the CN MUST have received an\
         \ /on_confirm callback with a confirmed Contract before this endpoint may be\
         \ called.\n\nThe message MUST contain a TrackAction with a Tracking object\
         \ whose contract.id identifies the contract whose performance stage is to be\
         \ tracked.\n\nCallback relationship: After preparing the tracking handle, the\
-        \ BPP MUST send an /on_track callback to the BAP carrying a Tracking object\
-        \ with the URL or WebSocket endpoint. The BAP MUST correlate the callback\
+        \ PN MUST send an /on_track callback to the CN carrying a Tracking object\
+        \ with the URL or WebSocket endpoint. The CN MUST correlate the callback\
         \ using the messageId from Context and MAY open the tracking connection immediately\
         \ upon receipt.\n\nResponse codes: Ack, AckNoCallback, NackBadRequest, NackUnauthorized,\
         \ ServerError."
@@ -731,16 +733,16 @@ paths:
 
   /on_track:
     post:
-      summary: BPP returns real-time tracking handle and status
-      description: "The BPP calls this endpoint on the BAP, delivering a Tracking\
-        \ handle containing the URL or WebSocket endpoint through which the BAP may\
+      summary: PN returns real-time tracking handle and status
+      description: "The PN calls this endpoint on the CN, delivering a Tracking\
+        \ handle containing the URL or WebSocket endpoint through which the CN may\
         \ subscribe to real-time fulfillment position and progress updates.\n\nAdditional\
-        \ preconditions: A /track request MUST have been sent by the BAP and accepted\
-        \ (200 Ack) by the BPP before this callback is triggered.\n\nThe message MUST\
+        \ preconditions: A /track request MUST have been sent by the CN and accepted\
+        \ (200 Ack) by the PN before this callback is triggered.\n\nThe message MUST\
         \ contain an OnTrackAction with a Tracking object that includes a url for the\
         \ real-time data stream and a status field indicating whether tracking is ACTIVE\
         \ or INACTIVE.\n\nCallback relationship: This endpoint is triggered by the\
-        \ BPP in response to a /track request. The BAP MUST use the messageId in Context\
+        \ PN in response to a /track request. The CN MUST use the messageId in Context\
         \ to correlate this callback with the originating /track call and SHOULD connect\
         \ to the provided tracking URL or WebSocket endpoint to receive real-time updates.\n\
         \nResponse codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
@@ -783,25 +785,25 @@ paths:
 
   /update:
     post:
-      summary: BAP requests a mutation to an active contract
-      description: "The BAP requests the BPP to mutate an active contract, which may\
+      summary: CN requests a mutation to an active contract
+      description: "The CN requests the PN to mutate an active contract, which may\
         \ involve changes to committed resources, quantities, billing details, performance\
         \ preferences, or payment arrangements.\n\nAdditional preconditions: A /confirm\
-        \ request MUST have completed and the BAP MUST hold a confirmed Contract with\
+        \ request MUST have completed and the CN MUST hold a confirmed Contract with\
         \ a valid id before this endpoint may be called.\n\nThe message MUST contain\
         \ an UpdateAction with the Contract object reflecting the desired mutation.\
-        \ When context.try is set to true, the BAP is requesting a preview of the\
-        \ updated terms without committing state; the BPP MUST respond via /on_update\
+        \ When context.try is set to true, the CN is requesting a preview of the\
+        \ updated terms without committing state; the PN MUST respond via /on_update\
         \ with recalculated terms but MUST NOT change any persistent state. When context.try\
-        \ is false (the default), the BAP MUST include context.requestDigest containing\
+        \ is false (the default), the CN MUST include context.requestDigest containing\
         \ the digest of the on_update preview response it received; if context.requestDigest\
-        \ is absent or does not match, the BPP MUST return a NackBadRequest. The BPP\
+        \ is absent or does not match, the PN MUST return a NackBadRequest. The PN\
         \ MUST apply the change and respond with the confirmed updated contract.\n\nCallback relationship:\
-        \ After processing the update request, the BPP MUST send an /on_update callback\
-        \ to the BAP. When context.try was true, the callback carries updated terms\
+        \ After processing the update request, the PN MUST send an /on_update callback\
+        \ to the CN. When context.try was true, the callback carries updated terms\
         \ without state change. When context.try was false, the callback carries the\
-        \ confirmed updated contract. The BPP MAY also send unsolicited /on_update\
-        \ callbacks for provider-initiated contract mutations. The BAP MUST correlate\
+        \ confirmed updated contract. The PN MAY also send unsolicited /on_update\
+        \ callbacks for provider-initiated contract mutations. The CN MUST correlate\
         \ solicited callbacks using the messageId from Context.\n\nResponse codes:\
         \ Ack, AckNoCallback, NackBadRequest, NackUnauthorized, ServerError."
       operationId: update
@@ -847,21 +849,21 @@ paths:
 
   /on_update:
     post:
-      summary: BPP returns the updated contract
-      description: "The BPP calls this endpoint on the BAP, delivering the updated\
+      summary: PN returns the updated contract
+      description: "The PN calls this endpoint on the CN, delivering the updated\
         \ contract state. When responding to a preview request (context.try was true),\
-        \ the BPP returns recalculated terms without having changed any state. When\
+        \ the PN returns recalculated terms without having changed any state. When\
         \ responding to a committed update (context.try was false) or sending a proactive\
-        \ provider-initiated mutation, the BPP returns the confirmed updated contract.\n\
+        \ provider-initiated mutation, the PN returns the confirmed updated contract.\n\
         \nAdditional preconditions: Either an /update request MUST have been sent by\
-        \ the BAP and accepted (200 Ack) by the BPP, or the BPP is sending a proactive\
+        \ the CN and accepted (200 Ack) by the PN, or the PN is sending a proactive\
         \ update for a provider-initiated contract mutation on an already-confirmed\
         \ contract.\n\nThe message MUST contain an OnUpdateAction with the Contract\
         \ object. The context.try field echoes the value from the originating /update\
-        \ request to allow the BAP to interpret whether this is a preview or a committed\
-        \ change.\n\nCallback relationship: This endpoint is triggered by the BPP either\
+        \ request to allow the CN to interpret whether this is a preview or a committed\
+        \ change.\n\nCallback relationship: This endpoint is triggered by the PN either\
         \ in response to an /update request or proactively for provider-initiated mutations.\
-        \ The BAP MUST use the messageId in Context to correlate solicited callbacks\
+        \ The CN MUST use the messageId in Context to correlate solicited callbacks\
         \ and MUST handle unsolicited callbacks by updating the locally held contract\
         \ state.\n\nResponse codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
       operationId: onUpdate
@@ -903,26 +905,26 @@ paths:
 
   /cancel:
     post:
-      summary: BAP requests cancellation of an contract
-      description: "The BAP requests full or partial cancellation of an active contract\
-        \ from the BPP, using the context.try two-phase pattern to either preview\
+      summary: CN requests cancellation of an contract
+      description: "The CN requests full or partial cancellation of an active contract\
+        \ from the PN, using the context.try two-phase pattern to either preview\
         \ cancellation terms or commit the cancellation.\n\nAdditional preconditions:\
-        \ A /confirm request MUST have completed and the BAP MUST hold a confirmed\
+        \ A /confirm request MUST have completed and the CN MUST hold a confirmed\
         \ Contract with a valid id before this endpoint may be called.\n\nThe message\
         \ MUST contain a CancelAction with the Contract object whose id identifies\
-        \ the contract to be cancelled. When context.try is set to true, the BAP is\
+        \ the contract to be cancelled. When context.try is set to true, the CN is\
         \ requesting applicable cancellation terms (such as refund policy and penalties)\
-        \ without committing to cancellation; the BPP MUST respond via /on_cancel\
+        \ without committing to cancellation; the PN MUST respond via /on_cancel\
         \ with the applicable policy without changing state. When context.try is false\
-        \ (the default), the BAP MUST include context.requestDigest containing the\
+        \ (the default), the CN MUST include context.requestDigest containing the\
         \ digest of the on_cancel preview response it received; if context.requestDigest\
-        \ is absent or does not match, the BPP MUST return a NackBadRequest. The BPP\
+        \ is absent or does not match, the PN MUST return a NackBadRequest. The PN\
         \ MUST cancel the contract and respond with the cancelled contract.\n\nCallback relationship:\
-        \ After processing the cancellation request, the BPP MUST send an /on_cancel\
-        \ callback to the BAP. When context.try was true, the callback carries the\
+        \ After processing the cancellation request, the PN MUST send an /on_cancel\
+        \ callback to the CN. When context.try was true, the callback carries the\
         \ applicable cancellation policy without state change. When context.try was\
         \ false, the callback carries the cancelled contract with updated settlement\
-        \ information. The BAP MUST correlate the callback using the messageId from\
+        \ information. The CN MUST correlate the callback using the messageId from\
         \ Context.\n\nResponse codes: Ack, AckNoCallback, NackBadRequest, NackUnauthorized,\
         \ ServerError."
       operationId: cancel
@@ -968,20 +970,20 @@ paths:
 
   /on_cancel:
     post:
-      summary: BPP returns cancellation terms or confirms cancellation
-      description: "The BPP calls this endpoint on the BAP, delivering either the\
+      summary: PN returns cancellation terms or confirms cancellation
+      description: "The PN calls this endpoint on the CN, delivering either the\
         \ applicable cancellation policy (when responding to a preview request) or\
         \ the confirmed cancelled contract (when responding to a committed cancellation).\n\
-        \nAdditional preconditions: A /cancel request MUST have been sent by the BAP\
-        \ and accepted (200 Ack) by the BPP before this callback is triggered.\n\n\
+        \nAdditional preconditions: A /cancel request MUST have been sent by the CN\
+        \ and accepted (200 Ack) by the PN before this callback is triggered.\n\n\
         The message MUST contain an OnCancelAction with the Contract object. When context.try\
         \ was true in the originating /cancel request, the Contract carries cancellation\
         \ policy, fees, and refund timeline without state change. When context.try\
         \ was false, the Contract carries status CANCELLED and updated settlement information\
         \ reflecting any refunds or penalties.\n\nCallback relationship: This endpoint\
-        \ is triggered by the BPP in response to a /cancel request. The BAP MUST use\
+        \ is triggered by the PN in response to a /cancel request. The CN MUST use\
         \ the messageId in Context to correlate this callback. When this is a preview\
-        \ response, the BAP SHOULD present the cancellation terms to the consumer before\
+        \ response, the CN SHOULD present the cancellation terms to the consumer before\
         \ calling /cancel with context.try set to false.\n\nResponse codes: Ack, NackBadRequest,\
         \ NackUnauthorized, ServerError."
       operationId: onCancel
@@ -1023,18 +1025,18 @@ paths:
 
   /rate:
     post:
-      summary: BAP submits ratings for one or more entities
-      description: "The BAP submits one or more rating inputs to the BPP for ratable\
+      summary: CN submits ratings for one or more entities
+      description: "The CN submits one or more rating inputs to the PN for ratable\
         \ entities associated with a completed contract, including the contract itself,\
         \ performance stages, individual resources, the provider, agents, and support\
         \ interactions.\n\nAdditional preconditions: The contract for which ratings\
         \ are being submitted MUST have reached a terminal state (COMPLETE or CANCELLED)\
-        \ and the BAP MUST hold the confirmed Contract id.\n\nThe message MUST contain\
+        \ and the CN MUST hold the confirmed Contract id.\n\nThe message MUST contain\
         \ a RateAction with a ratingInputs array. Each RatingInput MUST identify the\
-        \ target entity being rated. The BPP MUST record the submitted ratings.\n\n\
-        Callback relationship: After processing the rating, the BPP MUST send an /on_rate\
-        \ callback to the BAP confirming the ratings were recorded and optionally returning\
-        \ an aggregate rating snapshot. The BAP MUST correlate the callback using the\
+        \ target entity being rated. The PN MUST record the submitted ratings.\n\n\
+        Callback relationship: After processing the rating, the PN MUST send an /on_rate\
+        \ callback to the CN confirming the ratings were recorded and optionally returning\
+        \ an aggregate rating snapshot. The CN MUST correlate the callback using the\
         \ messageId from Context.\n\nResponse codes: Ack, AckNoCallback, NackBadRequest,\
         \ NackUnauthorized, ServerError."
       operationId: rate
@@ -1080,15 +1082,15 @@ paths:
 
   /on_rate:
     post:
-      summary: BPP acknowledges rating and optionally returns aggregate
-      description: "The BPP calls this endpoint on the BAP, confirming that the submitted\
+      summary: PN acknowledges rating and optionally returns aggregate
+      description: "The PN calls this endpoint on the CN, confirming that the submitted\
         \ ratings have been recorded and optionally returning aggregate rating data.\n\
-        \nAdditional preconditions: A /rate request MUST have been sent by the BAP\
-        \ and accepted (200 Ack) by the BPP before this callback is triggered.\n\n\
+        \nAdditional preconditions: A /rate request MUST have been sent by the CN\
+        \ and accepted (200 Ack) by the PN before this callback is triggered.\n\n\
         The message MUST contain an OnRateAction with a ratings array carrying confirmation\
         \ of the recorded ratings and MAY include aggregate rating snapshots for the\
         \ rated entities.\n\nCallback relationship: This endpoint is triggered by the\
-        \ BPP in response to a /rate request. The BAP MUST use the messageId in Context\
+        \ PN in response to a /rate request. The CN MUST use the messageId in Context\
         \ to correlate this callback with the originating /rate call.\n\nResponse codes:\
         \ Ack, NackBadRequest, NackUnauthorized, ServerError."
       operationId: onRate
@@ -1130,19 +1132,19 @@ paths:
 
   /support:
     post:
-      summary: BAP requests support information for an entity
-      description: "The BAP requests support from the BPP for any entity associated\
-        \ with a contract by submitting a support request that the BPP uses to create\
-        \ or link a support ticket.\n\nAdditional preconditions: The BAP MUST hold\
+      summary: CN requests support information for an entity
+      description: "The CN requests support from the PN for any entity associated\
+        \ with a contract by submitting a support request that the PN uses to create\
+        \ or link a support ticket.\n\nAdditional preconditions: The CN MUST hold\
         \ a confirmed Contract id or a reference to another supported entity before\
         \ this endpoint may be called.\n\nThe message MUST contain a SupportAction\
         \ with a Support object that describes the nature of support needed and the\
         \ reference to the entity requiring support. The Support object is not limited\
-        \ to contracts and MAY reference resources, providers, or agents. The BPP MUST\
+        \ to contracts and MAY reference resources, providers, or agents. The PN MUST\
         \ create or link a support ticket and return the details.\n\nCallback relationship:\
-        \ After processing the support request, the BPP MUST send an /on_support callback\
-        \ to the BAP returning support contact details and the created or linked ticket\
-        \ information. The BAP MUST correlate the callback using the messageId from\
+        \ After processing the support request, the PN MUST send an /on_support callback\
+        \ to the CN returning support contact details and the created or linked ticket\
+        \ information. The CN MUST correlate the callback using the messageId from\
         \ Context.\n\nResponse codes: Ack, AckNoCallback, NackBadRequest, NackUnauthorized,\
         \ ServerError."
       operationId: support
@@ -1188,15 +1190,15 @@ paths:
 
   /on_support:
     post:
-      summary: BPP returns support details
-      description: "The BPP calls this endpoint on the BAP, delivering the full support\
+      summary: PN returns support details
+      description: "The PN calls this endpoint on the CN, delivering the full support\
         \ contact details including the created or linked ticket information.\n\nAdditional\
-        \ preconditions: A /support request MUST have been sent by the BAP and accepted\
-        \ (200 Ack) by the BPP before this callback is triggered.\n\nThe message MUST\
+        \ preconditions: A /support request MUST have been sent by the CN and accepted\
+        \ (200 Ack) by the PN before this callback is triggered.\n\nThe message MUST\
         \ contain an OnSupportAction with a Support object carrying support contact\
         \ details and the created or linked ticket reference.\n\nCallback relationship:\
-        \ This endpoint is triggered by the BPP in response to a /support request.\
-        \ The BAP MUST use the messageId in Context to correlate this callback with\
+        \ This endpoint is triggered by the PN in response to a /support request.\
+        \ The CN MUST use the messageId in Context to correlate this callback with\
         \ the originating /support call and SHOULD present the support information\
         \ to the consumer.\n\nResponse codes: Ack, NackBadRequest, NackUnauthorized,\
         \ ServerError."
@@ -1239,17 +1241,17 @@ paths:
 
   /catalog/publish:
     post:
-      summary: BPP publishes catalogs for indexing by the CS
-      description: "The BPP submits one or more Catalog objects to the CS (Cataloging\
-        \ Service) for validation and indexing so that BAPs may discover them via /discover.\n\
+      summary: PN publishes catalogs for indexing by the CS
+      description: "The PN submits one or more Catalog objects to the CS (Cataloging\
+        \ Service) for validation and indexing so that CNs may discover them via /discover.\n\
         \nAdditional preconditions: At least one Catalog object MUST be present in\
         \ the message.\n\nFabric context: This endpoint is hosted by the CS, a Fabric\
         \ service that receives, validates, and indexes submitted catalogs.\n\nThe\
         \ message MUST contain a CatalogPublishAction with a non-empty catalogs array.\
         \ Each Catalog MUST include an id, descriptor, and provider.\n\nCallback relationship:\
         \ After indexing each submitted catalog, the CS sends a /catalog/on_publish\
-        \ callback to the BPP carrying a CatalogOnPublishAction with per-catalog processing\
-        \ results (ACCEPTED, REJECTED, or PARTIAL). The BPP MUST correlate the callback\
+        \ callback to the PN carrying a CatalogOnPublishAction with per-catalog processing\
+        \ results (ACCEPTED, REJECTED, or PARTIAL). The PN MUST correlate the callback\
         \ using the messageId from Context.\n\nResponse codes: Ack, AckNoCallback,\
         \ NackBadRequest, NackUnauthorized, ServerError."
       operationId: catalogPublish
@@ -1297,17 +1299,17 @@ paths:
 
   /catalog/on_publish:
     post:
-      summary: CS returns per-catalog processing results to the BPP
-      description: "The CS (Cataloging Service) calls this endpoint on the BPP, delivering\
+      summary: CS returns per-catalog processing results to the PN
+      description: "The CS (Cataloging Service) calls this endpoint on the PN, delivering\
         \ per-catalog processing results for each catalog submitted in a prior /catalog/publish\
         \ request.\n\nAdditional preconditions: A /catalog/publish request MUST have\
-        \ been sent by the BPP and accepted (200 Ack) by the CS before this callback\
+        \ been sent by the PN and accepted (200 Ack) by the CS before this callback\
         \ is triggered.\n\nFabric context: This callback is sent by the CS after completing\
         \ indexing for each submitted catalog.\n\nThe message MUST contain a CatalogOnPublishAction\
         \ with a results array. Each result carries the catalogId and a processing\
         \ status of ACCEPTED, REJECTED, or PARTIAL, along with any per-item errors.\n\
         \nCallback relationship: Triggered by the CS after indexing each catalog from\
-        \ /catalog/publish. The BPP MUST use the messageId in Context to correlate\
+        \ /catalog/publish. The PN MUST use the messageId in Context to correlate\
         \ this callback with the originating publish request, and MUST handle REJECTED\
         \ or PARTIAL results by correcting and resubmitting affected catalogs.\n\n\
         Response codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
@@ -1358,7 +1360,7 @@ paths:
       - Fabric API - Cataloging Service
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
-      description: "The BAP creates a new catalog subscription on the DS (Discovery\
+      description: "The CN creates a new catalog subscription on the DS (Discovery\
         \ Service), declaring which networks and schema types it wishes to receive\
         \ ongoing /on_discover callbacks for when matching catalogs are indexed.\n\n\
         Additional preconditions: At least one networkId MUST be provided. An empty\
@@ -1447,9 +1449,9 @@ paths:
 
   /catalog/subscriptions:
     get:
-      summary: List catalog subscriptions for a BAP
-      description: "The BAP retrieves all catalog subscriptions associated with a\
-        \ given BAP identifier from the DS (Discovery Service), with optional\
+      summary: List catalog subscriptions for a CN
+      description: "The CN retrieves all catalog subscriptions associated with a\
+        \ given CN identifier from the DS (Discovery Service), with optional\
         \ pagination.\n\nAdditional preconditions: The subscriberId query parameter\
         \ MUST be supplied.\n\nResponse codes: Ack, NackBadRequest, ServerError."
       operationId: catalogSubscribeList
@@ -1460,7 +1462,7 @@ paths:
       - name: subscriberId
         in: query
         required: true
-        description: BAP URI, BAP ID, or internal subscriber UUID
+        description: CN URI, CN ID, or internal subscriber UUID
         schema:
           type: string
         example: https://bap.example.com
@@ -1504,7 +1506,7 @@ paths:
   /catalog/subscription/{subscriptionId}:
     get:
       summary: Get subscription by ID
-      description: "The BAP retrieves a single catalog subscription record by its\
+      description: "The CN retrieves a single catalog subscription record by its\
         \ UUID from the DS (Discovery Service).\n\nAdditional preconditions: The subscriptionId\
         \ path parameter MUST be a valid UUID.\n\nResponse codes: Ack, NackBadRequest,\
         \ NackUnauthorized, ServerError."
@@ -1564,7 +1566,7 @@ paths:
       operationId: catalogSubscribeDelete
       tags:
       - Fabric API - Cataloging Service
-      description: "The BAP deactivates a catalog subscription on the DS (Discovery\
+      description: "The CN deactivates a catalog subscription on the DS (Discovery\
         \ Service) by setting its status to DELETED.\n\nAdditional preconditions:\
         \ The subscriptionId path parameter MUST be a valid UUID.\n\nResponse codes:\
         \ Ack, NackBadRequest, NackUnauthorized, ServerError."
@@ -1625,7 +1627,7 @@ paths:
       parameters:
       - $ref: '#/components/parameters/AuthorizationHeader'
       summary: Submit async catalog pull request
-      description: "The BAP submits an asynchronous catalog pull request to the CS\
+      description: "The CN submits an asynchronous catalog pull request to the CS\
         \ (Cataloging Service), specifying a retrieval mode and optional filters to\
         \ select which catalogs to return.\n\nAdditional preconditions: context.version,\
         \ context.action, context.bapUri, and message.mode MUST be supplied.\n\nThe\
@@ -1637,7 +1639,7 @@ paths:
         \ results via POST to context.bapUri/on_catalog_pull. When the payload is\
         \ small it is returned inline; when it exceeds the configured inline threshold\
         \ the callback carries an objectUrl pointing to GET /catalog/pull/result/{requestId}/catalogs.json.\
-        \ The response Ack carries a requestId UUID that the BAP MUST retain for correlation\
+        \ The response Ack carries a requestId UUID that the CN MUST retain for correlation\
         \ and for constructing the result download URL.\n\nResponse codes: Ack, NackBadRequest,\
         \ NackUnauthorized, ServerError."
       requestBody:
@@ -1712,9 +1714,9 @@ paths:
           - catalogs.json
         example: catalogs.json
       summary: Download large pull result file
-      description: "The BAP downloads the full catalog result file from the CS (Cataloging\
+      description: "The CN downloads the full catalog result file from the CS (Cataloging\
         \ Service) when the catalog pull payload exceeds the configured inline threshold.\n\
-        \nAdditional preconditions: The BAP MUST have received a pull callback with\
+        \nAdditional preconditions: The CN MUST have received a pull callback with\
         \ a non-null objectUrl pointing to this endpoint. The requestId MUST match\
         \ the UUID v4 pattern generated in the pull Ack response. The filename parameter\
         \ is validated against an allowlist; only catalogs.json is permitted. Requests\
@@ -1737,7 +1739,7 @@ paths:
   /catalog/master/search:
     post:
       summary: Search master catalog items
-      description: "The BAP or BPP queries the CS (Cataloging Service) for master\
+      description: "The CN or PN queries the CS (Cataloging Service) for master\
         \ catalog items stored in the canonical catalog repository, filtering by network\
         \ identifiers and schema type URIs with paginated results.\n\nThe message\
         \ MUST contain a MasterSearchAction with optional filters for networkIds and\
@@ -1813,7 +1815,7 @@ paths:
   /catalog/master/schemaTypes:
     get:
       summary: List distinct schema types
-      description: "The BAP or BPP retrieves the distinct set of schema type URIs\
+      description: "The CN or PN retrieves the distinct set of schema type URIs\
         \ present in the CS (Cataloging Service) master catalog repository, for use\
         \ in constructing subscription filters or search queries.\n\nResponse codes:\
         \ Ack, NackUnauthorized, ServerError."
@@ -1860,7 +1862,7 @@ paths:
   /catalog/master/{masterItemId}:
     get:
       summary: Get single master item
-      description: "The BAP or BPP retrieves a single master catalog item by its\
+      description: "The CN or PN retrieves a single master catalog item by its\
         \ identifier from the CS (Cataloging Service) canonical repository, returned\
         \ in a standard Beckn catalog envelope.\n\nAdditional preconditions: The masterItemId\
         \ MUST match the allowed character pattern defined in the path parameter schema.\n\
@@ -1921,10 +1923,10 @@ components:
       name: Authorization
       in: header
       required: true
-      description: "Beckn HTTP Signature authentication header for BAP requests and\
-        \ BPP provider-initiated notifications. The signing string covers `(created)`,\
+      description: "Beckn HTTP Signature authentication header for CN requests and\
+        \ PN provider-initiated notifications. The signing string covers `(created)`,\
         \ `(expires)`, and the BLAKE2b-512 body digest.\n\nSee `#/components/schemas/Signature`\
-        \ for the wire format and signing string construction. For BPP solicited callbacks,\
+        \ for the wire format and signing string construction. For PN solicited callbacks,\
         \ use `CallbackAuthorizationHeader` instead."
       schema:
         $ref: '#/components/schemas/Signature'
@@ -1932,13 +1934,13 @@ components:
       name: Authorization
       in: header
       required: true
-      description: "Beckn HTTP Callback Signature authentication header for BPP solicited\
-        \ callbacks to BAP `/on_*` endpoints. The signing string covers `(created)`,\
+      description: "Beckn HTTP Callback Signature authentication header for PN solicited\
+        \ callbacks to CN `/on_*` endpoints. The signing string covers `(created)`,\
         \ `(expires)`, the BLAKE2b-512 body digest, and `request-signature` — the\
-        \ raw Base64 signature value from the triggering BAP request's `Authorization`\
-        \ header. This chain proves the callback is a genuine response to the BAP's\
+        \ raw Base64 signature value from the triggering CN request's `Authorization`\
+        \ header. This chain proves the callback is a genuine response to the CN's\
         \ original request.\n\nEndpoints that also accept provider-initiated notifications\
-        \ (no preceding BAP request) use `AuthorizationHeader` with the standard\
+        \ (no preceding CN request) use `AuthorizationHeader` with the standard\
         \ Signature for those messages.\n\nSee `#/components/schemas/CallbackSignature`\
         \ for the wire format and signing string construction."
       schema:
@@ -1946,7 +1948,7 @@ components:
   headers:
     AckSignatureHeader:
       description: "Beckn HTTP Ack Signature response header transmitted on every\
-        \ synchronous response. The signer is the responding NP (BPP or BAP); the\
+        \ synchronous response. The signer is the responding NP (PN or CN); the\
         \ receiver verifies it to confirm authenticated receipt. The signing string\
         \ chains the responder's signature to the incoming request's Authorization\
         \ signature via the `request-signature` field, cryptographically proving the\
@@ -1959,12 +1961,12 @@ components:
   schemas:
     CancelAction:
       title: Cancel Action
-      description: "The real-world act by which the BAP expresses the consumer's\
+      description: "The real-world act by which the CN expresses the consumer's\
         \ intent to cancel an active contract, optionally entering a preview phase\
         \ to retrieve applicable cancellation terms before committing to the cancellation.\n\
         \nThis schema appears in the performance and post-performance phases of the\
-        \ value-exchange lifecycle. The BAP produces it as the message payload of a\
-        \ /cancel request; the BPP consumes it to determine whether to preview cancellation\
+        \ value-exchange lifecycle. The CN produces it as the message payload of a\
+        \ /cancel request; the PN consumes it to determine whether to preview cancellation\
         \ terms (context.try true) or execute the cancellation (context.try false).\n\
         \nRelationship: Composes the Contract schema as its primary carrier. The Contract\
         \ MUST include an id identifying the active contract to be cancelled."
@@ -1978,10 +1980,10 @@ components:
         - contract
 
     CatalogPublishAction:
-      description: "The real-world act by which a BPP submits one or more catalogs\
-        \ to the CS (Cataloging Service) for indexing so that BAPs may subsequently\
+      description: "The real-world act by which a PN submits one or more catalogs\
+        \ to the CS (Cataloging Service) for indexing so that CNs may subsequently\
         \ discover them.\n\nThis schema appears in the Catalog Publishing phase of\
-        \ the value-exchange lifecycle. The BPP produces it as the message payload\
+        \ the value-exchange lifecycle. The PN produces it as the message payload\
         \ of a /catalog/publish request; the CS consumes it to index the provided\
         \ catalogs into its catalog store.\n\nFabric context: This schema is processed\
         \ by the CS, which validates and indexes each submitted Catalog object.\n\n\
@@ -2000,13 +2002,13 @@ components:
 
     ConfirmAction:
       title: Confirm Action
-      description: "The real-world act by which the BAP expresses the consumer's\
+      description: "The real-world act by which the CN expresses the consumer's\
         \ unconditional acceptance of all previously negotiated terms and commits to\
         \ the contract by providing payment proof or a payment reference, requesting\
-        \ the BPP to convert the draft contract into a binding commitment.\n\nThis\
+        \ the PN to convert the draft contract into a binding commitment.\n\nThis\
         \ schema appears at the culmination of the negotiation phase of the value-exchange\
-        \ lifecycle (after discover, select, and init). The BAP produces it as the\
-        \ message payload of a /confirm request; the BPP consumes it to verify payment\
+        \ lifecycle (after discover, select, and init). The CN produces it as the\
+        \ message payload of a /confirm request; the PN consumes it to verify payment\
         \ and activate the contract.\n\nRelationship: Composes the Contract schema\
         \ as its primary carrier. The Contract MUST include populated commitments,\
         \ participant billing details, and at least one Settlement entry carrying\
@@ -2019,10 +2021,10 @@ components:
 
     DiscoverAction:
       title: Discover Action (External)
-      description: "The real-world act by which the BAP expresses a consumer's intent\
+      description: "The real-world act by which the CN expresses a consumer's intent\
         \ to discover products, services, or resources across a Beckn network, encapsulating\
         \ all search qualifiers within a structured intent container.\n\nThis schema\
-        \ appears at the start of the value-exchange lifecycle. The BAP produces it\
+        \ appears at the start of the value-exchange lifecycle. The CN produces it\
         \ as the message payload of a /discover request; the DS (Discovery Service)\
         \ consumes it to evaluate the intent against its indexed catalog store and\
         \ return matching results.\n\nFabric context: This schema is evaluated against\
@@ -2047,12 +2049,12 @@ components:
 
     InitAction:
       title: Init Action
-      description: "The real-world act by which the BAP provides the consumer's billing\
-        \ details, fulfillment preferences, and initial payment intent to the BPP,\
-        \ enabling the BPP to generate a final draft contract with personalized payment\
+      description: "The real-world act by which the CN provides the consumer's billing\
+        \ details, fulfillment preferences, and initial payment intent to the PN,\
+        \ enabling the PN to generate a final draft contract with personalized payment\
         \ terms.\n\nThis schema appears in the negotiation phase of the value-exchange\
-        \ lifecycle, between the select and confirm steps. The BAP produces it as\
-        \ the message payload of an /init request; the BPP consumes it to finalize\
+        \ lifecycle, between the select and confirm steps. The CN produces it as\
+        \ the message payload of an /init request; the PN consumes it to finalize\
         \ contract terms and payment conditions.\n\nRelationship: Composes the Contract\
         \ schema as its primary carrier. The Contract MUST include participant billing\
         \ details and performance preferences reflecting the consumer's fulfillment\
@@ -2066,12 +2068,12 @@ components:
 
     OnCancelAction:
       title: On Cancel Action
-      description: "The real-world act by which the BPP returns the outcome of a\
-        \ cancellation request to the BAP, either presenting the applicable cancellation\
+      description: "The real-world act by which the PN returns the outcome of a\
+        \ cancellation request to the CN, either presenting the applicable cancellation\
         \ policy when in preview mode or confirming the executed cancellation with\
         \ the terminal contract state.\n\nThis schema appears in the performance and\
-        \ post-performance phases of the value-exchange lifecycle. The BPP produces\
-        \ it as the message payload of an /on_cancel callback; the BAP consumes it\
+        \ post-performance phases of the value-exchange lifecycle. The PN produces\
+        \ it as the message payload of an /on_cancel callback; the CN consumes it\
         \ to inform the consumer of cancellation terms or to update the locally held\
         \ contract state to CANCELLED.\n\nRelationship: Composes the Contract schema\
         \ as its primary carrier. When cancellation has been executed, the Contract\
@@ -2086,16 +2088,16 @@ components:
 
     OnConfirmAction:
       title: OnConfirmAction
-      description: "The real-world act by which the BPP delivers the confirmed and\
-        \ active contract to the BAP, including the BPP-assigned contract identifier\
+      description: "The real-world act by which the PN delivers the confirmed and\
+        \ active contract to the CN, including the PN-assigned contract identifier\
         \ and initial performance state, after verifying the consumer's payment and\
         \ activating the commitment.\n\nThis schema appears at the conclusion of the\
-        \ negotiation phase of the value-exchange lifecycle. The BPP produces it as\
-        \ the message payload of an /on_confirm callback; the BAP consumes it to inform\
+        \ negotiation phase of the value-exchange lifecycle. The PN produces it as\
+        \ the message payload of an /on_confirm callback; the CN consumes it to inform\
         \ the consumer that the transaction is confirmed and to store the contract\
         \ id for subsequent lifecycle interactions.\n\nRelationship: Composes the\
         \ Contract schema as its primary carrier. The Contract status code MUST be\
-        \ ACTIVE, the id field MUST carry the BPP-assigned contract identifier, and\
+        \ ACTIVE, the id field MUST carry the PN-assigned contract identifier, and\
         \ the performance array MUST reflect the initial fulfillment state."
       additionalProperties: false
       properties:
@@ -2106,10 +2108,10 @@ components:
 
     OnDiscoverAction:
       description: "The real-world act by which the DS (Discovery Service) returns\
-        \ catalogs matching the consumer's discovery intent to the BAP, completing\
+        \ catalogs matching the consumer's discovery intent to the CN, completing\
         \ the discovery exchange.\n\nThis schema appears at the start of the value-exchange\
         \ lifecycle, immediately following the discovery request. The DS produces\
-        \ it as the message payload of an /on_discover callback; the BAP consumes\
+        \ it as the message payload of an /on_discover callback; the CN consumes\
         \ it to present discovered providers and their offerings to the consumer.\n\
         \nFabric context: The catalogs array is assembled from the DS's indexed catalog\
         \ store.\n\nRelationship: Composes one or more Catalog schemas in the required\
@@ -2130,12 +2132,12 @@ components:
 
     OnInitAction:
       title: On Init Action
-      description: "The real-world act by which the BPP delivers the final draft contract\
-        \ to the BAP, including personalized payment terms, billing confirmation, and\
+      description: "The real-world act by which the PN delivers the final draft contract\
+        \ to the CN, including personalized payment terms, billing confirmation, and\
         \ settlement conditions that the consumer must accept before confirming the\
         \ transaction.\n\nThis schema appears in the negotiation phase of the value-exchange\
-        \ lifecycle, between init and confirm. The BPP produces it as the message\
-        \ payload of an /on_init callback; the BAP consumes it to present the final\
+        \ lifecycle, between init and confirm. The PN produces it as the message\
+        \ payload of an /on_init callback; the CN consumes it to present the final\
         \ terms to the consumer for acceptance.\n\nRelationship: Composes the Contract\
         \ schema as its primary carrier. The Contract MUST include finalized consideration\
         \ amounts, payment terms in the settlements array, and billing details reflecting\
@@ -2149,12 +2151,12 @@ components:
 
     OnRateAction:
       title: On Rate Action
-      description: "The real-world act by which the BPP returns the outcome of a\
-        \ rating request to the BAP, either delivering rating form definitions and\
+      description: "The real-world act by which the PN returns the outcome of a\
+        \ rating request to the CN, either delivering rating form definitions and\
         \ criteria when in preview mode or confirming that the submitted ratings have\
         \ been recorded.\n\nThis schema appears in the post-performance phase of the\
-        \ value-exchange lifecycle. The BPP produces it as the message payload of\
-        \ an /on_rate callback; the BAP consumes it to confirm to the consumer that\
+        \ value-exchange lifecycle. The PN produces it as the message payload of\
+        \ an /on_rate callback; the CN consumes it to confirm to the consumer that\
         \ ratings were accepted or to render the rating form when in preview mode.\n\
         \nRelationship: Composes zero or more RatingInput schemas in the required\
         \ ratings array. Each RatingInput identifies a rated target entity and carries\
@@ -2171,12 +2173,12 @@ components:
 
     OnSelectAction:
       title: On Select Action
-      description: "The real-world act by which the BPP delivers a priced quote to\
-        \ the BAP, reflecting the total cost, applicable offers, and terms for the\
+      description: "The real-world act by which the PN delivers a priced quote to\
+        \ the CN, reflecting the total cost, applicable offers, and terms for the\
         \ resources and commitments selected by the consumer.\n\nThis schema appears\
         \ in the negotiation phase of the value-exchange lifecycle, between select\
-        \ and init. The BPP produces it as the message payload of an /on_select callback;\
-        \ the BAP consumes it to present the priced quote to the consumer before proceeding\
+        \ and init. The PN produces it as the message payload of an /on_select callback;\
+        \ the CN consumes it to present the priced quote to the consumer before proceeding\
         \ to initiation.\n\nRelationship: Composes the Contract schema as its primary\
         \ carrier. The Contract MUST include updated consideration amounts and offer-linked\
         \ pricing reflecting the selected resources and quantities."
@@ -2189,12 +2191,12 @@ components:
 
     OnStatusAction:
       title: On Status Action
-      description: "The real-world act by which the BPP communicates the current\
-        \ state of an active contract to the BAP, either in response to a status query\
+      description: "The real-world act by which the PN communicates the current\
+        \ state of an active contract to the CN, either in response to a status query\
         \ or as a proactive push notification for a significant state transition.\n\
         \nThis schema appears in the performance phase of the value-exchange lifecycle.\
-        \ The BPP produces it as the message payload of an /on_status callback; the\
-        \ BAP consumes it to update the displayed contract state for the consumer.\
+        \ The PN produces it as the message payload of an /on_status callback; the\
+        \ CN consumes it to update the displayed contract state for the consumer.\
         \ This schema covers significant lifecycle state changes only; real-time position\
         \ tracking uses Tracking via OnTrackAction.\n\nRelationship: Composes the\
         \ Contract schema as its primary carrier. The Contract MUST include the current\
@@ -2209,12 +2211,12 @@ components:
 
     OnSupportAction:
       title: On Support Action
-      description: "The real-world act by which the BPP returns support information\
-        \ to the BAP, either delivering a list of available support channels when in\
+      description: "The real-world act by which the PN returns support information\
+        \ to the CN, either delivering a list of available support channels when in\
         \ preview mode or providing full support contact details and a created or linked\
         \ ticket when a support request has been submitted.\n\nThis schema appears\
-        \ in the post-performance phase of the value-exchange lifecycle. The BPP produces\
-        \ it as the message payload of an /on_support callback; the BAP consumes it\
+        \ in the post-performance phase of the value-exchange lifecycle. The PN produces\
+        \ it as the message payload of an /on_support callback; the CN consumes it\
         \ to connect the consumer with the appropriate support channel or ticket.\n\
         \nRelationship: Composes the Support schema as its primary carrier. The Support\
         \ object carries the referenced entity, available channels, and, when a ticket\
@@ -2228,12 +2230,12 @@ components:
 
     OnTrackAction:
       title: On Track Action
-      description: "The real-world act by which the BPP delivers a real-time tracking\
-        \ handle to the BAP, providing the URL or WebSocket endpoint through which\
+      description: "The real-world act by which the PN delivers a real-time tracking\
+        \ handle to the CN, providing the URL or WebSocket endpoint through which\
         \ the consumer may monitor live position and progress updates for an active\
         \ fulfillment stage.\n\nThis schema appears in the performance phase of the\
-        \ value-exchange lifecycle. The BPP produces it as the message payload of\
-        \ an /on_track callback; the BAP consumes it to open the tracking connection\
+        \ value-exchange lifecycle. The PN produces it as the message payload of\
+        \ an /on_track callback; the CN consumes it to open the tracking connection\
         \ and expose real-time progress to the consumer.\n\nRelationship: Composes\
         \ the Tracking schema as its primary carrier. The Tracking object MUST include\
         \ a url for the tracking data source and a status field indicating whether\
@@ -2248,13 +2250,13 @@ components:
 
     OnUpdateAction:
       title: On Update Action
-      description: "The real-world act by which the BPP delivers the outcome of a\
-        \ contract mutation to the BAP, either returning recalculated terms without\
+      description: "The real-world act by which the PN delivers the outcome of a\
+        \ contract mutation to the CN, either returning recalculated terms without\
         \ state change (preview mode) or confirming the committed updated contract\
         \ state, which may also be sent proactively for provider-initiated mutations.\n\
         \nThis schema appears in the performance phase of the value-exchange lifecycle.\
-        \ The BPP produces it as the message payload of an /on_update callback; the\
-        \ BAP consumes it to update the locally held contract state or to present\
+        \ The PN produces it as the message payload of an /on_update callback; the\
+        \ CN consumes it to update the locally held contract state or to present\
         \ revised terms to the consumer before committing.\n\nRelationship: Composes\
         \ the Contract schema as its primary carrier. The Contract reflects the updated\
         \ state including any changes to commitments, consideration amounts, or performance\
@@ -2268,12 +2270,12 @@ components:
 
     RateAction:
       title: RateAction
-      description: "The real-world act by which the BAP submits one or more consumer\
+      description: "The real-world act by which the CN submits one or more consumer\
         \ ratings for entities associated with a completed contract, including the\
         \ contract itself, fulfillment stages, individual resources, the provider,\
         \ agents, and support interactions.\n\nThis schema appears in the post-performance\
-        \ phase of the value-exchange lifecycle. The BAP produces it as the message\
-        \ payload of a /rate request; the BPP consumes it to record the submitted\
+        \ phase of the value-exchange lifecycle. The CN produces it as the message\
+        \ payload of a /rate request; the PN consumes it to record the submitted\
         \ ratings.\n\nRelationship: Composes one or more RatingInput schemas in the\
         \ required ratingInputs array. Each RatingInput MUST identify the target entity\
         \ being rated and MUST include a scoring range."
@@ -2289,12 +2291,12 @@ components:
 
     SelectAction:
       title: Select Action
-      description: "The real-world act by which the BAP identifies specific resources\
-        \ and offers from a discovered catalog and requests the BPP to compute a priced\
+      description: "The real-world act by which the CN identifies specific resources\
+        \ and offers from a discovered catalog and requests the PN to compute a priced\
         \ quote, thereby initiating the negotiation cycle.\n\nThis schema appears\
         \ in the negotiation phase of the value-exchange lifecycle, immediately following\
-        \ discovery. The BAP produces it as the message payload of a /select request;\
-        \ the BPP consumes it to evaluate availability, compute pricing, and return\
+        \ discovery. The CN produces it as the message payload of a /select request;\
+        \ the PN consumes it to evaluate availability, compute pricing, and return\
         \ a quote via /on_select.\n\nRelationship: Composes the Contract schema as\
         \ its primary carrier. The Contract MUST include commitments referencing the\
         \ selected resources and associated offers. No PII or billing information\
@@ -2308,13 +2310,13 @@ components:
 
     StatusAction:
       title: Status Action
-      description: "The real-world act by which the BAP polls the BPP for the current\
+      description: "The real-world act by which the CN polls the PN for the current\
         \ state of an active contract by providing its identifier, triggering the\
-        \ BPP to return the latest fulfillment and lifecycle state.\n\nThis schema\
-        \ appears in the performance phase of the value-exchange lifecycle. The BAP\
-        \ produces it as the message payload of a /status request; the BPP consumes\
-        \ it to locate the contract and return its current state via /on_status. BAPs\
-        \ SHOULD NOT use repeated status calls for continuous monitoring; the BPP\
+        \ PN to return the latest fulfillment and lifecycle state.\n\nThis schema\
+        \ appears in the performance phase of the value-exchange lifecycle. The CN\
+        \ produces it as the message payload of a /status request; the PN consumes\
+        \ it to locate the contract and return its current state via /on_status. CNs\
+        \ SHOULD NOT use repeated status calls for continuous monitoring; the PN\
         \ MAY push proactive /on_status callbacks for significant state changes.\n\
         \nRelationship: Composes the Contract schema as its primary carrier. The Contract\
         \ MUST include an id identifying the active contract to be queried."
@@ -2329,11 +2331,11 @@ components:
 
     SupportAction:
       title: Support Action
-      description: "The real-world act by which the BAP requests support from the\
-        \ BPP for any entity associated with a contract, submitting a support request\
-        \ that the BPP uses to create or link a support ticket.\n\nThis schema appears\
-        \ in the post-performance phase of the value-exchange lifecycle. The BAP produces\
-        \ it as the message payload of a /support request; the BPP consumes it to\
+      description: "The real-world act by which the CN requests support from the\
+        \ PN for any entity associated with a contract, submitting a support request\
+        \ that the PN uses to create or link a support ticket.\n\nThis schema appears\
+        \ in the post-performance phase of the value-exchange lifecycle. The CN produces\
+        \ it as the message payload of a /support request; the PN consumes it to\
         \ create or link a support ticket and return the details.\n\nRelationship:\
         \ Composes the Support schema as its primary carrier. The Support object MUST\
         \ carry a descriptor describing the nature of the support needed."
@@ -2347,12 +2349,12 @@ components:
 
     TrackAction:
       type: object
-      description: "The real-world act by which the BAP requests a real-time tracking\
-        \ handle from the BPP for an active fulfillment or performance stage of a\
+      description: "The real-world act by which the CN requests a real-time tracking\
+        \ handle from the PN for an active fulfillment or performance stage of a\
         \ confirmed contract, enabling the consumer to monitor live position and progress\
         \ updates.\n\nThis schema appears in the performance phase of the value-exchange\
-        \ lifecycle. The BAP produces it as the message payload of a /track request;\
-        \ the BPP consumes it to identify the performance stage and return an appropriate\
+        \ lifecycle. The CN produces it as the message payload of a /track request;\
+        \ the PN consumes it to identify the performance stage and return an appropriate\
         \ tracking handle via /on_track.\n\nRelationship: Composes the Tracking schema\
         \ as its primary carrier. The Tracking object MUST include a contract reference\
         \ with an id identifying the active contract whose performance stage is to\
@@ -2366,12 +2368,12 @@ components:
 
     UpdateAction:
       title: Update Action
-      description: "The real-world act by which the BAP requests a mutation to an\
+      description: "The real-world act by which the CN requests a mutation to an\
         \ active contract, which may include changes to committed resources, quantities,\
         \ billing details, performance preferences, or payment arrangements, using\
         \ the context.try pattern to preview or commit the change.\n\nThis schema\
-        \ appears in the performance phase of the value-exchange lifecycle. The BAP\
-        \ produces it as the message payload of an /update request; the BPP consumes\
+        \ appears in the performance phase of the value-exchange lifecycle. The CN\
+        \ produces it as the message payload of an /update request; the PN consumes\
         \ it to compute revised terms (when context.try is true) or to apply and confirm\
         \ the mutation (when context.try is false).\n\nRelationship: Composes the\
         \ Contract schema as its primary carrier. The Contract MUST include the id\
@@ -2389,8 +2391,8 @@ components:
         \ may elect to include alongside a primary committed resource, carrying its\
         \ own independent pricing and terms that contribute to the overall contract\
         \ consideration.\n\nAdd-ons appear in the negotiation and selection phases\
-        \ of the value-exchange lifecycle. The BPP produces them as part of an Offer\
-        \ in a Catalog; the BAP includes selected add-ons in the commitments of a\
+        \ of the value-exchange lifecycle. The PN produces them as part of an Offer\
+        \ in a Catalog; the CN includes selected add-ons in the commitments of a\
         \ Contract during the select and init steps. Add-ons may represent cross-sell\
         \ or up-sell items, monetary contributions such as donations, or domain-specific\
         \ supplements such as travel insurance, accessibility assistance, or supplementary\
@@ -2408,7 +2410,7 @@ components:
         \ PostalAddress vocabulary for human-readable addressing.\n\nThis schema appears\
         \ wherever a civic address is required across the value-exchange lifecycle,\
         \ including participant billing details in InitAction, provider locations in\
-        \ a Catalog, and delivery destinations in Performance. Both the BAP and BPP\
+        \ a Catalog, and delivery destinations in Performance. Both the CN and PN\
         \ produce and consume it depending on context.\n\nRelationship: Used as a\
         \ component within the Location schema, which also carries geometric coordinates\
         \ via the GeoJSONGeometry schema. Geometry MUST be expressed in Location.geo\
@@ -2448,7 +2450,7 @@ components:
         \ when the implementing actor encounters a failure during processing that cannot\
         \ be communicated in the synchronous response.\n\nThis schema appears in the\
         \ callback phase of any Beckn interaction where an error must be conveyed after\
-        \ an initial ACK has already been returned. Both the BPP and BAP MAY produce\
+        \ an initial ACK has already been returned. Both the PN and CN MAY produce\
         \ it when reporting failures in asynchronous processing to their counterpart.\n\
         \nRelationship: Extends the base Error schema with JSON-LD type annotations,\
         \ allowing linked-data consumers to interpret error codes using the Beckn error\
@@ -2467,7 +2469,7 @@ components:
         \nThis schema appears throughout the value-exchange lifecycle wherever a Beckn\
         \ core schema requires domain-specific extension, including Resource.resourceAttributes,\
         \ Offer.offerAttributes, Performance.performanceAttributes, Contract.contractAttributes,\
-        \ and Commitment.commitmentAttributes. Both BAPs and BPPs produce and consume\
+        \ and Commitment.commitmentAttributes. Both CNs and PNs produce and consume\
         \ it depending on the context in which it appears.\n\nRelationship: Used by\
         \ composition throughout the schema hierarchy as the standard extension point.\
         \ The @context property MUST reference a valid JSON-LD context URI and the\
@@ -2488,14 +2490,14 @@ components:
 
     Catalog:
       description: "A structured representation of the resources, offers, and provider\
-        \ information that a BPP makes available on the network for discovery, selection,\
-        \ and commitment by BAPs.\n\nCatalogs appear in the discovery phase of the\
-        \ value-exchange lifecycle. The BPP produces them and publishes them to the\
+        \ information that a PN makes available on the network for discovery, selection,\
+        \ and commitment by CNs.\n\nCatalogs appear in the discovery phase of the\
+        \ value-exchange lifecycle. The PN produces them and publishes them to the\
         \ CS (Cataloging Service) via CatalogPublishAction; the CS indexes them and\
-        \ synchronizes them to the DS, which serves them to BAPs in OnDiscoverAction\
+        \ synchronizes them to the DS, which serves them to CNs in OnDiscoverAction\
         \ responses.\n\nFabric context: Catalogs are managed by the CS, which indexes\
         \ them for discovery and synchronizes them to the DS for delivery to subscribing\
-        \ BAPs. The CS also stores and serves canonical master catalog items.\n\nRelationship:\
+        \ CNs. The CS also stores and serves canonical master catalog items.\n\nRelationship:\
         \ Composes Provider, Resource, and Offer schemas. MUST include at least one\
         \ of a resources array or an offers array. The validity field constrains the\
         \ temporal window during which the catalog is active, expressed as a TimePeriod."
@@ -2503,11 +2505,11 @@ components:
       type: object
       properties:
         bppId:
-          description: BPP (Beckn Protocol Provider) identifier that publishes this catalog
+          description: PN (Beckn Protocol Provider) identifier that publishes this catalog
           type: string
           example: bpp.example.com
         bppUri:
-          description: Beckn Protocol API base URL of the BPP
+          description: Beckn Protocol API base URL of the PN
           type: string
           format: uri
         publishDirectives:
@@ -2593,10 +2595,10 @@ components:
 
     CatalogOnPublishAction:
       description: "The real-world act by which the CS (Cataloging Service) communicates\
-        \ per-catalog processing outcomes to the BPP after completing indexing for\
+        \ per-catalog processing outcomes to the PN after completing indexing for\
         \ each catalog submitted in a publish request.\n\nThis schema appears in the\
         \ Catalog Publishing phase of the value-exchange lifecycle. The CS produces\
-        \ it as the message payload of a /catalog/on_publish callback; the BPP consumes\
+        \ it as the message payload of a /catalog/on_publish callback; the PN consumes\
         \ it to determine which submitted catalogs were successfully indexed and which\
         \ require correction and resubmission.\n\nFabric context: Produced exclusively\
         \ by the CS as the outcome of its indexing pipeline.\n\nRelationship: Composes\
@@ -2617,7 +2619,7 @@ components:
         \ a single catalog submission, indicating whether the catalog was accepted,\
         \ rejected, or partially indexed, along with any per-item or per-catalog errors.\n\
         \nThis schema appears in the CatalogOnPublishAction and is produced by the\
-        \ CS. The BPP consumes it to identify catalogues that require correction.\n\
+        \ CS. The PN consumes it to identify catalogues that require correction.\n\
         \nFabric context: Produced exclusively by the CS as part of its indexing result\
         \ reporting.\n\nRelationship: Composes zero or more Error schemas in the errors\
         \ array when status is REJECTED or PARTIAL. An optional stats object provides\
@@ -2664,8 +2666,8 @@ components:
         \ under a contract, which may take the form of monetary payment, credits or\
         \ tokens, asset transfer, service exchange, or a compliance artifact depending\
         \ on the domain.\n\nConsideration appears across the negotiation phase of\
-        \ the value-exchange lifecycle, from select through confirm. The BPP assigns\
-        \ consideration amounts in OnSelectAction and OnInitAction; the BAP acknowledges\
+        \ the value-exchange lifecycle, from select through confirm. The PN assigns\
+        \ consideration amounts in OnSelectAction and OnInitAction; the CN acknowledges\
         \ them in ConfirmAction. Both actors produce and consume consideration records\
         \ to track value commitment and discharge.\n\nRelationship: Composes the Descriptor\
         \ schema for the status field and the Attributes schema for domain-specific\
@@ -2695,9 +2697,9 @@ components:
         \ transaction correlation identifiers, timing constraints, and optional cryptographic\
         \ metadata required to route, authenticate, and correlate messages across the\
         \ asynchronous Beckn communication pattern.\n\nContext appears in every request\
-        \ and callback across all phases of the value-exchange lifecycle. The BAP\
+        \ and callback across all phases of the value-exchange lifecycle. The CN\
         \ assigns bapId, bapUri, transactionId, messageId, and timestamp when originating\
-        \ a request; the BPP assigns bppId and bppUri when it is the receiving actor.\
+        \ a request; the PN assigns bppId and bppUri when it is the receiving actor.\
         \ Fabric services such as the CS (Cataloging Service) and DS (Discovery Service)\
         \ validate the version, action, and signature fields as part of request authentication.\n\nRelationship: Composes the RequestDigest schema via the\
         \ requestDigest property, which carries the BLAKE2b-512 hash of the originating\
@@ -2714,15 +2716,15 @@ components:
         version:
           type: string
           description: The Beckn protocol version in use for this transaction, assigned
-            by the BAP when constructing the request. MUST be the const value 2.0.0
+            by the CN when constructing the request. MUST be the const value 2.0.0
             for all requests conforming to this specification.
           const: 2.0.0
         bapId:
-          description: Verified namespace identifier of the BAP on dedi.global. Receiving actors MUST
-            resolve the BAP's address and key material by first resolving the subnet
+          description: Verified namespace identifier of the CN on dedi.global. Receiving actors MUST
+            resolve the CN's address and key material by first resolving the subnet
             registry URL from context.networkId, then calling the subnet registry's
             lookup endpoint with context.bapId and context.networkId. The subscriber_url
-            field in the response is the BAP's network address; the key material is
+            field in the response is the CN's network address; the key material is
             used for signature verification.
           type: string
         senderId:
@@ -2731,21 +2733,21 @@ components:
             keys can be resolved for cryptographic verification.
           type: string
         bapUri:
-          description: The callback base URL of the BAP to which the BPP or Fabric
+          description: The callback base URL of the CN to which the PN or Fabric
             service MUST deliver asynchronous callbacks. This MUST match the subscriber_url
             returned by the subnet registry lookup for context.bapId and context.networkId.
           type: string
           format: uri
         bppId:
-          description: Verified namespace identifier of the BPP on dedi.global. Calling actors MUST
-            resolve the BPP's address and key material by first resolving the subnet
+          description: Verified namespace identifier of the PN on dedi.global. Calling actors MUST
+            resolve the PN's address and key material by first resolving the subnet
             registry URL from context.networkId, then calling the subnet registry's
             lookup endpoint with context.bppId and context.networkId. The subscriber_url
-            field in the response is the BPP's network address; the key material is
+            field in the response is the PN's network address; the key material is
             used for signature verification.
           type: string
         bppUri:
-          description: The request base URL of the BPP to which the BAP MUST send
+          description: The request base URL of the PN to which the CN MUST send
             request API calls. This MUST match the subscriber_url returned by the
             subnet registry lookup for context.bppId and context.networkId.
           type: string
@@ -2756,20 +2758,20 @@ components:
             verification keys can be resolved for encrypted delivery or targeted routing.
           type: string
         transactionId:
-          description: A UUID assigned by the BAP that persists across all API calls
+          description: A UUID assigned by the CN that persists across all API calls
             within a single transaction session from discover through confirm. The
-            BPP MAY use this value to correlate related requests, push personalized
+            PN MAY use this value to correlate related requests, push personalized
             recommendations, and maintain dynamic offerings across the multi-step negotiation
             cycle without requiring knowledge of the specific consumer identity on
-            the BAP.
+            the CN.
           type: string
           format: uuid
         messageId:
           description: A UUID that persists across a single request and its corresponding
-            callback, assigned by the BAP for request messages and generated fresh
-            by the BPP for unsolicited callbacks. The BAP MUST use this value to correlate
+            callback, assigned by the CN for request messages and generated fresh
+            by the PN for unsolicited callbacks. The CN MUST use this value to correlate
             incoming callbacks with the originating request and MAY use it to detect
-            and discard duplicate messages from the BPP. A new messageId MUST be generated
+            and discard duplicate messages from the PN. A new messageId MUST be generated
             for every new interaction.
           type: string
           format: uuid
@@ -2790,14 +2792,14 @@ components:
         key:
           description: The encryption public key of the sender, provided when the
             sender intends for the receiver to use it for encrypting response payloads
-            or establishing a secure channel. Assignment is by the BAP or BPP depending
+            or establishing a secure channel. Assignment is by the CN or PN depending
             on message direction.
           type: string
         try:
-          description: 'A boolean flag set by the BAP to activate the two-phase preview
-            pattern: when true, the BPP MUST compute and return the outcome of the
+          description: 'A boolean flag set by the CN to activate the two-phase preview
+            pattern: when true, the PN MUST compute and return the outcome of the
             requested action without persisting any state change; when false (the default),
-            the BPP MUST execute and commit the action. Applicable to the `update` and
+            the PN MUST execute and commit the action. Applicable to the `update` and
             `cancel` actions only. For all other actions, sending actors MUST NOT set
             this flag; receiving actors MUST ignore it if present.'
           type: boolean
@@ -2824,8 +2826,8 @@ components:
         \ (consideration), how execution occurs (performance), and how value is discharged\
         \ (settlements).\n\nContract is the canonical transaction object across all\
         \ phases of the Beckn value-exchange lifecycle from select through post-performance.\
-        \ The BAP initially constructs the Contract in SelectAction and progressively\
-        \ enriches it through InitAction and ConfirmAction; the BPP updates and returns\
+        \ The CN initially constructs the Contract in SelectAction and progressively\
+        \ enriches it through InitAction and ConfirmAction; the PN updates and returns\
         \ it in each corresponding callback carrying the authoritative state. It is\
         \ domain-neutral and supports retail, mobility, healthcare, hiring, energy\
         \ markets, carbon exchanges, data access, subscriptions, and other use cases.\n\
@@ -2837,7 +2839,7 @@ components:
       title: Contract
       properties:
         id:
-          description: A UUID string generated at the BPP endpoint at any stage before the confirmation of the order i.e before `/on_confirm` callback. This value is intended typically for indexing or filtering. While the chances of a UUID collision are rare, it is recommended to use a combination of `bppId`, `providerId` and `id` to allow for global uniqueness.
+          description: A UUID string generated at the PN endpoint at any stage before the confirmation of the order i.e before `/on_confirm` callback. This value is intended typically for indexing or filtering. While the chances of a UUID collision are rare, it is recommended to use a combination of `bppId`, `providerId` and `id` to allow for global uniqueness.
           type: string
           format: uuid
         descriptor:
@@ -2902,8 +2904,8 @@ components:
         \ binding together the exact resources being committed to, the offer terms\
         \ under which they are being provided, and the current lifecycle status of\
         \ that promise.\n\nCommitments appear from the select phase onward in the\
-        \ value-exchange lifecycle. The BAP includes draft commitments in SelectAction\
-        \ referencing the resources and offers chosen from the catalog; the BPP updates\
+        \ value-exchange lifecycle. The CN includes draft commitments in SelectAction\
+        \ referencing the resources and offers chosen from the catalog; the PN updates\
         \ commitment status as the contract progresses through the DRAFT, ACTIVE, and\
         \ CLOSED states.\n\nRelationship: Composes Resource schemas (with required\
         \ id and quantity) in the resources array and an Offer schema (with required\
@@ -2953,7 +2955,7 @@ components:
         \ and associated media and document references.\n\nDescriptor appears throughout\
         \ the value-exchange lifecycle as the standard identification and display mechanism\
         \ for entities including Contract status, Resource identity, Offer metadata,\
-        \ Provider information, and Commitment state. Both BAPs and BPPs produce and\
+        \ Provider information, and Commitment state. Both CNs and PNs produce and\
         \ consume it depending on the entity being described.\n\nRelationship: Used\
         \ by composition in Contract, Resource, Offer, Provider, Commitment, Consideration,\
         \ Catalog, Performance, Tracking, and Support schemas. The docs field composes\
@@ -2999,7 +3001,7 @@ components:
         \ for cryptographic signature and schema metadata.\n\nDocuments appear wherever\
         \ a Beckn entity requires supporting documentary evidence across the value-exchange\
         \ lifecycle, including offer terms, contract documents, and post-performance\
-        \ receipts. Both BAPs and BPPs produce and consume them via the Descriptor.docs\
+        \ receipts. Both CNs and PNs produce and consume them via the Descriptor.docs\
         \ field.\n\nRelationship: Used by composition within the Descriptor schema\
         \ via the docs array. Intentionally kept separate from MediaFile to accommodate\
         \ signature, checksum, and schema metadata fields not applicable to media assets."
@@ -3054,7 +3056,7 @@ components:
         \ from downstream systems, enabling typed error chains across protocol stack\
         \ layers and network hops.\n\nError appears in NackBadRequest (400), NackUnauthorized\
         \ (401), AckNoCallback (409), and AsyncError across all phases of the value-exchange\
-        \ lifecycle. Both BPPs and BAPs produce errors depending on the direction of\
+        \ lifecycle. Both PNs and CNs produce errors depending on the direction of\
         \ the failing call; the counterpart consumes them to determine corrective action.\n\
         \nRelationship: Extended by the AsyncError schema. Composed within the NackBadRequest,\
         \ NackUnauthorized, AckNoCallback, and ServerError schemas."
@@ -3102,9 +3104,9 @@ components:
       description: "A consumer's submitted response to a structured feedback form,\
         \ capturing the filled-in field values keyed by form field identifiers as\
         \ defined in the form schema.\n\nFormSubmission appears in the post-performance\
-        \ phase of the value-exchange lifecycle. The BAP produces it as part of a\
+        \ phase of the value-exchange lifecycle. The CN produces it as part of a\
         \ RatingInput when the consumer has completed a structured feedback form returned\
-        \ by the BPP in a prior on_rate preview response; the BPP consumes it to record\
+        \ by the PN in a prior on_rate preview response; the PN consumes it to record\
         \ structured qualitative feedback alongside the numeric rating.\n\nRelationship:\
         \ Composed within the RatingInput schema via the feedbackFormSubmission field."
       type: object
@@ -3136,7 +3138,7 @@ components:
         \ performance, or post-performance of a Contract, which may represent a consumer,\
         \ provider, agent, or any other actor bound by the contract's terms.\n\nParticipants\
         \ appear in the negotiation and performance phases of the value-exchange lifecycle.\
-        \ The BAP introduces consumer participant details in InitAction; the BPP may\
+        \ The CN introduces consumer participant details in InitAction; the PN may\
         \ add provider or agent participant records in the corresponding callback.\
         \ Both actors consume participant records to understand the parties bound by\
         \ the contract.\n\nRelationship: Composed within the Contract schema's participants\
@@ -3158,7 +3160,7 @@ components:
         \ wherever spatial coordinates are needed in the value-exchange lifecycle,\
         \ including provider and resource locations in Catalog, delivery locations\
         \ in Performance, and spatial constraint reference geometries in SpatialConstraint\
-        \ within DiscoverAction. Both BAPs and BPPs produce and consume it depending\
+        \ within DiscoverAction. Both CNs and PNs produce and consume it depending\
         \ on context.\n\nCoordinates MUST be in EPSG:4326 (WGS-84) and MUST follow\
         \ longitude, latitude, optional altitude order as specified in RFC 7946. Supported\
         \ geometry types are Point, LineString, Polygon, MultiPoint, MultiLineString,\
@@ -3205,10 +3207,10 @@ components:
         \ how a specific commitment will be fulfilled, including when and where delivery\
         \ or service provisioning occurs, the current execution status, and linkage\
         \ to tracking and support interactions.\n\nPerformance appears in the fulfillment\
-        \ phase of the value-exchange lifecycle, introduced by the BPP in OnConfirmAction\
-        \ and updated in OnStatusAction and OnUpdateAction callbacks. The BAP consumes\
+        \ phase of the value-exchange lifecycle, introduced by the PN in OnConfirmAction\
+        \ and updated in OnStatusAction and OnUpdateAction callbacks. The CN consumes\
         \ performance records to present fulfillment progress to the consumer; the\
-        \ BPP updates them as execution proceeds.\n\nPerformance is domain-neutral\
+        \ PN updates them as execution proceeds.\n\nPerformance is domain-neutral\
         \ and can represent physical delivery, service provisioning, API access activation,\
         \ subscription activation, carbon credit transfer, capacity allocation, or\
         \ workforce onboarding. Domain-specific delivery details MUST be placed inside\
@@ -3246,7 +3248,7 @@ components:
         \ the specific inbound request that triggered it, establishing bilateral non-repudiation\
         \ for the asynchronous leg of a Beckn interaction.\n\nRequestDigest appears\
         \ in the Context of callback requests across all phases of the value-exchange\
-        \ lifecycle. The implementing actor (BPP or BAP) produces it by hashing the\
+        \ lifecycle. The implementing actor (PN or CN) produces it by hashing the\
         \ original inbound request body and including that hash in the callback Context;\
         \ the receiving actor verifies it to confirm that the callback corresponds\
         \ to the claimed original request.\n\nVerification requires two steps: recomputing\
@@ -3270,7 +3272,7 @@ components:
         \ services, or providers matching specific criteria, combining free-text search,\
         \ structured filter expressions, spatial constraints, and media-based search\
         \ inputs.\n\nIntent appears exclusively at the start of the value-exchange\
-        \ lifecycle, within DiscoverAction. The BAP constructs it based on the consumer's\
+        \ lifecycle, within DiscoverAction. The CN constructs it based on the consumer's\
         \ search inputs; the DS (Discovery Service) evaluates it against its indexed\
         \ catalog store to identify matching resources and offers.\n\nFabric context:\
         \ The Intent is applied against the DS's indexed catalog store.\n\nRelationship:\
@@ -3317,7 +3319,7 @@ components:
         \ appears throughout the value-exchange lifecycle wherever a physical place\
         \ must be specified, including provider operating locations in Catalog, delivery\
         \ and pickup points in Performance, and spatial constraint reference points\
-        \ in SpatialConstraint. Both BAPs and BPPs produce and consume it.\n\nRelationship:\
+        \ in SpatialConstraint. Both CNs and PNs produce and consume it.\n\nRelationship:\
         \ Composes the GeoJSONGeometry schema in the required geo field and the Address\
         \ schema in the optional address field. Geometry is the authoritative spatial\
         \ representation; Address is the human-readable supplement."
@@ -3337,7 +3339,7 @@ components:
         \ primarily for display or playback within a consumer-facing application.\n\
         \nMediaFile appears wherever a Beckn entity requires associated visual or\
         \ multimedia presentation across the value-exchange lifecycle, including resource\
-        \ images in Catalog and offer illustration assets. Both BAPs and BPPs produce\
+        \ images in Catalog and offer illustration assets. Both CNs and PNs produce\
         \ and consume them via the Descriptor.mediaFile field.\n\nRelationship: Used\
         \ by composition within the Descriptor schema via the mediaFile array. Intentionally\
         \ kept separate from Document, which supports cryptographic metadata such as\
@@ -3362,12 +3364,12 @@ components:
 
     MediaInput:
       type: object
-      description: "A single media asset submitted by the BAP as part of a media-based\
+      description: "A single media asset submitted by the CN as part of a media-based\
         \ discovery query, enabling the DS (Discovery Service) to find catalog items\
         \ that are visually similar to, semantically related to, or described by the\
         \ provided image, audio, or video.\n\nMediaInput appears exclusively within\
         \ the DiscoverAction during the discovery phase of the value-exchange lifecycle.\
-        \ The BAP constructs it based on the consumer's media input; the DS uses it\
+        \ The CN constructs it based on the consumer's media input; the DS uses it\
         \ as a search signal alongside textual and spatial constraints.\n\nRelationship:\
         \ Composed within the MediaSearch schema's media array, which is itself composed\
         \ within the Intent schema."
@@ -3401,11 +3403,11 @@ components:
     MediaSearch:
       type: object
       description: "A container grouping one or more media assets and associated search\
-        \ options that the BAP submits as part of a media-based discovery query, allowing\
+        \ options that the CN submits as part of a media-based discovery query, allowing\
         \ the DS (Discovery Service) to perform similarity or content-extraction searches\
         \ across indexed catalog items.\n\nMediaSearch appears exclusively within\
         \ the Intent schema during the discovery phase of the value-exchange lifecycle.\
-        \ The BAP constructs it when the consumer initiates a discovery using a visual\
+        \ The CN constructs it when the consumer initiates a discovery using a visual\
         \ or audio reference rather than text.\n\nRelationship: Composed within the\
         \ Intent schema via the mediaSearch field. Composes MediaInput schemas in the\
         \ media array and MediaSearchOptions in the options field."
@@ -3425,7 +3427,7 @@ components:
         \ the search goals and whether media signals should be combined with text search\
         \ or used as the sole relevance criterion.\n\nMediaSearchOptions appears exclusively\
         \ within the MediaSearch schema during the discovery phase of the value-exchange\
-        \ lifecycle. The BAP sets these options based on the consumer's search intent;\
+        \ lifecycle. The CN sets these options based on the consumer's search intent;\
         \ the DS applies them when evaluating media inputs against indexed catalog\
         \ items.\n\nRelationship: Composed within the MediaSearch schema via the options\
         \ field."
@@ -3455,9 +3457,9 @@ components:
         \ or transactional terms under which one or more Resources may be committed\
         \ within a Contract, including eligibility conditions, pricing, add-ons, and\
         \ validity constraints.\n\nOffers appear in the discovery and negotiation phases\
-        \ of the value-exchange lifecycle. The BPP produces them as part of a Catalog\
-        \ to describe how resources may be transacted; the BAP references offer identifiers\
-        \ when constructing Commitments in SelectAction, and the BPP returns updated\
+        \ of the value-exchange lifecycle. The PN produces them as part of a Catalog\
+        \ to describe how resources may be transacted; the CN references offer identifiers\
+        \ when constructing Commitments in SelectAction, and the PN returns updated\
         \ offers with confirmed considerations in subsequent callbacks.\n\nRelationship:\
         \ Composed within Catalog, Commitment, and AddOn schemas. Composes Provider,\
         \ Consideration, and Attributes schemas. The resourceIds field references Resource\
@@ -3501,7 +3503,7 @@ components:
         \ more physical or virtual locations.\n\nProviders appear in the discovery\
         \ phase of the value-exchange lifecycle as part of a Catalog, and persist\
         \ through the negotiation phase as the counterparty identified in Offers. The\
-        \ BPP produces provider records; the BAP consumes them to identify and display\
+        \ PN produces provider records; the CN consumes them to identify and display\
         \ the source of the resources and offers being considered.\n\nRelationship:\
         \ Composed within the Catalog and Offer schemas. The availableAt field composes\
         \ one or more Location schemas representing the provider's physical operating\
@@ -3534,8 +3536,8 @@ components:
         \ with a completed contract, including the contract itself, individual resources,\
         \ fulfillment stages, providers, agents, or support interactions.\n\nRatingInput\
         \ appears in the post-performance phase of the value-exchange lifecycle, within\
-        \ RateAction (produced by the BAP) and OnRateAction (produced by the BPP).\
-        \ The BAP submits rating inputs to record consumer feedback; the BPP may also\
+        \ RateAction (produced by the CN) and OnRateAction (produced by the PN).\
+        \ The CN submits rating inputs to record consumer feedback; the PN may also\
         \ return rating form definitions as RatingInput structures in preview mode\
         \ to guide the consumer's rating submission.\n\nRelationship: Composed within\
         \ the RateAction.ratingInputs and OnRateAction.ratings arrays. The feedbackFormSubmission\
@@ -3572,9 +3574,9 @@ components:
       description: "A domain-neutral, referenceable unit of value, capability, service,\
         \ entitlement, or asset that a provider makes available on the network and\
         \ that a consumer may select and commit to within a Contract.\n\nResources\
-        \ appear across all phases of the value-exchange lifecycle. The BPP defines\
-        \ them in a Catalog during the discovery phase; the BAP references them in\
-        \ Commitments during the selection phase; and the BPP confirms their provisioning\
+        \ appear across all phases of the value-exchange lifecycle. The PN defines\
+        \ them in a Catalog during the discovery phase; the CN references them in\
+        \ Commitments during the selection phase; and the PN confirms their provisioning\
         \ in the performance array during fulfillment. Examples include a retail product\
         \ SKU, a mobility ride, a job role, a carbon credit unit, a dataset or API\
         \ entitlement, a training course slot, and a clinic appointment.\n\nRelationship:\
@@ -3600,8 +3602,8 @@ components:
         \ within a Contract, tracking the progression from a draft payment intent\
         \ through a committed payment instruction to a completed settlement.\n\nSettlements\
         \ appear across the negotiation and performance phases of the value-exchange\
-        \ lifecycle. The BAP introduces draft settlement records in ConfirmAction to\
-        \ carry payment proof or reference; the BPP updates settlement status through\
+        \ lifecycle. The CN introduces draft settlement records in ConfirmAction to\
+        \ carry payment proof or reference; the PN updates settlement status through\
         \ COMMITTED and COMPLETE as payment is processed and discharged.\n\nRelationship:\
         \ Composed within the Contract schema's settlements array. The considerationId\
         \ field references a Consideration identifier within the same Contract, linking\
@@ -3625,7 +3627,7 @@ components:
     Signature:
       title: Beckn HTTP Signature
       description: "A digitally signed authentication credential transmitted in the\
-        \ HTTP Authorization header of BAP requests and BPP provider-initiated notifications,\
+        \ HTTP Authorization header of CN requests and PN provider-initiated notifications,\
         \ proving the identity of the sending network participant and ensuring the\
         \ integrity of the request body.\n\nThe sending actor produces this by signing\
         \ a three-line canonical signing string with its Ed25519 private key registered\
@@ -3635,11 +3637,11 @@ components:
         \ `keyId` field identifies the signer using the format `{namespace}/{registry}/{record}|ed25519`\
         \ (implicit, resolved at GRR) or a full dedi protocol URL followed by `|ed25519`\
         \ (explicit). The algorithm MUST be `ed25519`. The body digest MUST use BLAKE2b-512\
-        \ encoded as `BLAKE2b-512={Base64}`.\n\nUsed for: BAP→BPP requests across\
-        \ all phases of the value-exchange lifecycle; BPP→BAP provider-initiated notifications.\
+        \ encoded as `BLAKE2b-512={Base64}`.\n\nUsed for: CN→PN requests across\
+        \ all phases of the value-exchange lifecycle; PN→CN provider-initiated notifications.\
         \ The receiving actor verifies it against the sender's registered public key.\
         \ Requests with an absent, expired, or unverifiable Signature MUST be rejected\
-        \ with 401 NackUnauthorized.\n\nFor BPP solicited callbacks, use CallbackSignature\
+        \ with 401 NackUnauthorized.\n\nFor PN solicited callbacks, use CallbackSignature\
         \ instead. For synchronous response signing, see components/headers/AckSignatureHeader.\
         \ See NFH-004 Authentication and Trust for the full specification."
       type: string
@@ -3651,21 +3653,21 @@ components:
     CallbackSignature:
       title: Beckn HTTP Callback Signature
       description: "A digitally signed authentication credential transmitted in the\
-        \ HTTP Authorization header of BPP solicited callbacks to BAP `/on_*` endpoints.\
-        \ Extends the standard Signature by chaining the BPP's signature to the BAP's\
-        \ original request signature, allowing the BAP to verify that the callback\
-        \ is a genuine response to a request it sent.\n\nThe BPP produces this by\
+        \ HTTP Authorization header of PN solicited callbacks to CN `/on_*` endpoints.\
+        \ Extends the standard Signature by chaining the PN's signature to the CN's\
+        \ original request signature, allowing the CN to verify that the callback\
+        \ is a genuine response to a request it sent.\n\nThe PN produces this by\
         \ signing a four-line canonical signing string with its Ed25519 private key:\n\
         \n    (created): {unix_timestamp}\n    (expires): {unix_timestamp}\n    digest:\
         \ BLAKE2b-512={base64_callback_body_hash}\n    request-signature: {bap_raw_base64_signature}\n\
         \nThe fourth line (`request-signature`) contains the raw Base64 Ed25519 signature\
-        \ value extracted verbatim from the `signature=\"...\"` field of the BAP's\
+        \ value extracted verbatim from the `signature=\"...\"` field of the CN's\
         \ original `Authorization` header. This binds the callback cryptographically\
         \ to the triggering request.\n\nThe `headers` attribute MUST be `\"(created)\
-        \ (expires) digest request-signature\"`. The `keyId` identifies the BPP signer.\
+        \ (expires) digest request-signature\"`. The `keyId` identifies the PN signer.\
         \ The algorithm MUST be `ed25519`. The body digest covers the callback body\
-        \ using BLAKE2b-512.\n\nUsed for: BPP→BAP solicited callbacks only. For provider-initiated\
-        \ notifications (no preceding BAP request), use the standard Signature schema\
+        \ using BLAKE2b-512.\n\nUsed for: PN→CN solicited callbacks only. For provider-initiated\
+        \ notifications (no preceding CN request), use the standard Signature schema\
         \ instead. For synchronous response signing, see components/headers/AckSignatureHeader.\
         \ See NFH-004 Authentication and Trust §6 for the full callback signing procedure."
       type: string
@@ -3690,7 +3692,7 @@ components:
         \ (expires) digest request-signature\"`. The `keyId` identifies the responding\
         \ NP. The algorithm MUST be `ed25519`. The body digest covers the response\
         \ body using BLAKE2b-512.\n\nUsed for: all synchronous HTTP responses across\
-        \ all Beckn endpoints. For request signing, see Signature. For BPP solicited\
+        \ all Beckn endpoints. For request signing, see Signature. For PN solicited\
         \ callback signing, see CallbackSignature. See NFH-004 Authentication and\
         \ Trust §5 for the full response signing procedure."
       type: string
@@ -3704,9 +3706,9 @@ components:
         \ related to an entity associated with a contract, carrying the entity reference,\
         \ a description of the support need, and the available or assigned support\
         \ channels.\n\nSupport appears in the post-performance phase of the value-exchange\
-        \ lifecycle, within SupportAction (produced by the BAP) and OnSupportAction\
-        \ (produced by the BPP). The BAP constructs it to describe the nature and\
-        \ target of the support request; the BPP returns it with populated channel\
+        \ lifecycle, within SupportAction (produced by the CN) and OnSupportAction\
+        \ (produced by the PN). The CN constructs it to describe the nature and\
+        \ target of the support request; the PN returns it with populated channel\
         \ details and, when a ticket has been created, the ticket reference.\n\nRelationship:\
         \ Composed within the SupportAction and OnSupportAction schemas as the primary\
         \ carrier. The channels field composes Attributes schemas to express domain-specific\
@@ -3734,7 +3736,7 @@ components:
         \ request such as finding resources within a geographic area, along a route,\
         \ or within a distance of a reference point.\n\nSpatialConstraint appears\
         \ exclusively within the Intent schema during the discovery phase of the value-exchange\
-        \ lifecycle. The BAP constructs it to express the consumer's geographic search\
+        \ lifecycle. The CN constructs it to express the consumer's geographic search\
         \ criteria; the DS (Discovery Service) applies it as a spatial filter against\
         \ catalog items' geometry fields.\n\nThe op field MUST be one of the standard\
         \ OGC CQL2 spatial operators: S_WITHIN (catalog geometry is completely inside\
@@ -3803,8 +3805,8 @@ components:
         \ the period during which a catalog, offer, or resource is valid and available\
         \ for discovery and commitment.\n\nTimePeriod appears in the discovery and\
         \ negotiation phases of the value-exchange lifecycle, within Catalog.validity\
-        \ and Offer.validity. The BPP assigns validity windows to catalog and offer\
-        \ entries; the BAP consumes them to determine whether a catalog or offer is\
+        \ and Offer.validity. The PN assigns validity windows to catalog and offer\
+        \ entries; the CN consumes them to determine whether a catalog or offer is\
         \ currently available. At least one of startDate, endDate, or a startTime\
         \ and endTime pair MUST be provided.\n\nRelationship: Used by composition\
         \ within the Catalog and Offer schemas via the validity field."
@@ -3841,13 +3843,13 @@ components:
       additionalProperties: false
 
     Tracking:
-      description: "A handle that provides the BAP with the URL or WebSocket endpoint\
+      description: "A handle that provides the CN with the URL or WebSocket endpoint\
         \ needed to subscribe to real-time position and progress updates for an active\
         \ fulfillment stage of a confirmed contract.\n\nTracking appears in the fulfillment\
         \ phase of the value-exchange lifecycle, within TrackAction (produced by the\
-        \ BAP) and OnTrackAction (produced by the BPP). The BPP produces it when a\
+        \ CN) and OnTrackAction (produced by the PN). The PN produces it when a\
         \ /track request is received, supplying the live data stream endpoint and\
-        \ indicating whether tracking is currently active or inactive; the BAP consumes\
+        \ indicating whether tracking is currently active or inactive; the CN consumes\
         \ it to connect to the real-time data stream.\n\nRelationship: Composed within\
         \ the TrackAction and OnTrackAction schemas as the primary carrier. The contract\
         \ field composes the Contract schema (with a required id) to identify the\
@@ -3880,7 +3882,7 @@ components:
 
     Ack:
       description: "The synchronous acknowledgement body returned by the implementing\
-        \ actor (BPP or BAP) for every accepted Beckn request, carrying the processing\
+        \ actor (PN or CN) for every accepted Beckn request, carrying the processing\
         \ status and a messageId of the received request.\n\nAck appears\
         \ as the response body for every 200 response across all phases of the value-exchange\
         \ lifecycle. The implementing actor also signs the response digest and returns \
@@ -3919,7 +3921,7 @@ components:
         \ inventory is unavailable, or the provider is closed.\n\nAckNoCallback appears as\
         \ the response body for 409 responses across all phases of the value-exchange\
         \ lifecycle where the endpoint supports this response code. The implementing\
-        \ actor (BPP, DS, or CS) produces it; the calling actor (BAP or BPP) consumes\
+        \ actor (PN, DS, or CS) produces it; the calling actor (CN or PN) consumes\
         \ the error field to understand why no callback will follow and to decide\
         \ whether to modify and resubmit the request.\n\nRelationship: Extends the\
         \ Ack schema, inheriting status and signature fields and adding a required\
@@ -3954,7 +3956,7 @@ components:
         \ fails semantic validation, indicating that the implementing actor has not\
         \ processed the request.\n\nNackBadRequest appears as the response body for\
         \ 400 responses across all phases of the value-exchange lifecycle. The implementing\
-        \ actor (BPP, BAP, or Fabric service) produces it; the calling actor MUST\
+        \ actor (PN, CN, or Fabric service) produces it; the calling actor MUST\
         \ correct the request before retrying.\n\nRelationship: Extends the Ack schema\
         \ with status constrained to NACK and adds an error field composed of an Error\
         \ schema describing the validation failure."
@@ -3984,7 +3986,7 @@ components:
         \ public key returned by the subnet registry lookup, indicating that the implementing\
         \ actor has not authenticated or processed the request.\n\nNackUnauthorized\
         \ appears as the response body for 401 responses across all phases of the\
-        \ value-exchange lifecycle. The implementing actor (BPP, BAP, or Fabric service)\
+        \ value-exchange lifecycle. The implementing actor (PN, CN, or Fabric service)\
         \ produces it; the calling actor MUST correct its signing credential or key\
         \ registration before retrying.\n\nRelationship: Extends the Ack schema with\
         \ status constrained to NACK and adds an error field composed of an Error\
@@ -4186,11 +4188,11 @@ components:
 
     CatalogSubscribeAction:
       type: object
-      description: "The real-world act by which the BAP declares its subscription\
+      description: "The real-world act by which the CN declares its subscription\
         \ preferences to the DS (Discovery Service), specifying which networks and\
         \ schema types it wishes to receive ongoing catalog delivery callbacks for.\n\
         \nThis schema appears in the Catalog Publishing phase of the value-exchange\
-        \ lifecycle. The BAP produces it as the message payload of a /catalog/subscription\
+        \ lifecycle. The CN produces it as the message payload of a /catalog/subscription\
         \ request; the DS consumes it to create and persist a subscription record\
         \ that governs future catalog delivery.\n\nFabric context: Processed by the\
         \ DS, which persists the subscription and uses it to determine which newly\
@@ -4227,12 +4229,12 @@ components:
     CatalogSubscription:
       type: object
       description: "The persisted subscription record held by the DS (Discovery Service),\
-        \ representing a BAP's declared interest in receiving catalog delivery callbacks\
+        \ representing a CN's declared interest in receiving catalog delivery callbacks\
         \ for specific networks and schema types, along with its current lifecycle\
         \ status and delivery configuration.\n\nCatalogSubscription appears in the\
         \ Catalog Publishing phase. The DS produces it as a response to /catalog/subscription\
         \ (creation), /catalog/subscriptions (listing), /catalog/subscription/{id}\
-        \ (retrieval), and DELETE /catalog/subscription/{id} (deactivation). The BAP\
+        \ (retrieval), and DELETE /catalog/subscription/{id} (deactivation). The CN\
         \ consumes it to confirm subscription state and delivery configuration.\n\n\
         Fabric context: Managed exclusively by the DS, which evaluates ACTIVE subscriptions\
         \ against newly indexed catalogs to determine delivery targets.\n\nRelationship:\
@@ -4283,7 +4285,7 @@ components:
         \ Service) attempts to deliver catalog callbacks to a subscriber's callback\
         \ URL, including per-request timeout, maximum payload size, and exponential\
         \ backoff parameters.\n\nDeliveryPolicy appears in the Catalog Publishing\
-        \ phase. The BAP provides it within a CatalogSubscribeAction to configure\
+        \ phase. The CN provides it within a CatalogSubscribeAction to configure\
         \ delivery behavior; the DS persists it as part of the CatalogSubscription\
         \ record and applies it when delivering on_discover callbacks to the subscriber.\n\
         \nFabric context: Applied exclusively by the DS when delivering catalog payloads\
@@ -4323,8 +4325,8 @@ components:
         \ the size, position, and count of the returned result set, enabling callers\
         \ to navigate through large result sets using offset-based pagination.\n\n\
         Pagination appears in list responses such as /catalog/subscriptions and /catalog/master/search.\
-        \ The DS (Discovery Service) and CS (Cataloging Service) produce it; the BAP\
-        \ or BPP consumes it to determine whether additional pages are available and\
+        \ The DS (Discovery Service) and CS (Cataloging Service) produce it; the CN\
+        \ or PN consumes it to determine whether additional pages are available and\
         \ to construct subsequent requests.\n\nRelationship: Composed within the response\
         \ message objects of /catalog/subscriptions and /catalog/master/search endpoints."
       properties:
@@ -4343,7 +4345,7 @@ components:
       description: "The real-world act by which a caller queries the CS (Cataloging\
         \ Service) for canonical master catalog items stored in the catalog repository,\
         \ applying optional network and schema type filters with pagination control.\n\
-        \nThis schema appears in the Master Resource Search phase. The BAP or BPP\
+        \nThis schema appears in the Master Resource Search phase. The CN or PN\
         \ produces it as the message payload of a /catalog/master/search request;\
         \ the CS consumes it to filter and return matching master items with pagination\
         \ metadata.\n\nFabric context: Processed by the CS, which queries its canonical\
@@ -4381,13 +4383,13 @@ components:
 
     CatalogPullAction:
       type: object
-      description: "The real-world act by which the BAP initiates an asynchronous\
+      description: "The real-world act by which the CN initiates an asynchronous\
         \ bulk catalog retrieval from the CS (Cataloging Service), specifying whether\
         \ to retrieve the latest version of each matching catalog (FULL mode) or all\
         \ catalog versions within a date range (INCREMENTAL mode).\n\nThis schema\
-        \ appears in the Catalog Pull phase. The BAP produces it as the message payload\
+        \ appears in the Catalog Pull phase. The CN produces it as the message payload\
         \ of a /catalog/pull request; the CS consumes it to process the pull request\
-        \ asynchronously and deliver results via a callback to the BAP's on_catalog_pull\
+        \ asynchronously and deliver results via a callback to the CN's on_catalog_pull\
         \ endpoint.\n\nFabric context: Processed by the CS, which retrieves matching\
         \ catalogs from its store and delivers them asynchronously.\n\nRelationship:\
         \ Composed as the message payload of the /catalog/pull request body."
@@ -4441,7 +4443,7 @@ components:
         \ was written to disk by the CS (Cataloging Service) rather than delivered\
         \ inline in the callback body.\n\nPullResultFile appears in the Catalog Pull\
         \ phase. The CS produces it and writes it to disk when the result exceeds\
-        \ the inline threshold; the BAP retrieves it by constructing the download\
+        \ the inline threshold; the CN retrieves it by constructing the download\
         \ URL from the requestId echoed in the pull ACK response and the objectUrl\
         \ field in the callback.\n\nFabric context: Produced and served exclusively\
         \ by the CS.\n\nRelationship: The catalogs array carries the same structure\

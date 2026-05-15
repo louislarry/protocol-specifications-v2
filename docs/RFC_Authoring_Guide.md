@@ -277,7 +277,7 @@ Protocol concepts MUST be interpreted consistently across domains, regions, and 
 
 > **RFC authorship test:** Read every normative term in the RFC in the context of three different industries and three different regions. If the term acquires a different meaning in any of those contexts, it is NOT yet precise enough and MUST be redefined.
 
-> **Failure mode:** Using the term "subscription" without qualification when it could mean a BAP's catalog subscription, a commercial service subscription, or a pub/sub channel registration depending on the domain.
+> **Failure mode:** Using the term "subscription" without qualification when it could mean a CN's catalog subscription, a commercial service subscription, or a pub/sub channel registration depending on the domain.
 
 ---
 
@@ -375,7 +375,7 @@ The Abstract MUST NOT use forward references to sections of the RFC body. It MUS
 
 #### ✓ Preferred — Abstract
 
-> This RFC introduces an asynchronous catalog pull mechanism for Beckn Protocol v2.0.0, motivated by the NFH Fabric's shift to event-driven catalog delivery. Currently, subscribers receiving catalog updates must poll a download endpoint to retrieve results, which imposes unnecessary load on the Catalog Service and delays delivery of time-sensitive catalog changes. This RFC specifies a subscription-scoped `POST /catalog/pull` endpoint and a corresponding `POST /catalog/on_pull` callback, allowing a BAP to request a catalog snapshot and receive it asynchronously. The synchronous download endpoint is replaced by an `objectUrl` field in the callback payload. This RFC does NOT address real-time streaming of catalog updates, catalog filtering beyond subscription scope, or BAP-to-BPP direct catalog queries. It MUST be read alongside the companion schema changes in PR #NNN.
+> This RFC introduces an asynchronous catalog pull mechanism for Beckn Protocol v2.0.0, motivated by the NFH Fabric's shift to event-driven catalog delivery. Currently, subscribers receiving catalog updates must poll a download endpoint to retrieve results, which imposes unnecessary load on the Catalog Service and delays delivery of time-sensitive catalog changes. This RFC specifies a subscription-scoped `POST /catalog/pull` endpoint and a corresponding `POST /catalog/on_pull` callback, allowing a CN to request a catalog snapshot and receive it asynchronously. The synchronous download endpoint is replaced by an `objectUrl` field in the callback payload. This RFC does NOT address real-time streaming of catalog updates, catalog filtering beyond subscription scope, or CN-to-PN direct catalog queries. It MUST be read alongside the companion schema changes in PR #NNN.
 
 The problem is stated. The Fabric motivation is named. The mechanism is specified. The out-of-scope is explicit. The companion artifact is referenced.
 
@@ -425,13 +425,13 @@ The Motivation section MUST contain four subsections:
 
 #### ✓ Preferred — Motivation section
 
-> **7.1 Current State.** The `/confirm` endpoint in Beckn Protocol v2.0.0 returns a synchronous `Ack` and subsequently triggers `/on_confirm` on the BAP's callback URI. The BPP is responsible for constructing the `Contract` object and transmitting it in the callback. Currently, no mechanism exists for either party to signal that the contract terms require renegotiation after `on_init` but before `on_confirm`.
+> **7.1 Current State.** The `/confirm` endpoint in Beckn Protocol v2.0.0 returns a synchronous `Ack` and subsequently triggers `/on_confirm` on the CN's callback URI. The PN is responsible for constructing the `Contract` object and transmitting it in the callback. Currently, no mechanism exists for either party to signal that the contract terms require renegotiation after `on_init` but before `on_confirm`.
 >
-> **7.2 Identified Problems.** (1) When the BPP detects an inventory change between `on_init` and `on_confirm`, it has no protocol-level path to propose revised terms — it can only confirm or Nack. (2) An AI Agent acting as BAP cannot autonomously renegotiate; it receives a Nack and must re-initiate the full select/init cycle with no information about why the terms changed. (3) This creates unnecessary latency in high-frequency AI Agent transactions where minor term adjustments are common.
+> **7.2 Identified Problems.** (1) When the PN detects an inventory change between `on_init` and `on_confirm`, it has no protocol-level path to propose revised terms — it can only confirm or Nack. (2) An AI Agent acting as CN cannot autonomously renegotiate; it receives a Nack and must re-initiate the full select/init cycle with no information about why the terms changed. (3) This creates unnecessary latency in high-frequency AI Agent transactions where minor term adjustments are common.
 >
 > **7.3 Why the Current Design Cannot Be Extended.** Adding an optional field to the `/on_confirm` payload to carry revised terms would conflate confirmation with counter-proposal, violating the protocol invariant that `/on_confirm` MUST carry a binding commitment. A new exchange is required.
 >
-> **7.4 Requirements.** (R1) The BPP MUST be able to propose revised terms after `on_init` without abandoning the active transaction. (R2) The BAP MUST be able to accept or reject revised terms without re-initiating the full select/init cycle. (R3) An AI Agent acting as BAP MUST be able to evaluate and respond to revised terms without human input. (R4) The mechanism MUST NOT alter the semantics of the existing `/confirm` and `/on_confirm` exchange.
+> **7.4 Requirements.** (R1) The PN MUST be able to propose revised terms after `on_init` without abandoning the active transaction. (R2) The CN MUST be able to accept or reject revised terms without re-initiating the full select/init cycle. (R3) An AI Agent acting as CN MUST be able to evaluate and respond to revised terms without human input. (R4) The mechanism MUST NOT alter the semantics of the existing `/confirm` and `/on_confirm` exchange.
 
 #### ✗ Avoid — Missing Motivation
 
@@ -461,7 +461,7 @@ This describes what changed, NOT why.
 
 Every actor participating in any flow introduced or modified by this RFC MUST be defined in a table stating: the actor's protocol identity, their role in this RFC's flows, which endpoints they invoke, and which endpoints they implement. Any actor whose identity is established through a specific mechanism MUST have that mechanism stated here.
 
-Permissible actors in core protocol RFCs targeting this repository are: BAP, BPP, CS, Fabric. The BG (Beckn Gateway) has been removed from the v2.0.0 architecture and MUST NOT appear in new RFCs targeting this repository.
+Permissible actors in core protocol RFCs targeting this repository are: CN, PN, CS, Fabric. The BG (Beckn Gateway) has been removed from the v2.0.0 architecture and MUST NOT appear in new RFCs targeting this repository.
 
 ---
 
@@ -497,21 +497,21 @@ For every flow, the RFC MUST confirm that an AI Agent can participate without hu
 
 #### ✓ Preferred — Normative flow statement
 
-> Upon receiving a `POST /confirm` request, the BPP MUST validate the Beckn HTTP Signature as specified in [Authentication and Trust](./Authentication_and_Trust.md). If signature validation fails, the BPP MUST return `NackUnauthorized` (HTTP 401) and MUST NOT invoke the callback. If the `transactionId` in the request `context` does NOT correspond to an active initialized transaction, the BPP MUST return `NackBadRequest` (HTTP 400). Upon successful validation and processing, the BPP MUST return `Ack` synchronously and MUST subsequently invoke `POST /on_confirm` on the BAP's registered callback URI, carrying a confirmed `Contract` object in the `message` field. An AI Agent acting as BAP MUST be able to process the `Contract` object in the callback and determine next-step actions without human input, based solely on the fields defined in the `Contract` schema.
+> Upon receiving a `POST /confirm` request, the PN MUST validate the Beckn HTTP Signature as specified in [Authentication and Trust](./Authentication_and_Trust.md). If signature validation fails, the PN MUST return `NackUnauthorized` (HTTP 401) and MUST NOT invoke the callback. If the `transactionId` in the request `context` does NOT correspond to an active initialized transaction, the PN MUST return `NackBadRequest` (HTTP 400). Upon successful validation and processing, the PN MUST return `Ack` synchronously and MUST subsequently invoke `POST /on_confirm` on the CN's registered callback URI, carrying a confirmed `Contract` object in the `message` field. An AI Agent acting as CN MUST be able to process the `Contract` object in the callback and determine next-step actions without human input, based solely on the fields defined in the `Contract` schema.
 
 #### ✗ Avoid — Informal flow description
 
 **Variant A — Missing normative language:**
 
-> "After the BPP gets the confirm request, it will validate it and send back a callback with the contract. The BAP can then proceed."
+> "After the PN gets the confirm request, it will validate it and send back a callback with the contract. The CN can then proceed."
 
 "Will validate" and "can then proceed" are NOT normative. An implementer cannot determine their obligations from this.
 
 **Variant B — Missing error flows:**
 
-> "The BPP confirms the order and returns the contract in the callback."
+> "The PN confirms the order and returns the contract in the callback."
 
-This describes only the happy path. What happens if the signature is invalid? If the transaction ID is unknown? If the BPP cannot reach the BAP callback URI? None of these are specified.
+This describes only the happy path. What happens if the signature is invalid? If the transaction ID is unknown? If the PN cannot reach the CN callback URI? None of these are specified.
 
 ---
 
@@ -665,7 +665,7 @@ This section catalogs authoring failures observed in RFC submissions to the Beck
 
 **Consequence:** Creates a maintenance burden, introduces ambiguity about which document is authoritative, and dilutes the RFC's value as a reasoning document.
 
-**Conformant approach:** The RFC MAY reference specific schema names and field names by citation. It MUST NOT reproduce their definitions. Write: *"The `resultUrl` field (defined in `beckn.yaml` §components/schemas) MUST be verified by the BAP before processing."*
+**Conformant approach:** The RFC MAY reference specific schema names and field names by citation. It MUST NOT reproduce their definitions. Write: *"The `resultUrl` field (defined in `beckn.yaml` §components/schemas) MUST be verified by the CN before processing."*
 
 ---
 
@@ -864,9 +864,9 @@ This document reflects input from Beckn Protocol contributors and the Core Worki
 ### Example 1 — Conformant Motivation Requirements Block
 
 > **7.4 Requirements.**
-> - **R1:** The BPP MUST be able to signal revised contract terms to the BAP after `on_init` without abandoning the active transaction.
-> - **R2:** The BAP MUST be able to accept or reject revised terms without re-initiating the full select/init cycle.
-> - **R3:** An AI Agent acting as BAP MUST be able to evaluate and respond to revised terms without human input at any step.
+> - **R1:** The PN MUST be able to signal revised contract terms to the CN after `on_init` without abandoning the active transaction.
+> - **R2:** The CN MUST be able to accept or reject revised terms without re-initiating the full select/init cycle.
+> - **R3:** An AI Agent acting as CN MUST be able to evaluate and respond to revised terms without human input at any step.
 > - **R4:** The mechanism MUST NOT alter the semantics of the existing `/confirm` and `/on_confirm` exchange.
 > - **R5:** The flow MUST be scoped to an active transaction identified by `context.transactionId`.
 
@@ -874,7 +874,7 @@ Each requirement is testable, actor-attributed, and directly traceable to a prob
 
 ### Example 2 — Conformant Normative Flow Statement
 
-> Upon receiving `POST /confirm`, the BPP MUST validate the Beckn HTTP Signature as specified in [Authentication and Trust](./Authentication_and_Trust.md). If validation fails, the BPP MUST return `NackUnauthorized` (HTTP 401) and MUST NOT invoke the callback. If the `transactionId` does NOT correspond to an active initialized transaction, the BPP MUST return `NackBadRequest` (HTTP 400). Upon successful validation, the BPP MUST return `Ack` synchronously and MUST subsequently invoke `POST /on_confirm` on the BAP's registered callback URI with a confirmed `Contract` object. An AI Agent acting as BAP MUST be able to process the `Contract` object and determine next-step actions without human input, based solely on the fields defined in the `Contract` schema.
+> Upon receiving `POST /confirm`, the PN MUST validate the Beckn HTTP Signature as specified in [Authentication and Trust](./Authentication_and_Trust.md). If validation fails, the PN MUST return `NackUnauthorized` (HTTP 401) and MUST NOT invoke the callback. If the `transactionId` does NOT correspond to an active initialized transaction, the PN MUST return `NackBadRequest` (HTTP 400). Upon successful validation, the PN MUST return `Ack` synchronously and MUST subsequently invoke `POST /on_confirm` on the CN's registered callback URI with a confirmed `Contract` object. An AI Agent acting as CN MUST be able to process the `Contract` object and determine next-step actions without human input, based solely on the fields defined in the `Contract` schema.
 
 ---
 
