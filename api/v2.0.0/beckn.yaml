@@ -1329,7 +1329,7 @@ paths:
                     - catalogId: MASTER-ELECTRONICS-2026
                       visibleTo:
                       - retail-network
-                      catalogType: master
+                      catalogType: MASTER
                       updateMode: FULL
                     catalogs:
                     - id: MASTER-ELECTRONICS-2026
@@ -1365,7 +1365,7 @@ paths:
                   message:
                     publishDirectives:
                     - catalogId: CAT-TECHMART-2026
-                      catalogType: regular
+                      catalogType: REGULAR
                       updateMode: MERGE
                       resourceDirectives:
                       - resourceId: ITEM-LAPTOP-XPS-15-TECHMART
@@ -1406,7 +1406,7 @@ paths:
                       visibleTo:
                       - grocery-network
                       - hyperlocal-network
-                      catalogType: regular
+                      catalogType: REGULAR
                       updateMode: MERGE
                       resourceDirectives:
                       - resourceId: ITEM-RICE-FRESHMART-BLR
@@ -1446,7 +1446,7 @@ paths:
                   message:
                     publishDirectives:
                     - catalogId: CAT-TECHMART-OFFERS-2026
-                      catalogType: regular
+                      catalogType: REGULAR
                       updateMode: MERGE
                     catalogs:
                     - id: CAT-TECHMART-OFFERS-2026
@@ -1832,9 +1832,9 @@ paths:
         \ relationship: The CS processes the pull request asynchronously and delivers\
         \ results via POST to the /catalog/on_pull callback. When the payload is\
         \ small it is returned inline; when the result is too large to return inline\
-        \ the callback carries an objectUrl for downloading the result.\
-        \ The response Ack confirms acceptance; the requestId is delivered in the\
-        \ /catalog/on_pull callback.\n\nA 200 Ack confirms the pull request was accepted;\
+        \ the callback carries a downloadManifest for downloading the result.\
+        \ The BAP MUST use context.messageId to correlate the /catalog/on_pull\
+        \ callback with the originating request.\n\nA 200 Ack confirms the pull request was accepted;\
         \ results will be delivered asynchronously via /catalog/on_pull. A 400 NackBadRequest\
         \ is returned when the subscriptionId is missing or not a valid UUID, or when\
         \ the mode, fromDate, or toDate values are invalid. A 401 NackUnauthorized\
@@ -1903,13 +1903,13 @@ paths:
         \ Participant (BAP) to deliver the results of a previously accepted /catalog/pull\
         \ request.\n\nAdditional preconditions: A /catalog/pull request MUST have\
         \ been sent by the BAP and accepted (200 Ack) by the CS before this callback\
-        \ is triggered. The callback is correlated to the originating request via\
-        \ the requestId field in CatalogPullCallbackAction.\n\nFabric context: This\
+        \ is triggered. The BAP MUST use context.messageId to correlate\
+        \ this callback with the originating /catalog/pull request.\n\nFabric context: This\
         \ callback is sent by the CS after processing the pull request. The CS delivers\
-        \ the results to the BAP's registered endpoint.\n\nThe message MUST contain a CatalogPullCallbackAction with the\
-        \ requestId echoed from the pull request, a status of COMPLETED or FAILED,\
-        \ and either an inline catalogs array (small payload) or an objectUrl for\
-        \ downloading the result (large payload).\n\nA 200 Ack confirms the callback\
+        \ the results to the BAP's registered endpoint.\n\nThe message MUST contain a CatalogPullCallbackAction with\
+        \ a status of COMPLETED or FAILED,\
+        \ and either an inline catalogs array (small payload) or a downloadManifest\
+        \ for downloading the result (large payload).\n\nA 200 Ack confirms the callback\
         \ was received and accepted by the BAP. A 400 NackBadRequest is returned\
         \ when the payload is malformed or required fields are missing. A 401 NackUnauthorized\
         \ is returned when the Authorization header (callback) signature is invalid.\
@@ -1964,7 +1964,7 @@ paths:
         \ (default 0).\n\nFabric context: This endpoint is hosted by the CS. The\
         \ CS queries the master resource index and returns matching items synchronously.\n\nThe message MUST contain a MasterSearchAction with optional\
         \ filters for networkIds and schemaTypes, and optional pagination parameters.\
-        \ All responses are wrapped in a Beckn envelope with action set to \"catalog/on_master_search\".\n\
+        \ All responses are wrapped in a Beckn envelope with action set to \"catalog/on_master/search\".\n\
         \nA 200 response returns the matching master catalog items directly in a catalogs\
         \ array.\
         \ A 400 NackBadRequest is returned for an invalid payload or out-of-range\
@@ -1994,7 +1994,7 @@ paths:
                     properties:
                       action:
                         type: string
-                        const: catalog/master_search
+                        const: catalog/master/search
                 message:
                   $ref: '#/components/schemas/MasterSearchAction'
       responses:
@@ -2015,7 +2015,7 @@ paths:
                       properties:
                         action:
                           type: string
-                          const: catalog/on_master_search
+                          const: catalog/on_master/search
                   message:
                     type: object
                     required:
@@ -2073,7 +2073,7 @@ paths:
                       properties:
                         action:
                           type: string
-                          const: catalog/on_master_search
+                          const: catalog/on_master/search
                   message:
                     type: object
                     required:
@@ -2138,7 +2138,7 @@ paths:
                       properties:
                         action:
                           type: string
-                          const: catalog/on_master_search
+                          const: catalog/on_master/search
                   message:
                     type: object
                     required:
@@ -2265,7 +2265,7 @@ components:
                 type: string
                 description: >-
                   Identifier of the catalog these instructions apply
-                  to. Must exactly match a catalog `id` in the
+                  to. MUST exactly match a catalog `id` in the
                   `catalogs` array of this request.
                 example: CAT-SUMMER-TECHMART-2026
               visibleTo:
@@ -2273,27 +2273,29 @@ components:
                 items:
                   type: string
                 description: >-
-                  Restricts this catalog's visibility to the listed
-                  networks. When omitted, falls back to
-                  `context.networkId`, then to the default global
-                  the deployment's default network.
+                  Restricts delivery of this catalog to the listed
+                  network participant identifiers. Values MUST be
+                  registry-registered network participant identifiers.
+                  Assigned by the BPP; enforced by the CS at delivery
+                  time. When omitted, the catalog is visible to all
+                  eligible subscribers.
                 example:
                 - retail-network
                 - mobility-network
               catalogType:
                 type: string
                 enum:
-                - master
-                - regular
+                - MASTER
+                - REGULAR
                 description: >-
                   Declares the type of this catalog.
 
-                  `master` — Canonical resource definitions reusable
+                  `MASTER` — Canonical resource definitions reusable
                   across the network.
 
-                  `regular` — Provider-specific catalog that can
+                  `REGULAR` — Provider-specific catalog that can
                   optionally extend master resources.
-                example: regular
+                example: REGULAR
               updateMode:
                 type: string
                 enum:
@@ -4542,12 +4544,20 @@ components:
               type: array
               items:
                 type: string
-              description: Network IDs to subscribe to.
+              description: >-
+                Registry-registered network identifiers provided by the
+                BAP. The CS scopes catalog/push delivery to subscribers
+                whose networkIds match the published catalog's network.
             schemaTypes:
               type: array
               items:
                 type: string
-              description: Schema type URIs to filter on (empty = all types).
+              description: >-
+                Schema type URIs as published at schema.beckn.io,
+                provided by the BAP. The CS filters catalog/push delivery
+                to subscribers whose schemaTypes intersect the published
+                catalog's schema types. An empty array matches all schema
+                types for the specified networks.
 
     CatalogSubscription:
       type: object
@@ -4565,26 +4575,39 @@ components:
         \ paused; can be reactivated via POST update)."
       required:
       - subscriptionId
-      - subscriberId
       - status
       properties:
         subscriptionId:
           type: string
           format: uuid
-          description: Server-generated unique identifier.
+          description: >-
+            UUID v4 assigned by the CS on subscription creation. Stable
+            for the lifetime of the subscription. MUST be supplied by
+            the BAP in all subsequent subscription management operations
+            (update, deactivate, pull).
         subscriberId:
           type: string
-          description: Subscribing organisation's identity on the network.
+          description: >-
+            Identity of the subscribing BAP as extracted by the CS from
+            the signing key in the Beckn HTTP Signature Authorization
+            header. NOT supplied by the BAP in the request body. Optional
+            in the response — callers MAY infer the subscriber identity
+            from the Authorization header used in the request.
         networkIds:
           type: array
           items:
             type: string
-          description: Network IDs this subscription covers.
+          description: >-
+            Registry-registered network identifiers this subscription
+            covers. Sourced from the CatalogSubscribeAction; used by the
+            CS to scope catalog/push delivery.
         schemaTypes:
           type: array
           items:
             type: string
-          description: Schema types to filter on (empty = all types).
+          description: >-
+            Schema type URIs this subscription filters on. An empty array
+            matches all schema types for the subscribed networks.
         status:
           type: string
           enum:
@@ -4622,15 +4645,22 @@ components:
         total:
           type: integer
           minimum: 0
-          description: Total matching records
+          description: >-
+            Total number of matching records across the entire result set,
+            not the count in this page. Assigned by the CS.
         limit:
           type: integer
           minimum: 1
-          description: Page size used in this response
+          description: >-
+            Maximum number of records returned in this page. Assigned by
+            the CS based on the request parameter or CS policy.
         offset:
           type: integer
           minimum: 0
-          description: Zero-based offset used in this response
+          description: >-
+            Zero-based index of the first record in this page relative to
+            the full result set. Assigned by the CS based on the request
+            parameter.
 
     MasterSearchAction:
       type: object
@@ -4740,39 +4770,42 @@ components:
         \ the subscriber consumes it to retrieve the requested catalog data.\n\nFabric\
         \ context: Produced by the CS after processing the pull request.\
         \ When the result is small it is returned inline in `catalogs`; when the\
-        \ result is too large to return inline the callback carries an `objectUrl`\
+        \ result is too large to return inline the callback carries a `downloadManifest`\
         \ for downloading the result.\n\nRelationship: Composed as the message payload\
-        \ of the /catalog/on_pull callback. References the originating pull request\
-        \ via `requestId`."
+        \ of the /catalog/on_pull callback. The BAP MUST use context.messageId\
+        \ to correlate this callback with the originating /catalog/pull request."
       additionalProperties: false
       required:
-      - requestId
       - status
       properties:
-        requestId:
-          type: string
-          format: uuid
-          description: >-
-            The requestId echoed from the originating /catalog/pull request,
-            used by the subscriber to correlate the async callback with the
-            triggering request.
         status:
           type: string
           enum:
           - COMPLETED
           - FAILED
-          description: Status of the pull request result.
+          description: >-
+            Status of the pull request result assigned by the CS.
+            COMPLETED — the CS successfully assembled the catalog result;
+            the BAP MUST process either catalogs[] or downloadManifest.
+            FAILED — the CS could not assemble the result; the BAP MUST
+            read the error field and MUST NOT attempt to process catalogs
+            or downloadManifest.
         catalogs:
           type: array
           description: Requested catalogs inline. Present when status is COMPLETED.
           items:
             $ref: '#/components/schemas/Catalog'
-        objectUrl:
+        downloadManifest:
           type: object
           description: >-
-            Pre-signed download URL for the result payload. Present
-            when status is COMPLETED and the result is too large to
-            return inline.
+            Metadata required to download, verify, and decode the catalog
+            result payload from object storage. Present when status is
+            COMPLETED and the result is too large to return inline in
+            catalogs[]. Mutually exclusive with catalogs[] — exactly one
+            MUST be present when status is COMPLETED. The BAP MUST
+            download the object at url, verify the checksum before
+            processing, and MUST NOT process the content if verification
+            fails.
           additionalProperties: false
           required:
           - url
@@ -4783,24 +4816,38 @@ components:
           properties:
             url:
               type: string
-              description: Pre-signed object-store download URL.
+              description: >-
+                Pre-signed object-store URL from which the catalog payload
+                can be downloaded. The BAP MUST NOT attempt to download
+                after expiresAt.
             expiresAt:
               type: string
               format: date-time
-              description: URL expiry timestamp.
+              description: >-
+                ISO 8601 timestamp after which url is no longer valid. The
+                BAP MUST NOT attempt to download after this time; if
+                expired, the BAP MUST re-issue POST /catalog/pull.
             format:
               type: string
               enum:
               - json
               - json.gz
-              description: Format of the downloaded payload.
+              description: >-
+                Encoding format of the downloaded payload. The BAP MUST
+                decompress json.gz before parsing.
             sizeBytes:
               type: integer
               minimum: 0
-              description: Size of the payload in bytes.
+              description: >-
+                Size of the payload in bytes after any compression. The BAP
+                MAY use this to validate download completeness.
             checksum:
               type: string
-              description: SHA-256 hex digest prefixed with `sha256:`.
+              description: >-
+                SHA-256 hex digest of the payload at url, prefixed with
+                sha256:. The BAP MUST verify this against the downloaded
+                content before processing. If verification fails, the BAP
+                MUST discard the content and treat the pull as failed.
         pagination:
           $ref: '#/components/schemas/Pagination'
         error:
