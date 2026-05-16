@@ -84,7 +84,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 - **Consumer Node (CN):** A node that initiates forward requests and receives callbacks. Formerly called BAP.
 - **Provider Node (PN):** A node that receives forward requests, sends immediate acknowledgements, and later delivers callbacks. Formerly called BPP.
-- **Discovery Server (DS):** A node that hosts static or dynamic catalogs and responds to `discover` requests from CNs. A DS may multicast the `discover` request to multiple PNs to assemble dynamic catalog responses. Formerly called BG (Beckn Gateway).
+- **Discovery Server (DS):** A node that hosts catalogs and responds to `discover` requests from CNs. To build a dynamic catalog (e.g., real-time availability), a DS may fan out `discover` internally to multiple PNs and aggregate their responses — along with any statically held catalog data — before sending a single `on_discover` back to the CN. A DS MAY also send multiple paginated `on_discover` callbacks for a single `discover` request. Direct forwarding of PN responses to the CN without aggregation is deprecated in Beckn v2. Formerly called BG (Beckn Gateway).
 - **Forward request:** A message sent from a CN to a PN (or from a CN to a DS for discovery) carrying a `context` and `message` payload. The action name corresponds to a Beckn lifecycle step (e.g., `discover`, `select`, `confirm`). When implemented on HTTP, this is a POST request.
 - **Callback:** A message sent in the reverse direction carrying a `context` and `message` payload. The action name is the forward action name prefixed with `on_` (e.g., `on_discover`, `on_select`, `on_confirm`). When implemented on HTTP, this is a POST request.
 - **Ack:** A synchronous HTTP response indicating that the receiving node accepted and queued the request for processing. An Ack is not a business response.
@@ -306,7 +306,7 @@ Beckn Protocol supports multicast patterns in which a single logical request is 
 
 ##### 10.1 Discovery Multicast
 
-When the CN sends a `discover` request for a dynamic catalog — for example, a mobility search where available rides depend on the consumer's real-time location — the DS may not be able to answer from a cached catalog alone. The DS multicasts the `discover` request to multiple PNs to assemble a real-time response. Each PN addressed in the multicast receives the same `transactionId` but a distinct `messageId` assigned by the DS. The PNs respond with `on_discover` callbacks directed to the CN.
+When the CN sends a `discover` request, the DS is responsible for assembling the full catalog response. For dynamic catalogs — for example, a mobility search where available options depend on the consumer's real-time location — the DS fans out the `discover` internally to multiple PNs. Each PN addressed in the fan-out receives the same `transactionId` but a distinct `messageId` assigned by the DS. The DS collects the PN responses and merges them with any statically held catalog data before sending the aggregated `on_discover` back to the CN. The CN sees a single request–callback pair regardless of how many PNs the DS consulted.
 
 ```mermaid
 sequenceDiagram
@@ -314,33 +314,36 @@ sequenceDiagram
     participant DS as Discovery Server
     participant PN1 as Provider Node 1
     participant PN2 as Provider Node 2
-    participant PN3 as Provider Node 3
 
     CN->>DS: POST /discover (transactionId = "txn-A", messageId = "msg-1")
     DS-->>CN: 200 Ack
 
-    Note over DS: DS fans out to multiple PNs with distinct messageIds
+    Note over DS: DS fans out internally for dynamic catalog assembly
 
-    DS->>PN1: POST /discover (transactionId = "txn-A", messageId = "msg-1a")
-    DS->>PN2: POST /discover (transactionId = "txn-A", messageId = "msg-1b")
-    DS->>PN3: POST /discover (transactionId = "txn-A", messageId = "msg-1c")
+    DS->>PN1: POST /discover (transactionId = "txn-A", messageId = "msg-ds-1")
+    DS->>PN2: POST /discover (transactionId = "txn-A", messageId = "msg-ds-2")
     PN1-->>DS: 200 Ack
     PN2-->>DS: 200 Ack
-    PN3-->>DS: 200 Ack
+    PN1->>DS: POST /on_discover (transactionId = "txn-A", messageId = "msg-ds-1")
+    DS-->>PN1: 200 Ack
+    PN2->>DS: POST /on_discover (transactionId = "txn-A", messageId = "msg-ds-2")
+    DS-->>PN2: 200 Ack
 
-    Note over PN1,PN3: PNs respond directly to CN
+    Note over DS: DS aggregates static + dynamic catalogs
 
-    PN1->>CN: POST /on_discover (transactionId = "txn-A", messageId = "msg-1a")
-    CN-->>PN1: 200 Ack
-    PN2->>CN: POST /on_discover (transactionId = "txn-A", messageId = "msg-1b")
-    CN-->>PN2: 200 Ack
-    PN3->>CN: POST /on_discover (transactionId = "txn-A", messageId = "msg-1c")
-    CN-->>PN3: 200 Ack
+    DS->>CN: POST /on_discover (transactionId = "txn-A", messageId = "msg-1")
+    CN-->>DS: 200 Ack
 ```
 
-- The DS MUST use the same `transactionId` from the CN's `discover` request when multicasting to PNs.
-- The DS MUST assign a distinct `messageId` for each PN it addresses in the multicast.
-- Each PN MUST direct its `on_discover` callback to the CN (using the `bapUri` in the context), not to the DS.
+**Paginated responses.** If the aggregated catalog is large, the DS MAY send multiple `on_discover` callbacks for the single `discover` request, each carrying the same `messageId`. The CN MUST treat each arriving `on_discover` as an additional page of the same result set (consistent with the multiple-callbacks pattern in §9) and MUST NOT discard later pages.
+
+**CN calling PNs directly.** A CN is not required to use a DS. A CN MAY call individual PNs directly using the parallel multicast pattern (see §10.2), treating each PN as an independent discover target and aggregating responses at the CN. This is appropriate when the CN already knows which PNs to query.
+
+- The DS MUST use the same `transactionId` from the CN's `discover` request when fanning out to PNs.
+- The DS MUST assign a distinct `messageId` for each PN it addresses in the internal fan-out.
+- The DS MUST aggregate all PN responses together with any static catalog data before sending `on_discover` to the CN.
+- PNs MUST direct their `on_discover` callbacks to the DS (not to the CN) when responding to a DS-initiated fan-out.
+- Direct forwarding of PN `on_discover` responses to the CN without DS aggregation is deprecated in Beckn v2 and MUST NOT be implemented.
 
 ##### 10.2 Parallel Request Multicast
 
@@ -431,7 +434,9 @@ sequenceDiagram
 | CON-013-16 | A `messageId` MUST NOT be reused across different requests within or across transactions. | MUST NOT |
 | CON-013-17 | The `transactionId` MUST NOT be reused across different business transactions. | MUST NOT |
 | CON-013-18 | Every node MUST authenticate each incoming message independently, regardless of prior messages in the same transaction. See [NFH-007](./Authentication_and_Trust.md). | MUST |
-| CON-013-19 | In a multicast flow, the DS or CN MUST assign a distinct `messageId` for each node it addresses while keeping the `transactionId` constant. | MUST |
+| CON-013-19 | In any multicast fan-out (DS to PNs, or CN to PNs directly), the fanning-out node MUST assign a distinct `messageId` for each node it addresses while keeping the `transactionId` constant. | MUST |
+| CON-013-24 | A DS MUST aggregate all PN responses and static catalog data before sending `on_discover` to the CN. Direct forwarding of PN `on_discover` responses to the CN MUST NOT be implemented. | MUST |
+| CON-013-25 | A DS MAY send multiple paginated `on_discover` callbacks for a single `discover` request. The CN MUST NOT discard later pages. | MAY |
 | CON-013-20 | Confirmation or any other action on one network layer MUST NOT be assumed to automatically trigger the corresponding action on a downstream layer. | MUST NOT |
 | CON-013-21 | `context.messageId` MUST be a UUID. | MUST |
 | CON-013-22 | `context.transactionId` MUST be a UUID. | MUST |
@@ -452,6 +457,7 @@ This RFC formalises communication behaviour that has been implicitly expected si
 The following changes require implementer attention:
 
 - `search` / `on_search` are replaced by `discover` / `on_discover` in Beckn v2. These endpoints involve the DS rather than a direct CN↔PN exchange.
+- The pattern in which a DS forwards PN `on_discover` responses directly to the CN without aggregation (as used in Beckn v1 BG implementations) is deprecated. The DS MUST aggregate all responses before delivering `on_discover` to the CN.
 - Implementations that rely on synchronous business responses (i.e., expecting the Ack to carry order or fulfillment data) MUST be refactored to consume the callback endpoint.
 - Implementations in which the CN blocks its workflow awaiting PN state SHOULD be refactored to adopt an independent-workflow model. See [NFH-TBD Independent Workflows](./Independent_Workflows.md).
 
@@ -543,12 +549,11 @@ Any message in this table can be associated with the full session using `transac
 
 This RFC establishes the normative rules for message-level communication on a Beckn-enabled fabric. Implementations that conform to this RFC will correctly handle the two-step request–callback pattern, the stateless state-declaration model, message correlation and session scoping via `messageId` and `transactionId`, PN-initiated callbacks, multicast discovery and parallel value chains, and cascaded network compositions. These rules apply uniformly to AI Agents and conventional software clients alike.
 
-Advancement of this RFC to Candidate status requires at least two independent implementations demonstrating conformance with CON-013-01 through CON-013-23, with particular attention to the PN callback obligation (CON-013-03), PN-initiated callback authentication (CON-013-14), multicast `messageId` assignment (CON-013-19), and UUID format requirements (CON-013-21 and CON-013-22).
+Advancement of this RFC to Candidate status requires at least two independent implementations demonstrating conformance with CON-013-01 through CON-013-25, with particular attention to the PN callback obligation (CON-013-03), PN-initiated callback authentication (CON-013-14), multicast `messageId` assignment (CON-013-19), UUID format requirements (CON-013-21 and CON-013-22), and DS aggregation (CON-013-24).
 
 ### Open Questions
 
 1. When a cascaded flow shares a `transactionId` across layers, how should audit logs from separate network operators be reconciled? Should a separate namespace or prefix be required?
-2. In a discovery multicast, should the DS be required to consolidate `on_discover` responses before forwarding to the CN, or is direct PN→CN delivery the normative model?
 
 ## Acknowledgements
 
