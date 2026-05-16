@@ -55,7 +55,6 @@ This RFC defines how nodes on a Beckn-enabled fabric exchange messages. It speci
       - [Example 1 — Correlated request and callback envelopes](#example-1--correlated-request-and-callback-envelopes)
       - [Example 2 — Shared transactionId across a multi-step transaction](#example-2--shared-transactionid-across-a-multi-step-transaction)
   - [Conclusion](#conclusion)
-    - [Open Questions](#open-questions)
   - [Acknowledgements](#acknowledgements)
   - [References](#references)
 
@@ -550,10 +549,6 @@ Any message in this table can be associated with the full session using `transac
 This RFC establishes the normative rules for message-level communication on a Beckn-enabled fabric. Implementations that conform to this RFC will correctly handle the two-step request–callback pattern, the stateless state-declaration model, message correlation and session scoping via `messageId` and `transactionId`, PN-initiated callbacks, multicast discovery and parallel value chains, and cascaded network compositions. These rules apply uniformly to AI Agents and conventional software clients alike.
 
 Advancement of this RFC to Candidate status requires at least two independent implementations demonstrating conformance with CON-013-01 through CON-013-25, with particular attention to the PN callback obligation (CON-013-03), PN-initiated callback authentication (CON-013-14), multicast `messageId` assignment (CON-013-19), UUID format requirements (CON-013-21 and CON-013-22), and DS aggregation (CON-013-24).
-
-### Open Questions
-
-1. When a cascaded flow shares a `transactionId` across layers, how should audit logs from separate network operators be reconciled? Should a separate namespace or prefix be required?
 
 ## Acknowledgements
 
