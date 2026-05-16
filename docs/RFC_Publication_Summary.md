@@ -20,3 +20,5 @@ For the suggested reading order and document descriptions, see [README.md](./REA
 | [NFH-010](./RFC_Authoring_Guide.md) | RFC Authoring Guide | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
 | [NFH-011](./RFC_Template.md) | RFC Template | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
 | [NFH-012](./Schema_Design_Guide.md) | Schema Design Guide | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-12 | Draft |
+| [NFH-013](./Communication_Protocol.md) | Beckn Communication Model | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-16 | Draft |
+| [NFH-TBD](./Independent_Workflows.md) | Independent Workflows | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-16 | Stub |
