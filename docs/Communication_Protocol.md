@@ -55,6 +55,7 @@ This RFC defines how nodes on a Beckn-enabled fabric exchange messages. It speci
       - [Example 1 — Correlated request and callback envelopes](#example-1--correlated-request-and-callback-envelopes)
       - [Example 2 — Shared transactionId across a multi-step transaction](#example-2--shared-transactionid-across-a-multi-step-transaction)
   - [Conclusion](#conclusion)
+  - [Frequently Asked Questions](#frequently-asked-questions)
   - [Acknowledgements](#acknowledgements)
   - [References](#references)
 
@@ -549,6 +550,24 @@ Any message in this table can be associated with the full session using `transac
 This RFC establishes the normative rules for message-level communication on a Beckn-enabled fabric. Implementations that conform to this RFC will correctly handle the two-step request–callback pattern, the stateless state-declaration model, message correlation and session scoping via `messageId` and `transactionId`, PN-initiated callbacks, multicast discovery and parallel value chains, and cascaded network compositions. These rules apply uniformly to AI Agents and conventional software clients alike.
 
 Advancement of this RFC to Candidate status requires at least two independent implementations demonstrating conformance with CON-013-01 through CON-013-25, with particular attention to the PN callback obligation (CON-013-03), PN-initiated callback authentication (CON-013-14), multicast `messageId` assignment (CON-013-19), UUID format requirements (CON-013-21 and CON-013-22), and DS aggregation (CON-013-24).
+
+## Frequently Asked Questions
+
+**Q: Must `messageId` and `transactionId` be UUIDs, or can any unique string be used?**
+
+Both MUST be UUIDs (CON-013-21, CON-013-22). A UUID is required rather than an arbitrary unique string because its collision probability is well-understood and its format is interoperable across all implementations without requiring a coordination mechanism.
+
+**Q: How long should a CN keep a `messageId` in memory? Is there a timeout?**
+
+A CN MAY retire a `messageId` from its active pending record as soon as the corresponding callback has been received — there is no obligation to retain it beyond that point. There is no normative timeout on how long to wait for a callback before giving up; this is left to the transaction domain and the CN's business logic. It is RECOMMENDED to always generate a fresh `messageId` for each new outbound request rather than recycling a previously retired one, even though retired values are technically no longer in active use.
+
+**Q: Does using the same `transactionId` across multiple networks create reconciliation problems for network operators?**
+
+No. Network operators have no role in `transactionId` management. All Beckn communication is point-to-point between a CN and a PN; the network or networks they belong to are irrelevant to the protocol. There is no rule preventing a node from using the same `transactionId` across multiple networks, and no namespace or prefix mechanism is required.
+
+**Q: In a discovery multicast, should the DS forward individual PN responses directly to the CN, or aggregate them first?**
+
+The DS MUST aggregate all responses — from static catalog data and from dynamic PN callbacks — before sending `on_discover` to the CN (CON-013-24). Direct forwarding of PN `on_discover` responses to the CN was the Beckn v1 BG pattern and is deprecated in Beckn v2. If the aggregated catalog is large, the DS MAY send it in multiple paginated `on_discover` callbacks, each carrying the same `messageId` as the original `discover` request (CON-013-25). A CN that does not want to use a DS MAY call PNs directly using the parallel multicast pattern and aggregate responses itself.
 
 ## Acknowledgements
 
