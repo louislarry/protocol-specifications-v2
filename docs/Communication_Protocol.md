@@ -188,7 +188,8 @@ sequenceDiagram
 - The initiating node MUST assign a globally unique value to `context.messageId` for each forward request.
 - The responding node MUST echo the `context.messageId` from the forward request unchanged in the corresponding callback.
 - The CN SHOULD maintain a record of pending `messageId` values to match arriving callbacks. A callback whose `messageId` does not match any pending request is either a PN-initiated callback (see §8) or a duplicate and SHOULD be handled accordingly.
-- A `messageId` MUST NOT be reused across different requests within or across transactions.
+- A CN MAY retire a `messageId` from its active pending record once the corresponding callback has been received. There is no requirement to retain it in memory beyond that point.
+- A `messageId` MUST NOT be reused across different requests within or across transactions. It is RECOMMENDED to always generate a fresh `messageId` for each outgoing request rather than recycling a previously used value, even one that has been retired from the pending record.
 
 #### 6. Transaction Scoping — context.transactionId
 
@@ -546,9 +547,8 @@ Advancement of this RFC to Candidate status requires at least two independent im
 
 ### Open Questions
 
-1. Should there be a normative timeout after which a CN may treat a pending `messageId` as expired and release the associated state?
-2. When a cascaded flow shares a `transactionId` across layers, how should audit logs from separate network operators be reconciled? Should a separate namespace or prefix be required?
-3. In a discovery multicast, should the DS be required to consolidate `on_discover` responses before forwarding to the CN, or is direct PN→CN delivery the normative model?
+1. When a cascaded flow shares a `transactionId` across layers, how should audit logs from separate network operators be reconciled? Should a separate namespace or prefix be required?
+2. In a discovery multicast, should the DS be required to consolidate `on_discover` responses before forwarding to the CN, or is direct PN→CN delivery the normative model?
 
 ## Acknowledgements
 
