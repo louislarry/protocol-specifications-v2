@@ -89,8 +89,8 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 - **Callback:** A message sent in the reverse direction carrying a `context` and `message` payload. The action name is the forward action name prefixed with `on_` (e.g., `on_discover`, `on_select`, `on_confirm`). When implemented on HTTP, this is a POST request.
 - **Ack:** A synchronous HTTP response indicating that the receiving node accepted and queued the request for processing. An Ack is not a business response.
 - **Nack:** A synchronous HTTP response indicating that the receiving node rejected the request. No callback will follow a Nack.
-- **`context.messageId`:** A unique identifier assigned by the initiating node to a single forward request. The responding node echoes this value in the corresponding callback, allowing the initiator to correlate the callback to its originating request.
-- **`context.transactionId`:** An identifier assigned at the start of a session and carried unchanged across every forward request and callback that belongs to that session. It groups all message pairs — including parallel and cascaded ones — into a single logical unit of work.
+- **`context.messageId`:** A UUID assigned by the initiating node to a single forward request. The responding node echoes this value in the corresponding callback, allowing the initiator to correlate the callback to its originating request.
+- **`context.transactionId`:** A UUID assigned at the start of a session and carried unchanged across every forward request and callback that belongs to that session. It groups all message pairs — including parallel and cascaded ones — into a single logical unit of work.
 - **PN-initiated callback:** A callback sent by a PN to a CN within an active transaction, without a corresponding prior forward request from the CN. The PN assigns a fresh `messageId`.
 - **Request signature:** The HTTP Signature value in the `Authorization` header, used to authenticate the sender of any message. Every message — including PN-initiated callbacks — MUST carry a valid request signature.
 
@@ -241,6 +241,8 @@ The `messageId` and `transactionId` together form the session management layer o
 **Parallel message pairs under a single session.** When a transaction involves multiple simultaneous request–callback pairs — for example, a retail order and a parallel logistics booking — all pairs share the same `transactionId`. Each pair carries its own `messageId`. The `transactionId` is the key that ties these parallel flows into a single session; the `messageId` is the key that allows each individual pair to be correlated independently.
 
 **Session lifecycle.** A session begins when the CN assigns a `transactionId` and ends when the transaction reaches a terminal state (fulfilled, cancelled, or expired). There is no explicit session-close message. Nodes SHOULD retain session state for a duration appropriate to the transaction domain.
+
+**Message deduplication.** Both `messageId` and `transactionId` MUST be UUIDs. While UUID collisions within a single node are statistically rare, the scale of agentic deployments — potentially trillions of messages across many nodes — makes long-term deduplication a practical concern. It is RECOMMENDED that a message sender treat the combination of `context.messageId` and its outgoing request signature as the unique key for deduplication. This pairing is effectively collision-proof because the signature is derived from message content and the sender's private key, making it unique even if two messages share the same `messageId` by chance. This is a recommendation only; a node MAY pair `messageId` with any other value it controls to achieve deduplication suited to its own operational requirements.
 
 #### 8. PN-Initiated Callbacks
 
@@ -430,6 +432,9 @@ sequenceDiagram
 | CON-013-18 | Every node MUST authenticate each incoming message independently, regardless of prior messages in the same transaction. See [NFH-007](./Authentication_and_Trust.md). | MUST |
 | CON-013-19 | In a multicast flow, the DS or CN MUST assign a distinct `messageId` for each node it addresses while keeping the `transactionId` constant. | MUST |
 | CON-013-20 | Confirmation or any other action on one network layer MUST NOT be assumed to automatically trigger the corresponding action on a downstream layer. | MUST NOT |
+| CON-013-21 | `context.messageId` MUST be a UUID. | MUST |
+| CON-013-22 | `context.transactionId` MUST be a UUID. | MUST |
+| CON-013-23 | A message sender SHOULD treat the combination of `context.messageId` and its outgoing request signature as the unique deduplication key for long-term message deduplication. | SHOULD |
 
 ### Cross-cutting Considerations
 
@@ -537,14 +542,13 @@ Any message in this table can be associated with the full session using `transac
 
 This RFC establishes the normative rules for message-level communication on a Beckn-enabled fabric. Implementations that conform to this RFC will correctly handle the two-step request–callback pattern, the stateless state-declaration model, message correlation and session scoping via `messageId` and `transactionId`, PN-initiated callbacks, multicast discovery and parallel value chains, and cascaded network compositions. These rules apply uniformly to AI Agents and conventional software clients alike.
 
-Advancement of this RFC to Candidate status requires at least two independent implementations demonstrating conformance with CON-013-01 through CON-013-20, with particular attention to the PN callback obligation (CON-013-03), PN-initiated callback authentication (CON-013-14), and multicast `messageId` assignment (CON-013-19).
+Advancement of this RFC to Candidate status requires at least two independent implementations demonstrating conformance with CON-013-01 through CON-013-23, with particular attention to the PN callback obligation (CON-013-03), PN-initiated callback authentication (CON-013-14), multicast `messageId` assignment (CON-013-19), and UUID format requirements (CON-013-21 and CON-013-22).
 
 ### Open Questions
 
-1. Should `messageId` format be normatively constrained (e.g., UUID v4) or left to implementers? A format constraint would make deduplication easier but may break existing deployments.
-2. Should there be a normative timeout after which a CN may treat a pending `messageId` as expired and release the associated state?
-3. When a cascaded flow shares a `transactionId` across layers, how should audit logs from separate network operators be reconciled? Should a separate namespace or prefix be required?
-4. In a discovery multicast, should the DS be required to consolidate `on_discover` responses before forwarding to the CN, or is direct PN→CN delivery the normative model?
+1. Should there be a normative timeout after which a CN may treat a pending `messageId` as expired and release the associated state?
+2. When a cascaded flow shares a `transactionId` across layers, how should audit logs from separate network operators be reconciled? Should a separate namespace or prefix be required?
+3. In a discovery multicast, should the DS be required to consolidate `on_discover` responses before forwarding to the CN, or is direct PN→CN delivery the normative model?
 
 ## Acknowledgements
 
