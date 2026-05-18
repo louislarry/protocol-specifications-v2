@@ -185,20 +185,11 @@ A Network Participant searches for catalogs indexed by the CS, filtered by catal
 - Omitting `filters.schemaTypes` or providing an empty array MUST match all schema types.
 - Search results MUST be paginated.
 
-**`GET /catalog/master/schemaTypes`**
-
-A Network Participant retrieves the schema types available across all master resources in all networks.
-
-**`GET /catalog/master/{masterResourceId}`**
-
-A Network Participant retrieves a master resource by its identifier.
-
 Requirements:
 
 - The CS MUST support filtering by `filters.type`, `filters.networkIds`, and/or `filters.schemaTypes`.
 - Omitting a filter dimension MUST match all values for that dimension, subject to the `filters.type` default above.
 - Catalog search results MUST be paginated.
-- The CS MUST return the full catalog envelope (including provider and descriptor metadata) for individual master resource lookups.
 
 ---
 
