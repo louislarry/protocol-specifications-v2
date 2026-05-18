@@ -1952,27 +1952,27 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
 
-  /catalog/master/search:
+  /catalog/search:
     post:
-      summary: Network Participant searches master catalog resources on the CS
-      description: "The BAP or BPP queries the CS (Cataloging Service) for master\
-        \ catalog items, filtering by network\
-        \ identifiers and schema type URIs with paginated results.\n\nAdditional\
-        \ preconditions: filters.networkIds and filters.schemaTypes are optional;\
-        \ omitting or leaving them empty matches all networks and schema types respectively.\
-        \ limit MUST be between 1 and 100 (default 20); offset MUST be non-negative\
-        \ (default 0).\n\nFabric context: This endpoint is hosted by the CS. The\
-        \ CS queries the master resource index and returns matching items synchronously.\n\nThe message MUST contain a MasterSearchAction with optional\
-        \ filters for networkIds and schemaTypes, and optional pagination parameters.\
-        \ All responses are wrapped in a Beckn envelope with action set to \"catalog/on_master/search\".\n\
-        \nA 200 response returns the matching master catalog items directly in a catalogs\
-        \ array.\
-        \ A 400 NackBadRequest is returned for an invalid payload or out-of-range\
-        \ pagination parameters. A 401 NackUnauthorized is returned when the Authorization\
-        \ header signature is missing or invalid. A 429 NackTooManyRequests is returned\
-        \ when the request rate exceeds the CS rate limit. A 500 ServerError\
-        \ indicates an unexpected CS failure."
-      operationId: catalogMasterSearch
+      summary: Network Participant searches catalogs on the CS
+      description: "The BAP or BPP queries the CS (Cataloging Service) for indexed\
+        \ catalogs, filtered by catalog type, network identifiers, and schema type\
+        \ URIs with paginated results.\n\nAdditional preconditions: All filters are\
+        \ optional. Omitting filters.type returns catalogs of all types. Omitting\
+        \ or leaving filters.networkIds empty matches all networks. Omitting or leaving\
+        \ filters.schemaTypes empty matches all schema types. limit MUST be between\
+        \ 1 and 100 (default 20); offset MUST be non-negative (default 0).\n\nFabric\
+        \ context: This endpoint is hosted by the CS. The CS queries its catalog\
+        \ index and returns matching items synchronously.\n\nThe message MUST contain\
+        \ a CatalogSearchAction with optional filters and optional pagination parameters.\
+        \ All responses are wrapped in a Beckn envelope with action set to\
+        \ \"catalog/on_search\".\n\nA 200 response returns the matching catalog items\
+        \ directly in a catalogs array. A 400 NackBadRequest is returned for an\
+        \ invalid payload or out-of-range pagination parameters. A 401 NackUnauthorized\
+        \ is returned when the Authorization header signature is missing or invalid.\
+        \ A 429 NackTooManyRequests is returned when the request rate exceeds the\
+        \ CS rate limit. A 500 ServerError indicates an unexpected CS failure."
+      operationId: catalogSearch
       tags:
       - Fabric API - Cataloging Service
       parameters:
@@ -1994,9 +1994,9 @@ paths:
                     properties:
                       action:
                         type: string
-                        const: catalog/master/search
+                        const: catalog/search
                 message:
-                  $ref: '#/components/schemas/MasterSearchAction'
+                  $ref: '#/components/schemas/CatalogSearchAction'
       responses:
         '200':
           description: Master search results
@@ -2015,7 +2015,7 @@ paths:
                       properties:
                         action:
                           type: string
-                          const: catalog/on_master/search
+                          const: catalog/on_search
                   message:
                     type: object
                     required:
@@ -2073,7 +2073,7 @@ paths:
                       properties:
                         action:
                           type: string
-                          const: catalog/on_master/search
+                          const: catalog/on_search
                   message:
                     type: object
                     required:
@@ -2138,7 +2138,7 @@ paths:
                       properties:
                         action:
                           type: string
-                          const: catalog/on_master/search
+                          const: catalog/on_search
                   message:
                     type: object
                     required:
@@ -4636,11 +4636,11 @@ components:
       description: "Metadata accompanying a paginated list response that describes\
         \ the size, position, and count of the returned result set, enabling callers\
         \ to navigate through large result sets using offset-based pagination.\n\n\
-        Pagination appears in list responses such as /catalog/subscriptions and /catalog/master/search.\
+        Pagination appears in list responses such as /catalog/subscriptions and /catalog/search.\
         \ The DS (Discovery Service) and CS (Cataloging Service) produce it; the BAP\
         \ or BPP consumes it to determine whether additional pages are available and\
         \ to construct subsequent requests.\n\nRelationship: Composed within the response\
-        \ message objects of /catalog/subscriptions and /catalog/master/search endpoints."
+        \ message objects of /catalog/subscriptions and /catalog/search endpoints."
       properties:
         total:
           type: integer
@@ -4662,32 +4662,46 @@ components:
             the full result set. Assigned by the CS based on the request
             parameter.
 
-    MasterSearchAction:
+    CatalogSearchAction:
       type: object
       description: "The real-world act by which a caller queries the CS (Cataloging\
-        \ Service) for master catalog items, applying optional network and schema\
-        \ type filters with pagination control.\n\nThis schema appears in the Master\
-        \ Resource Search phase. The BAP or BPP produces it as the message payload\
-        \ of a /catalog/master/search request; the CS consumes it to filter and return\
-        \ matching master items with pagination metadata.\n\nFabric context: Processed\
-        \ by the CS, which returns matching master catalog items.\n\nRelationship: Composed\
-        \ as the message payload of the /catalog/master/search request body."
+        \ Service) for indexed catalogs, applying optional catalog type, network,\
+        \ and schema type filters with pagination control.\n\nThis schema appears\
+        \ in the Catalog Search phase. The BAP or BPP produces it as the message\
+        \ payload of a POST /catalog/search request; the CS consumes it to filter\
+        \ and return matching catalogs with pagination metadata.\n\nFabric context:\
+        \ Processed by the CS, which queries its catalog index and returns matching\
+        \ items synchronously.\n\nRelationship: Composed as the message payload of\
+        \ the /catalog/search request body."
       additionalProperties: false
       properties:
         filters:
           type: object
-          description: Search filters (empty lists match all)
+          description: >-
+            Search filters. All fields are optional; omitting a field matches
+            all values for that dimension.
           properties:
+            type:
+              type: string
+              enum:
+              - MASTER
+              - REGULAR
+              description: >-
+                Restricts results to catalogs of the specified type.
+                MASTER — canonical resource definitions reusable across
+                the network. REGULAR — provider-specific catalogs that
+                may extend master resources. When omitted, catalogs of
+                all types are returned.
             networkIds:
               type: array
               items:
                 type: string
-              description: Filter by network IDs (empty = all networks)
+              description: Filter by network IDs (empty or omitted = all networks)
             schemaTypes:
               type: array
               items:
                 type: string
-              description: Filter by schema type URIs (empty = all types)
+              description: Filter by schema type URIs (empty or omitted = all types)
         limit:
           type: integer
           minimum: 1
