@@ -2,16 +2,17 @@
 
 ## Document Details
 
-- **ID:** NFH-007
+- **ID:** NFH-005
 - **Status:** Draft.
-- **Authors:** Beckn Protocol contributors.
-- **Created:** 2026-04-08.
-- **Updated:** 2026-04-08.
+- **Authors:**
+  - [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity](https://networksforhumanity.org)
+- **Created:** 2026-05-11
+- **Updated:** 2026-05-11
 - **Version history:** No commits found on `main` for `docs/07_Navigating_The_Beckn_Schema.md`.
 - **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/07_Navigating_The_Beckn_Schema.md)
-- **Implementation report:** To be published.
-- **Stress test report:** To be published.
-- **Conformance impact:** Informative with normative implementation guidance.
+- **Implementation report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
+- **Stress test report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
+- **Conformance impact:** Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main.
 - **Security/privacy implications:** Clarifies schema validation responsibilities for safe processing.
 - **Replaces / Relates to:** Replaces non-RFC-form content in `07_Navigating_The_Beckn_Schema.md`.
 - **Feedback:** Issues Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22RFC-007%22), Discussions Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22RFC-007%22), Pull Requests Click [here](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22RFC-007%22).
@@ -23,11 +24,26 @@ This RFC defines how implementers should navigate Beckn schema assets across Ope
 
 ## Table of Contents
 
-- [Introduction](#introduction)
-- [Specification](#specification)
-- [Conclusion](#conclusion)
-- [Acknowledgements](#acknowledgements)
-- [References](#references)
+- [Navigating the Beckn Schema](#navigating-the-beckn-schema)
+  - [Document Details](#document-details)
+  - [Abstract](#abstract)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Specification](#specification)
+    - [Definitions](#definitions)
+    - [Canonical contract interpretation](#canonical-contract-interpretation)
+    - [Core schema handling](#core-schema-handling)
+    - [`Attributes` extensibility model](#attributes-extensibility-model)
+    - [Dual validation requirement](#dual-validation-requirement)
+    - [Registry artifact model](#registry-artifact-model)
+    - [Versioned schema pack expectations](#versioned-schema-pack-expectations)
+    - [Semantic stability and migration](#semantic-stability-and-migration)
+    - [Implementation sequence and example](#implementation-sequence-and-example)
+    - [Conformance requirements](#conformance-requirements)
+    - [Security and trust considerations](#security-and-trust-considerations)
+  - [Conclusion](#conclusion)
+  - [Acknowledgements](#acknowledgements)
+  - [References](#references)
 
 ## Introduction
 
@@ -39,7 +55,10 @@ The guidance in this RFC follows four principles: contract fidelity, so `beckn.y
 
 ## Specification
 
-The key words MUST, SHOULD, and MAY in this document are to be interpreted as described in Click [here](./00_Keyword_Definitions.md).
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described [here](./Keyword_Definitions.md). These definitions aim to ensure that the terms are understood precisely and consistently to avoid confusion in the interpretation of standards, specifications, and protocols.
+
+### Definitions
+To be added
 
 ### Canonical contract interpretation
 

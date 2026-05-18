@@ -3,15 +3,15 @@
 ## Document Details
 - **ID:** NFH-002
 - **Status:** PUBLISHED
-- **Authors:** 
-  - **[Ravi Prakash, V](https://github.com/ravi-prakash-v)**, [Networks for Humanity](https://github.com/Networks-for-Humanity)
-- **Created:** 27th April, 2026
-- **Updated:** 27th April, 2026
+- **Authors:**
+  - [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity](https://networksforhumanity.org)
+- **Created:** 2026-05-11
+- **Updated:** 2026-05-11
 - **Version history:** Repository history on `main` does not yet show commits for this file
 - **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Keyword_Definitions.md)
-- **Implementation report:** Informative RFC; no standalone implementation report required.
-- **Stress test report:** -NA-
-- **Conformance impact:** -NA-
+- **Implementation report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
+- **Stress test report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
+- **Conformance impact:** Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main.
 - **Security/privacy implications:** -NA-
 - **Replaces / relates to:** -NA-
 - **Feedback:** Issues Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%NFH-002%22), discussions Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22RFC-003%22), pull requests Click [here](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22RFC-003%22).
@@ -40,8 +40,8 @@ This document outlines the normative definitions of keywords that are commonly u
     - [MAY](#may)
     - [OPTIONAL](#optional)
   - [Network Actor Definitions](#network-actor-definitions)
-    - [BAP (Beckn Application Platform)](#bap-beckn-application-platform)
-    - [BPP (Beckn Provider Platform)](#bpp-beckn-provider-platform)
+    - [CN (Consumer Node)](#cn-consumer-node)
+    - [PN (Provider Node)](#pn-provider-node)
     - [NFH (Networks for Humanity Foundation)](#nfh-networks-for-humanity-foundation)
     - [Fabric](#fabric)
     - [Discovery Service (DS)](#discovery-service-ds)
@@ -102,13 +102,15 @@ The term "OPTIONAL" is synonymous with "MAY".
 
 The following terms identify the principal actors and infrastructure components of the Beckn Protocol. These definitions apply across all Beckn Protocol RFCs unless explicitly qualified otherwise.
 
-### BAP (Beckn Application Platform)
+### CN (Consumer Node)
 
-A software platform that initiates value-exchange transactions on behalf of a user or agent by invoking Beckn Protocol APIs. The BAP is the caller in all stateless transaction endpoints and receives callback responses from the BPP.
+A software platform that initiates value-exchange transactions on behalf of a user or agent by invoking Beckn Protocol APIs. The CN is the caller in all stateless transaction endpoints and receives callback responses from the PN.
 
-### BPP (Beckn Provider Platform)
+### PN (Provider Node)
 
-A software platform that receives transaction requests from a BAP, processes them, and responds via callback endpoints. The BPP is the implementer of all stateless transaction endpoints and produces the canonical response objects — such as `Catalog` and `Contract` — that are consumed by the BAP.
+A software platform that receives transaction requests from a CN, processes them, and responds via callback endpoints. The PN is the implementer of all stateless transaction endpoints and produces the canonical response objects — such as `Catalog` and `Contract` — that are consumed by the CN.
+
+> **Legacy terminology and backward compatibility.** *Consumer Node (CN)* and *Provider Node (PN)* were previously referred to as *Beckn Application Platform (BAP)* and *Beckn Provider Platform (BPP)* respectively. Prose throughout the specification uses the new terms, but wire-level field names — `bapId`, `bapUri`, `bppId`, `bppUri` — are **retained unchanged** in the `context` object to preserve backward compatibility with existing integrations. Read `bapId` / `bapUri` as the CN's identity and address, and `bppId` / `bppUri` as the PN's.
 
 ### NFH (Networks for Humanity Foundation)
 
@@ -116,29 +118,29 @@ The foundation that governs, hosts, and evolves the Universal Value-exchange Fab
 
 ### Fabric
 
-The Universal Value-exchange Fabric, hosted by the Networks for Humanity Foundation. The Fabric provides shared infrastructure — including the Discovery Service, Registry, and catalog infrastructure — through which BAPs and BPPs discover each other, establish trust, and coordinate transactions.
+The Universal Value-exchange Fabric, hosted by the Networks for Humanity Foundation. The Fabric provides shared infrastructure — including the Discovery Service, Registry, and catalog infrastructure — through which CNs and PNs discover each other, establish trust, and coordinate transactions.
 
 ### Discovery Service (DS)
 
-A Fabric-hosted service that indexes BPP catalogs and responds to discovery requests from BAPs. The Discovery Service enables catalog-first discovery without requiring BAPs to query BPPs directly at runtime.
+A Fabric-hosted service that indexes PN catalogs and responds to discovery requests from CNs. The Discovery Service enables catalog-first discovery without requiring CNs to query PNs directly at runtime.
 
 ### Registry
 
-A Fabric-hosted service that maintains the authoritative list of network participants (BAPs and BPPs), their signing keys, and their callback URIs. The Registry is used to validate the identity and authorisation of participants in a Beckn network.
+A Fabric-hosted service that maintains the authoritative list of network participants (CNs and PNs), their signing keys, and their callback URIs. The Registry is used to validate the identity and authorisation of participants in a Beckn network.
 
 ## Examples and Correct Usage
 
-In this section, we provide examples that demonstrate the correct usage of the key words defined in this document. The examples are related to a hypothetical Beckn Application Platform (BAP) that interacts with a Beckn Provider Platform (BPP) using beckn protocol APIs.
+In this section, we provide examples that demonstrate the correct usage of the key words defined in this document. The examples are related to a hypothetical Consumer Node (CN) that interacts with a Provider Node (PN) using beckn protocol APIs.
 
 ### Example 1: Using "REQUIRED" and "MUST"
 
-- REQUIRED. The BPP MUST implement the `search` endpoint to receive an `Intent` object sent by BAPs.
-- REQUIRED. The BPP MUST return a catalog of products on the `on_search` callback endpoint specified in the `context.bpp_uri` field of the `search` request body.
+- REQUIRED. The PN MUST implement the `search` endpoint to receive an `Intent` object sent by CNs.
+- REQUIRED. The PN MUST return a catalog of products on the `on_search` callback endpoint specified in the `context.bpp_uri` field of the `search` request body.
 - REQUIRED. Any provider-related information like `name`, `logo`, `short_desc` MUST be mapped to the `Provider.descriptor` schema.
-- REQUIRED. If the BPP does not want to respond to a `search` request, it MUST return an `ack.status` value equal to `NACK`.
+- REQUIRED. If the PN does not want to respond to a `search` request, it MUST return an `ack.status` value equal to `NACK`.
 
 ### Example 2: Using "RECOMMENDED" and "SHOULD"
-- RECOMMENDED. Upon receiving a `search` request, the BPP SHOULD return a `Catalog` that best matches the `Intent`. This can be done by indexing the catalog against the various probable paths in the `Intent` schema relevant to the use case.
+- RECOMMENDED. Upon receiving a `search` request, the PN SHOULD return a `Catalog` that best matches the `Intent`. This can be done by indexing the catalog against the various probable paths in the `Intent` schema relevant to the use case.
 
 ## Conclusion
 

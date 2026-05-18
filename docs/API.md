@@ -4,14 +4,15 @@
 
 - **ID:** NFH-006
 - **Status:** Draft.
-- **Authors:** Beckn Protocol contributors.
-- **Created:** 2026-04-10.
-- **Updated:** 2026-04-10.
+- **Authors:**
+  - [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity](https://networksforhumanity.org)
+- **Created:** 2026-05-11
+- **Updated:** 2026-05-11
 - **Version history:** No commits found on `main` for `docs/06_Beckn_API_Endpoints.md`.
 - **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/06_Beckn_API_Endpoints.md).
-- **Implementation report:** To be published by the implementation working group.
-- **Stress test report:** To be published by the testing and certification working group.
-- **Conformance impact:** Normative endpoint interpretation guidance for v2.0.0.
+- **Implementation report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
+- **Stress test report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
+- **Conformance impact:** Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main.
 - **Security/privacy implications:** Reinforces signature and counter-signature requirements on endpoint interactions.
 - **Replaces / Relates to:** Replaces non-RFC-form content in `06_Beckn_API_Endpoints.md`; the source contract remains `api/v2.0.0/beckn.yaml`.
 - **Feedback:** Issues Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22RFC-006%22), Discussions Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22RFC-006%22), Pull Requests Click [here](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22RFC-006%22).
@@ -23,11 +24,28 @@ This RFC explains the Beckn v2.0.0 endpoint surface, covering action and callbac
 
 ## Table of Contents
 
-- [Introduction](#introduction)
-- [Specification](#specification)
-- [Conclusion](#conclusion)
-- [Acknowledgements](#acknowledgements)
-- [References](#references)
+- [Beckn API Endpoints](#beckn-api-endpoints)
+  - [Document Details](#document-details)
+  - [Abstract](#abstract)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Specification](#specification)
+    - [Definitions](#definitions)
+    - [API fundamentals](#api-fundamentals)
+    - [Common envelope semantics and acknowledgements](#common-envelope-semantics-and-acknowledgements)
+    - [Lifecycle mapping](#lifecycle-mapping)
+    - [Endpoint groups](#endpoint-groups)
+      - [Discovery](#discovery)
+      - [Transaction](#transaction)
+      - [Fulfillment](#fulfillment)
+      - [Post-fulfillment](#post-fulfillment)
+      - [Catalog infrastructure](#catalog-infrastructure)
+      - [Master resource search](#master-resource-search)
+    - [Operation behavior and conformance requirements](#operation-behavior-and-conformance-requirements)
+    - [Security and compatibility considerations](#security-and-compatibility-considerations)
+  - [Conclusion](#conclusion)
+  - [Acknowledgements](#acknowledgements)
+  - [References](#references)
 
 ## Introduction
 
@@ -39,7 +57,10 @@ Implementations are expected to preserve three design foundations throughout thi
 
 ## Specification
 
-The key words MUST, SHOULD, and MAY in this document are to be interpreted as described in `00_Keyword_Definitions.md` (Click [here](./00_Keyword_Definitions.md)).
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described [here](./Keyword_Definitions.md). These definitions aim to ensure that the terms are understood precisely and consistently to avoid confusion in the interpretation of standards, specifications, and protocols.
+
+### Definitions
+To be added
 
 ### API fundamentals
 

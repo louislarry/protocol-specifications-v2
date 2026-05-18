@@ -5,19 +5,19 @@
 - **ID:** NFH-008
 - **Status:** Draft.
 - **Authors:**
-  - [Abhishek Jain](https://github.com/abhimail), [Networks for Humanity Foundation](https://networksforhumanity.org)
-  - [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity Foundation](https://networksforhumanity.org)
+  - [Abhishek Jain](https://github.com/abhimail), [Networks for Humanity](https://networksforhumanity.org)
+  - [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity](https://networksforhumanity.org)
 - **Editors:**
   - [Ravi Prakash](https://github.com/ravi-prakash-v), Networks for Humanity Foundation
-- **Created:** 2026-05-04.
-- **Updated:** 2026-05-05.
+- **Created:** 2026-05-11
+- **Updated:** 2026-05-11
 - **Version history:** Click [here](https://github.com/beckn/protocol-specifications-v2/commits/main/docs/Error_Codes.md).
 - **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Error_Codes.md).
-- **Implementation report:** To be published.
-- **Stress test report:** To be published.
-- **Conformance impact:** Minor.
+- **Implementation report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
+- **Stress test report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
+- **Conformance impact:** Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main.
 - **Security/privacy implications:** Defines error representations for authentication and non-repudiation failures; incorrect error signaling may mask signature or replay-attack failures across hops.
-- **Replaces / Relates to:** Supersedes [BECKN-005](https://github.com/beckn/protocol-specifications/blob/master/docs/BECKN-005-Error-Codes-Draft-01.md) (v1 numeric error codes). Relates to [NFH-003: The Beckn Protocol Stack](./The_Beckn_Protocol_Stack.md), [NFH-006: API Endpoints](./API.md), and [NFH-007: Schema Navigation](./Core_Data_Schema.md).
+- **Replaces / Relates to:** Supersedes [BECKN-005](https://github.com/beckn/protocol-specifications/blob/master/docs/BECKN-005-Error-Codes-Draft-01.md) (v1 numeric error codes). Relates to [NFH-003: The Beckn Protocol Stack](./The_Beckn_Protocol_Stack.md), [NFH-006: API Endpoints](./API.md), and [NFH-004: Schema Navigation](./Core_Data_Schema.md).
 - **Feedback:**
   - [Issues](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22NFH-008%22)
   - [Discussions](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22NFH-008%22)
@@ -38,6 +38,9 @@ This RFC defines how exceptions and errors are represented, classified, and hand
   - [Specification](#specification)
     - [Definitions](#definitions)
     - [Exceptions and Errors in Beckn](#exceptions-and-errors-in-beckn)
+      - [What is an Exception?](#what-is-an-exception)
+      - [What is an Error?](#what-is-an-error)
+      - [The Key Principle](#the-key-principle)
     - [Error Object Schema](#error-object-schema)
     - [Error Layer Taxonomy](#error-layer-taxonomy)
     - [Canonical Error Code Set](#canonical-error-code-set)
@@ -84,7 +87,7 @@ This RFC defines how exceptions and errors are represented, classified, and hand
         - [E2: Synchronous NACK — schema violation with field path](#e2-synchronous-nack--schema-violation-with-field-path)
         - [E3: Synchronous NACK — context envelope mismatch](#e3-synchronous-nack--context-envelope-mismatch)
         - [E4: Async `on_confirm` callback — business error](#e4-async-on_confirm-callback--business-error)
-        - [E5: Error chain — DS wrapping a downstream BPP timeout](#e5-error-chain--ds-wrapping-a-downstream-bpp-timeout)
+        - [E5: Error chain — DS wrapping a downstream PN timeout](#e5-error-chain--ds-wrapping-a-downstream-pn-timeout)
         - [E6: Level 2 error — OCPI charger fault wrapped in canonical Beckn error](#e6-level-2-error--ocpi-charger-fault-wrapped-in-canonical-beckn-error)
         - [E7: Exceptional async AUT error — key revoked after ACK](#e7-exceptional-async-aut-error--key-revoked-after-ack)
       - [Workflow Sequence Diagrams](#workflow-sequence-diagrams)
@@ -125,7 +128,7 @@ This RFC responds to these changes by introducing a canonical, layered, string-b
 
 ## Specification
 
-The key words MUST, MUST NOT, REQUIRED, SHALL, SHALL NOT, SHOULD, SHOULD NOT, RECOMMENDED, MAY, and OPTIONAL in this document are to be interpreted as described Click [here](./Keyword_Definitions.md).
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described [here](./Keyword_Definitions.md). These definitions aim to ensure that the terms are understood precisely and consistently to avoid confusion in the interpretation of standards, specifications, and protocols.
 
 ### Definitions
 
@@ -155,11 +158,11 @@ An exception is any deviation from the expected (happy-path) flow during the pro
 
 **Examples of exceptions that do NOT become errors:**
 
-- A BPP does not have the exact item a BAP selected, but offers a substitute in `on_select`. The BAP can accept or decline — no error is generated; the transaction continues.
-- A BPP's computed quote in `on_init` is higher than the indicative price in `on_select` due to a surge in demand. The BAP can accept the revised price or abandon the flow.
-- A DS returns fewer results than the BAP's search intent in `on_discover` because only a subset of providers matched the criteria. This is expected behaviour, not an error.
-- A BPP sends a delivery status update via `on_status` indicating the package will arrive 2 hours later than the original estimate. The delivery SLA still allows this; the update is an exception handled as an informational callback.
-- A BAP's request is close to the TTL boundary but arrives just within it. Processing continues normally.
+- A PN does not have the exact item a CN selected, but offers a substitute in `on_select`. The CN can accept or decline — no error is generated; the transaction continues.
+- A PN's computed quote in `on_init` is higher than the indicative price in `on_select` due to a surge in demand. The CN can accept the revised price or abandon the flow.
+- A DS returns fewer results than the CN's search intent in `on_discover` because only a subset of providers matched the criteria. This is expected behaviour, not an error.
+- A PN sends a delivery status update via `on_status` indicating the package will arrive 2 hours later than the original estimate. The delivery SLA still allows this; the update is an exception handled as an informational callback.
+- A CN's request is close to the TTL boundary but arrives just within it. Processing continues normally.
 
 #### What is an Error?
 
@@ -167,10 +170,10 @@ An error is an exception that **cannot be resolved within the normal protocol fl
 
 **Examples of exceptions that escalate to errors:**
 
-- BAP calls `select` for an item that is completely out of stock with no alternatives. The BPP cannot fulfil the request → `BIZ_QUANTITY_UNAVAILABLE` error in `on_select`.
-- A request arrives after its TTL has expired. The BPP cannot process it safely → `CTX_TTL_EXPIRED` synchronous NACK.
-- BAP's signing key has been revoked. The BPP cannot verify identity → `AUT_KEY_EXPIRED_OR_REVOKED` error.
-- BAP calls `cancel` but the cancellation window has closed per the provider's policy. The BPP cannot honour the request → `POL_CANCELLATION_NOT_ALLOWED` error in `on_cancel`.
+- CN calls `select` for an item that is completely out of stock with no alternatives. The PN cannot fulfil the request → `BIZ_QUANTITY_UNAVAILABLE` error in `on_select`.
+- A request arrives after its TTL has expired. The PN cannot process it safely → `CTX_TTL_EXPIRED` synchronous NACK.
+- CN's signing key has been revoked. The PN cannot verify identity → `AUT_KEY_EXPIRED_OR_REVOKED` error.
+- CN calls `cancel` but the cancellation window has closed per the provider's policy. The PN cannot honour the request → `POL_CANCELLATION_NOT_ALLOWED` error in `on_cancel`.
 - A payment processor returns a hard decline. The order cannot be confirmed → `BIZ_PAYMENT_FAILED` error in `on_confirm`.
 
 #### The Key Principle
@@ -557,8 +560,8 @@ An **ACK** indicates the receiver has accepted the message for processing. ACK S
 
 ##### NACK implications for the caller
 
-- If a **BAP receives a NACK from a BPP**, it MUST NOT expect a callback from the BPP. The BPP rejected the message before accepting it for processing; no `on_*` callback will follow. The BAP must treat the transaction as not progressed and decide whether to retry (if the error is retryable), correct the request, or abort.
-- If a **BPP receives a NACK in response to a callback** (i.e., the BPP called an `on_*` endpoint and the BAP returned a NACK), the BPP MUST retry the callback in accordance with the mutually agreed retry policy, or as mandated by the NFO of the network it is operating on. Failure to deliver the callback after all retry attempts are exhausted SHOULD be reported to the NFO as a network incident.
+- If a **CN receives a NACK from a PN**, it MUST NOT expect a callback from the PN. The PN rejected the message before accepting it for processing; no `on_*` callback will follow. The CN must treat the transaction as not progressed and decide whether to retry (if the error is retryable), correct the request, or abort.
+- If a **PN receives a NACK in response to a callback** (i.e., the PN called an `on_*` endpoint and the CN returned a NACK), the PN MUST retry the callback in accordance with the mutually agreed retry policy, or as mandated by the NFO of the network it is operating on. Failure to deliver the callback after all retry attempts are exhausted SHOULD be reported to the NFO as a network incident.
 
 #### NP Engagement Refusal (Discretionary NACK)
 
@@ -592,7 +595,7 @@ NFOs MAY define network policies that restrict or prohibit discretionary NACKs e
 - During active transactions (e.g., after a `/confirm` ACK has been issued), an NFO MAY prohibit discretionary NACKs from the same NP to protect in-flight contractual commitments.
 - An NFO MAY permit discretionary NACKs only at pre-transaction stages (discovery, select) and prohibit them once a contract is active.
 
-Responding NPs MUST comply with their NFO's engagement refusal policy. A discretionary NACK issued in violation of NFO policy SHOULD be treated by the receiving BAP as a network incident and reported to the NFO.
+Responding NPs MUST comply with their NFO's engagement refusal policy. A discretionary NACK issued in violation of NFO policy SHOULD be treated by the receiving CN as a network incident and reported to the NFO.
 
 ##### Relationship to `AUT_RATE_LIMITED`
 
@@ -668,7 +671,7 @@ The `details.cause` property of the `Error` object is of type `Error` (self-refe
 
 In all such cases, any error that occurs in the higher layer **MUST be communicated as a Level 2 error** — a nested `Error` in `details.cause` — rather than directly as the top-level error code. This is required for two reasons:
 
-1. **Transaction state synchronization:** Both the BAP and BPP maintain an internal model of the transaction. A higher-layer failure does not invalidate the Beckn transaction itself. Wrapping the failure in a Level 2 error within a Level 1 canonical error allows both NPs to unambiguously identify what failed (the higher-layer integration) without corrupting the transaction state machine.
+1. **Transaction state synchronization:** Both the CN and PN maintain an internal model of the transaction. A higher-layer failure does not invalidate the Beckn transaction itself. Wrapping the failure in a Level 2 error within a Level 1 canonical error allows both NPs to unambiguously identify what failed (the higher-layer integration) without corrupting the transaction state machine.
 2. **Exception handling for clients and users:** The Level 1 code (e.g., `BIZ_PAYMENT_FAILED`, `BIZ_FULFILLMENT_UNAVAILABLE`) gives the receiving NP's platform a stable, processable signal to invoke its exception-handling workflow — display an error to the user, offer a retry, escalate to support, etc. The Level 2 code in `details.cause` carries the domain-native error detail that may be needed for logging, operator diagnostics, or downstream re-processing.
 
 `cause` SHOULD be used whenever the Level 1 error wraps a failure that originates outside the Beckn protocol layer. Error chains SHOULD remain bounded at depth ≤ 3.
@@ -711,8 +714,8 @@ Retry guidance is intentionally centralized to ensure consistent behavior across
 | CON-008-14 | `BIZ_GENERIC_ERROR` and `POL_GENERIC_ERROR` SHOULD be avoided; they MAY be used only as a last resort. | SHOULD NOT |
 | CON-008-15 | v2 producers SHOULD NOT emit legacy [BECKN-005](https://github.com/beckn/protocol-specifications/blob/master/docs/BECKN-005-Error-Codes-Draft-01.md) numeric codes on the wire. | SHOULD NOT |
 | CON-008-16 | SDKs and network services SHOULD use `x-error-registry` metadata for retry handling and backward compatibility. | SHOULD |
-| CON-008-17 | If a BAP receives a NACK from a BPP, it MUST NOT expect an `on_*` callback from that BPP for that request. | MUST |
-| CON-008-18 | If a BPP receives a NACK in response to a callback, it MUST retry the callback per the mutually agreed retry policy or the NFO's mandated policy. | MUST |
+| CON-008-17 | If a CN receives a NACK from a PN, it MUST NOT expect an `on_*` callback from that PN for that request. | MUST |
+| CON-008-18 | If a PN receives a NACK in response to a callback, it MUST retry the callback per the mutually agreed retry policy or the NFO's mandated policy. | MUST |
 | CON-008-19 | A responding NP MAY issue a discretionary NACK using a canonical `POL_` engagement code when exercising engagement refusal policy. Discretionary NACKs MUST be synchronous. The caller MUST NOT expect an `on_*` callback following a discretionary NACK. | MAY / MUST |
 | CON-008-20 | NFOs MAY define policies that restrict or prohibit discretionary NACKs for specific actions, domain contexts, or transaction lifecycle stages. Responding NPs operating under such a policy MUST comply; violations SHOULD be reported to the NFO as a network incident. | MAY / MUST |
 
@@ -788,14 +791,14 @@ The following snippets illustrate the `Error` object schema in isolation.
 }
 ```
 
-##### E5: Error chain — DS wrapping a downstream BPP timeout
+##### E5: Error chain — DS wrapping a downstream PN timeout
 
 ```json
 {
   "message": { "ack": { "status": "NACK" } },
   "error": {
     "code": "NET_DOWNSTREAM_UNAVAILABLE",
-    "message": "BPP 'example-bpp.io' did not respond within the configured timeout.",
+    "message": "PN 'example-bpp.io' did not respond within the configured timeout.",
     "details": {
       "path": "$.context.bpp_uri",
       "cause": {
@@ -835,7 +838,7 @@ The following snippets illustrate the `Error` object schema in isolation.
   "context": { "action": "on_confirm", "transactionId": "txn-3301", "messageId": "msg-8812" },
   "error": {
     "code": "AUT_KEY_EXPIRED_OR_REVOKED",
-    "message": "BAP signing key was revoked in the registry between request receipt and callback dispatch.",
+    "message": "CN signing key was revoked in the registry between request receipt and callback dispatch.",
     "details": { "path": "$.context.bap_id" }
   }
 }
@@ -851,234 +854,234 @@ The following sequence diagrams illustrate end-to-end Beckn API flows where exce
 
 ###### W1: TTL Expired — Synchronous NACK
 
-The BAP experiences a network delay. By the time the `confirm` request arrives at the BPP, the `context.ttl` has elapsed. The BPP detects this at the Networking layer (Layer 1) and rejects the message. The BAP MUST NOT expect an `on_confirm` callback.
+The CN experiences a network delay. By the time the `confirm` request arrives at the PN, the `context.ttl` has elapsed. The PN detects this at the Networking layer (Layer 1) and rejects the message. The CN MUST NOT expect an `on_confirm` callback.
 
 ```mermaid
 sequenceDiagram
-    participant BAP
-    participant BPP
+    participant CN
+    participant PN
 
-    BAP->>BPP: POST /confirm<br/>(context.ttl: 2026-05-05T10:00:00Z, arrives at 10:00:03Z)
-    Note over BPP: Layer 1 — TTL < arrival timestamp
-    BPP-->>BAP: NACK (CTX_TTL_EXPIRED)
-    Note over BAP: No on_confirm expected.<br/>BAP must re-initiate from /select if needed.
+    CN->>PN: POST /confirm<br/>(context.ttl: 2026-05-05T10:00:00Z, arrives at 10:00:03Z)
+    Note over PN: Layer 1 — TTL < arrival timestamp
+    PN-->>CN: NACK (CTX_TTL_EXPIRED)
+    Note over CN: No on_confirm expected.<br/>CN must re-initiate from /select if needed.
 ```
 
 ###### W2: DS Overloaded — Synchronous NACK with Retry
 
-The BAP calls `discover` during a traffic spike. The DS is at capacity and cannot queue additional requests. The DS NACKs with `NET_OVERLOADED`. The BAP retries with exponential backoff.
+The CN calls `discover` during a traffic spike. The DS is at capacity and cannot queue additional requests. The DS NACKs with `NET_OVERLOADED`. The CN retries with exponential backoff.
 
 ```mermaid
 sequenceDiagram
-    participant BAP
+    participant CN
     participant DS as DS (Discovery Service)
 
-    BAP->>DS: POST /discover
+    CN->>DS: POST /discover
     Note over DS: Layer 1 — request queue full
-    DS-->>BAP: NACK (NET_OVERLOADED)
-    Note over BAP: Wait and retry with backoff
-    BAP->>DS: POST /discover (retry after 2s)
-    DS-->>BAP: ACK
-    DS->>BAP: POST /on_discover
-    BAP-->>DS: ACK
+    DS-->>CN: NACK (NET_OVERLOADED)
+    Note over CN: Wait and retry with backoff
+    CN->>DS: POST /discover (retry after 2s)
+    DS-->>CN: ACK
+    DS->>CN: POST /on_discover
+    CN-->>DS: ACK
 ```
 
 ##### Layer 2 — Trust
 
 ###### W3: Key Rotation Cache Mismatch — NACK
 
-The BAP rotates its signing key pair and updates the Registry. The BPP still holds the old public key in its local cache. When the BAP sends a signed `init`, the BPP verifies the signature against the stale cached key — verification fails. This is an exception (cache staleness) that becomes an authentication error. The BAP may retry once the BPP cache expires or the BPP is forced to re-lookup from the Registry.
+The CN rotates its signing key pair and updates the Registry. The PN still holds the old public key in its local cache. When the CN sends a signed `init`, the PN verifies the signature against the stale cached key — verification fails. This is an exception (cache staleness) that becomes an authentication error. The CN may retry once the PN cache expires or the PN is forced to re-lookup from the Registry.
 
 ```mermaid
 sequenceDiagram
-    participant BAP
+    participant CN
     participant Registry
-    participant BPP
+    participant PN
 
-    BAP->>Registry: Update signing key (key rotation)
-    Registry-->>BAP: 200 OK (new key active)
+    CN->>Registry: Update signing key (key rotation)
+    Registry-->>CN: 200 OK (new key active)
 
-    BAP->>BPP: POST /init (signed with new key)
-    BPP->>Registry: lookup(bap_id) — served from local cache
-    Note over BPP: Layer 2 — cached old public key,<br/>signature verification fails
-    BPP-->>BAP: NACK (AUT_SIGNATURE_INVALID)
-    Note over BAP: Retry after BPP cache TTL.<br/>No on_init expected.
+    CN->>PN: POST /init (signed with new key)
+    PN->>Registry: lookup(bap_id) — served from local cache
+    Note over PN: Layer 2 — cached old public key,<br/>signature verification fails
+    PN-->>CN: NACK (AUT_SIGNATURE_INVALID)
+    Note over CN: Retry after PN cache TTL.<br/>No on_init expected.
 ```
 
 ###### W4: Replay Attack Detected — NACK
 
-An attacker captures a valid `select` request and replays it. The BPP detects the duplicate `message_id` and rejects the replayed message.
+An attacker captures a valid `select` request and replays it. The PN detects the duplicate `message_id` and rejects the replayed message.
 
 ```mermaid
 sequenceDiagram
-    participant BAP
+    participant CN
     participant Attacker
-    participant BPP
+    participant PN
 
-    BAP->>BPP: POST /select (message_id: msg-001)
-    BPP-->>BAP: ACK
-    BPP->>BAP: POST /on_select
-    BAP-->>BPP: ACK
+    CN->>PN: POST /select (message_id: msg-001)
+    PN-->>CN: ACK
+    PN->>CN: POST /on_select
+    CN-->>PN: ACK
 
     Note over Attacker: Captures and replays the request
-    Attacker->>BPP: POST /select (message_id: msg-001, replayed)
-    Note over BPP: Layer 2 — message_id msg-001 already processed
-    BPP-->>Attacker: NACK (AUT_REPLAY_DETECTED)
+    Attacker->>PN: POST /select (message_id: msg-001, replayed)
+    Note over PN: Layer 2 — message_id msg-001 already processed
+    PN-->>Attacker: NACK (AUT_REPLAY_DETECTED)
 ```
 
 ##### Layer 3 / 4 — Core Data and Linked Data
 
 ###### W5: Invalid Field Format — NACK
 
-The BAP sends a `select` with a `fulfillment.time.timestamp` field formatted as `DD-MM-YYYY` instead of ISO 8601. The BPP's JSON schema validator rejects it at the Core Data layer.
+The CN sends a `select` with a `fulfillment.time.timestamp` field formatted as `DD-MM-YYYY` instead of ISO 8601. The PN's JSON schema validator rejects it at the Core Data layer.
 
 ```mermaid
 sequenceDiagram
-    participant BAP
-    participant BPP
+    participant CN
+    participant PN
 
-    BAP->>BPP: POST /select<br/>(fulfillments[0].time.timestamp: "06-05-2026")
-    Note over BPP: Layer 3 — timestamp must be ISO 8601
-    BPP-->>BAP: NACK (SCH_INVALID_FORMAT)
-    Note over BAP: No on_select expected.<br/>BAP corrects the timestamp format.
+    CN->>PN: POST /select<br/>(fulfillments[0].time.timestamp: "06-05-2026")
+    Note over PN: Layer 3 — timestamp must be ISO 8601
+    PN-->>CN: NACK (SCH_INVALID_FORMAT)
+    Note over CN: No on_select expected.<br/>CN corrects the timestamp format.
 ```
 
 ###### W6: Domain Attribute Pack Validation Failure — NACK
 
-The BAP sends a `discover` request with an `itemAttributes` payload for the energy domain that contains an attribute key (`powerOutput_kVA`) not defined in the registered `energy:Item` attribute pack schema. The DS rejects it at the Linked Data layer (Layer 4).
+The CN sends a `discover` request with an `itemAttributes` payload for the energy domain that contains an attribute key (`powerOutput_kVA`) not defined in the registered `energy:Item` attribute pack schema. The DS rejects it at the Linked Data layer (Layer 4).
 
 ```mermaid
 sequenceDiagram
-    participant BAP
+    participant CN
     participant DS as DS (Discovery Service)
 
-    BAP->>DS: POST /discover<br/>(intent.item.itemAttributes: {powerOutput_kVA: 22})
+    CN->>DS: POST /discover<br/>(intent.item.itemAttributes: {powerOutput_kVA: 22})
     Note over DS: Layer 4 — 'powerOutput_kVA' not in<br/>registered energy:Item attribute pack
-    DS-->>BAP: NACK (SCH_ATTRIBUTE_PACK_INVALID)
-    Note over BAP: No on_discover expected.<br/>Correct attribute key to 'powerOutput_kW'.
+    DS-->>CN: NACK (SCH_ATTRIBUTE_PACK_INVALID)
+    Note over CN: No on_discover expected.<br/>Correct attribute key to 'powerOutput_kW'.
 ```
 
 ##### Layer 5 — Policy
 
 ###### W7: Cancellation Window Expired — Async Error
 
-The BAP calls `cancel` on an order whose cancellation window closed 2 hours ago per the provider's policy. The BPP accepts the request (ACK), evaluates it at the Policy layer, and returns the rejection asynchronously via `on_cancel`. Note: this is an exception — the order is still active — but it becomes an error because the policy prevents resolution.
+The CN calls `cancel` on an order whose cancellation window closed 2 hours ago per the provider's policy. The PN accepts the request (ACK), evaluates it at the Policy layer, and returns the rejection asynchronously via `on_cancel`. Note: this is an exception — the order is still active — but it becomes an error because the policy prevents resolution.
 
 ```mermaid
 sequenceDiagram
-    participant BAP
-    participant BPP
+    participant CN
+    participant PN
 
-    BAP->>BPP: POST /cancel (order: ord-551)
-    BPP-->>BAP: ACK
-    Note over BPP: Layer 5 — policy check:<br/>cancellation window closed 2h ago
-    BPP->>BAP: POST /on_cancel (POL_CANCELLATION_NOT_ALLOWED)
-    BAP-->>BPP: ACK
-    Note over BAP: Order remains active.<br/>BAP informs user of cancellation refusal.
+    CN->>PN: POST /cancel (order: ord-551)
+    PN-->>CN: ACK
+    Note over PN: Layer 5 — policy check:<br/>cancellation window closed 2h ago
+    PN->>CN: POST /on_cancel (POL_CANCELLATION_NOT_ALLOWED)
+    CN-->>PN: ACK
+    Note over CN: Order remains active.<br/>CN informs user of cancellation refusal.
 ```
 
 ###### W8: KYC Required Before Confirm — Async Error
 
-The BAP calls `confirm` for a regulated financial service. The BPP accepts the request but discovers during policy evaluation (Layer 5) that the user associated with the order has not completed mandatory KYC.
+The CN calls `confirm` for a regulated financial service. The PN accepts the request but discovers during policy evaluation (Layer 5) that the user associated with the order has not completed mandatory KYC.
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant BAP
-    participant BPP
+    participant CN
+    participant PN
 
-    BAP->>BPP: POST /confirm
-    BPP-->>BAP: ACK
-    Note over BPP: Layer 5 — KYC not completed<br/>for regulated financial service
-    BPP->>BAP: POST /on_confirm (POL_KYC_REQUIRED)
-    BAP-->>BPP: ACK
-    BAP->>User: Redirect to KYC verification flow
-    Note over BAP,BPP: BAP may re-submit /confirm after KYC completion
+    CN->>PN: POST /confirm
+    PN-->>CN: ACK
+    Note over PN: Layer 5 — KYC not completed<br/>for regulated financial service
+    PN->>CN: POST /on_confirm (POL_KYC_REQUIRED)
+    CN-->>PN: ACK
+    CN->>User: Redirect to KYC verification flow
+    Note over CN,PN: CN may re-submit /confirm after KYC completion
 ```
 
 ##### Layer 6 — Application
 
 ###### W9: Out of Stock During Select — Async Error
 
-The BAP user adds items to the cart and the BAP calls `select`. The BPP checks live inventory at the Application layer and finds the requested quantity is unavailable. This is the exception escalating to an error because no alternatives exist.
+The CN user adds items to the cart and the CN calls `select`. The PN checks live inventory at the Application layer and finds the requested quantity is unavailable. This is the exception escalating to an error because no alternatives exist.
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant BAP
-    participant BPP
+    participant CN
+    participant PN
 
-    User->>BAP: Add "Premium Widget × 3" to cart
-    BAP->>BPP: POST /select (item: SKU-4421, qty: 3)
-    BPP-->>BAP: ACK
-    Note over BPP: Layer 6 — inventory check:<br/>SKU-4421 has 0 units available
-    BPP->>BAP: POST /on_select (BIZ_QUANTITY_UNAVAILABLE)
-    BAP-->>BPP: ACK
-    BAP->>User: "SKU-4421 is currently out of stock"
+    User->>CN: Add "Premium Widget × 3" to cart
+    CN->>PN: POST /select (item: SKU-4421, qty: 3)
+    PN-->>CN: ACK
+    Note over PN: Layer 6 — inventory check:<br/>SKU-4421 has 0 units available
+    PN->>CN: POST /on_select (BIZ_QUANTITY_UNAVAILABLE)
+    CN-->>PN: ACK
+    CN->>User: "SKU-4421 is currently out of stock"
 ```
 
 ###### W10: Payment Failure with Level 2 Error — Async
 
-The BAP calls `confirm` to finalise an order. The BPP accepts and initiates payment. The payment gateway returns a hard decline. The BPP wraps the payment error as a Level 2 error inside the canonical `BIZ_PAYMENT_FAILED`, preserving the gateway-specific decline code for diagnostic use.
+The CN calls `confirm` to finalise an order. The PN accepts and initiates payment. The payment gateway returns a hard decline. The PN wraps the payment error as a Level 2 error inside the canonical `BIZ_PAYMENT_FAILED`, preserving the gateway-specific decline code for diagnostic use.
 
 ```mermaid
 sequenceDiagram
-    participant BAP
-    participant BPP
+    participant CN
+    participant PN
     participant PayGW as Payment Gateway
 
-    BAP->>BPP: POST /confirm
-    BPP-->>BAP: ACK
-    BPP->>PayGW: Charge card
-    PayGW-->>BPP: Decline: INSUFFICIENT_FUNDS
-    Note over BPP: Layer 6 — wrap Level 2 error:<br/>Level 1 = BIZ_PAYMENT_FAILED<br/>Level 2 (cause) = INSUFFICIENT_FUNDS
-    BPP->>BAP: POST /on_confirm<br/>(BIZ_PAYMENT_FAILED,<br/>cause: INSUFFICIENT_FUNDS)
-    BAP-->>BPP: ACK
-    Note over BAP: Prompt user to try another payment method
+    CN->>PN: POST /confirm
+    PN-->>CN: ACK
+    PN->>PayGW: Charge card
+    PayGW-->>PN: Decline: INSUFFICIENT_FUNDS
+    Note over PN: Layer 6 — wrap Level 2 error:<br/>Level 1 = BIZ_PAYMENT_FAILED<br/>Level 2 (cause) = INSUFFICIENT_FUNDS
+    PN->>CN: POST /on_confirm<br/>(BIZ_PAYMENT_FAILED,<br/>cause: INSUFFICIENT_FUNDS)
+    CN-->>PN: ACK
+    Note over CN: Prompt user to try another payment method
 ```
 
 ##### Cascaded Network Topology — Retail and Logistics
 
 ###### W11: Logistics Fulfilment Unavailable Propagated to Buyer
 
-A BAP confirms a retail order that includes delivery. The Retail BPP acts as a BAP on a separate logistics network to procure a delivery slot. The Logistics BPP has no available agents for the requested window. The error cascades back to the buyer's BAP, with the logistics-layer error preserved as a Level 2 cause. This example illustrates a cascaded topology where the Retail BPP has a dual role — BPP to the buyer and BAP to the logistics provider.
+A CN confirms a retail order that includes delivery. The Retail PN acts as a CN on a separate logistics network to procure a delivery slot. The Logistics PN has no available agents for the requested window. The error cascades back to the buyer's CN, with the logistics-layer error preserved as a Level 2 cause. This example illustrates a cascaded topology where the Retail PN has a dual role — PN to the buyer and CN to the logistics provider.
 
 ```mermaid
 sequenceDiagram
-    participant BAP as BAP (Buyer App)
-    participant RetailBPP as Retail BPP / Logistics BAP
-    participant LogisticsBPP as Logistics BPP
+    participant CN as CN (Buyer App)
+    participant RetailPN as Retail PN / Logistics CN
+    participant LogisticsPN as Logistics PN
 
-    BAP->>RetailBPP: POST /confirm (retail order with delivery)
-    RetailBPP-->>BAP: ACK
+    CN->>RetailPN: POST /confirm (retail order with delivery)
+    RetailPN-->>CN: ACK
 
-    Note over RetailBPP: Acting as BAP on logistics network
-    RetailBPP->>LogisticsBPP: POST /confirm<br/>(delivery slot: 2026-05-06T14:00)
-    LogisticsBPP-->>RetailBPP: ACK
-    Note over LogisticsBPP: No delivery agents for requested slot
-    LogisticsBPP->>RetailBPP: POST /on_confirm (BIZ_FULFILLMENT_UNAVAILABLE)
-    RetailBPP-->>LogisticsBPP: ACK
+    Note over RetailPN: Acting as CN on logistics network
+    RetailPN->>LogisticsPN: POST /confirm<br/>(delivery slot: 2026-05-06T14:00)
+    LogisticsPN-->>RetailPN: ACK
+    Note over LogisticsPN: No delivery agents for requested slot
+    LogisticsPN->>RetailPN: POST /on_confirm (BIZ_FULFILLMENT_UNAVAILABLE)
+    RetailPN-->>LogisticsPN: ACK
 
-    Note over RetailBPP: Wrap logistics error as Level 2 cause
-    RetailBPP->>BAP: POST /on_confirm<br/>(BIZ_FULFILLMENT_UNAVAILABLE,<br/>cause: logistics BIZ_FULFILLMENT_UNAVAILABLE)
-    BAP-->>RetailBPP: ACK
-    Note over BAP: Offer user an alternate delivery slot or cancellation
+    Note over RetailPN: Wrap logistics error as Level 2 cause
+    RetailPN->>CN: POST /on_confirm<br/>(BIZ_FULFILLMENT_UNAVAILABLE,<br/>cause: logistics BIZ_FULFILLMENT_UNAVAILABLE)
+    CN-->>RetailPN: ACK
+    Note over CN: Offer user an alternate delivery slot or cancellation
 ```
 
 ##### Hybrid Topology — EV Charging with P2P Energy Trading
 
-The following two examples share the same network topology. A car infotainment system (BAP) books a charging session with an EV Charging BPP. The EV Charging BPP simultaneously acts as a BAP on two separate networks: a P2P Energy Trading network (sourcing green energy from a Prosumer BPP) and a Demand Flexibility network (registering a load-flexibility slot with a Demand Flexibility BPP). This is a hybrid topology — cascaded (infotainment → EV Charging BPP) plus parallel (EV Charging BPP → P2P Trading BPP and Demand Flexibility BPP simultaneously).
+The following two examples share the same network topology. A car infotainment system (CN) books a charging session with an EV Charging PN. The EV Charging PN simultaneously acts as a CN on two separate networks: a P2P Energy Trading network (sourcing green energy from a Prosumer PN) and a Demand Flexibility network (registering a load-flexibility slot with a Demand Flexibility PN). This is a hybrid topology — cascaded (infotainment → EV Charging PN) plus parallel (EV Charging PN → P2P Trading PN and Demand Flexibility PN simultaneously).
 
 ###### W12: EV Charger Goes Offline After Confirm
 
-All three networks confirm successfully. Afterwards, the physical EVSE charger unit is blocked and reports a `FAULTED` status via OCPP. The EV Charging BPP notifies the infotainment BAP via `on_status` with an internal error, wrapping the OCPP fault as a Level 2 cause. The infotainment BAP initiates cancellation, which the EV Charging BPP propagates upstream to both its providers in parallel.
+All three networks confirm successfully. Afterwards, the physical EVSE charger unit is blocked and reports a `FAULTED` status via OCPP. The EV Charging PN notifies the infotainment CN via `on_status` with an internal error, wrapping the OCPP fault as a Level 2 cause. The infotainment CN initiates cancellation, which the EV Charging PN propagates upstream to both its providers in parallel.
 
 ```mermaid
 sequenceDiagram
-    participant CAR as Car Infotainment (BAP)
-    participant EV as EV Charging BPP / P2P BAP
-    participant P2P as P2P Trading BPP (Prosumer)
-    participant FLEX as Demand Flexibility BPP
+    participant CAR as Car Infotainment (CN)
+    participant EV as EV Charging PN / P2P CN
+    participant P2P as P2P Trading PN (Prosumer)
+    participant FLEX as Demand Flexibility PN
 
     CAR->>EV: POST /confirm (EV charging session)
     EV-->>CAR: ACK
@@ -1125,14 +1128,14 @@ sequenceDiagram
 
 ###### W13: Prosumer Cancels Due to Grid Outage
 
-All three networks have confirmed the charging session. A transmission grid outage severs the Prosumer's renewable energy source. The Prosumer BPP cancels the energy allocation. The EV Charging BPP, unable to proceed without green energy, notifies the infotainment BAP via `on_update` that the session is disrupted. The BAP offers the user a fallback to grey grid energy, which the user accepts. The cascaded error is preserved using Level 2 chaining so that both NPs can synchronize their transaction state.
+All three networks have confirmed the charging session. A transmission grid outage severs the Prosumer's renewable energy source. The Prosumer PN cancels the energy allocation. The EV Charging PN, unable to proceed without green energy, notifies the infotainment CN via `on_update` that the session is disrupted. The CN offers the user a fallback to grey grid energy, which the user accepts. The cascaded error is preserved using Level 2 chaining so that both NPs can synchronize their transaction state.
 
 ```mermaid
 sequenceDiagram
-    participant CAR as Car Infotainment (BAP)
-    participant EV as EV Charging BPP / P2P BAP
-    participant P2P as P2P Trading BPP (Prosumer)
-    participant FLEX as Demand Flexibility BPP
+    participant CAR as Car Infotainment (CN)
+    participant EV as EV Charging PN / P2P CN
+    participant P2P as P2P Trading PN (Prosumer)
+    participant FLEX as Demand Flexibility PN
 
     Note over CAR,FLEX: All parties have confirmed the charging session
 
@@ -1158,7 +1161,7 @@ sequenceDiagram
 
 ## Conclusion
 
-This RFC establishes a comprehensive framework for handling exceptions and errors in Beckn Protocol v2. It draws a clear distinction between exceptions — deviations that may be resolved gracefully within the protocol flow — and errors, which halt processing and always result in an `Error` object being transmitted. The canonical, layered error code taxonomy is aligned with the six layers of the Beckn Protocol Stack (CTX/NET → Networking, AUT → Trust, SCH → Core Data / Linked Data, POL → Policy, BIZ → Application). The self-referencing `Error` schema enables structured root-cause chains — including Level 2 errors from higher-layer integrations such as payments, tracking, and consent management — with the invariant that the Level 1 error is always canonical. NACK obligations are explicit: BAPs MUST NOT expect callbacks after receiving a NACK, and BPPs MUST retry callbacks that are NACKed per NFO policy. Responding NPs additionally hold engagement-level agency through the discretionary NACK mechanism, allowing policy-governed refusals based on caller trust, capacity, or availability, subject to NFO constraints. Strongly recommended synchronous dispatch for context, authentication, and schema errors reduces diagnostic ambiguity. Full backward-compatibility mappings from [BECKN-005](https://github.com/beckn/protocol-specifications/blob/master/docs/BECKN-005-Error-Codes-Draft-01.md) ensure smooth migration for existing implementations.
+This RFC establishes a comprehensive framework for handling exceptions and errors in Beckn Protocol v2. It draws a clear distinction between exceptions — deviations that may be resolved gracefully within the protocol flow — and errors, which halt processing and always result in an `Error` object being transmitted. The canonical, layered error code taxonomy is aligned with the six layers of the Beckn Protocol Stack (CTX/NET → Networking, AUT → Trust, SCH → Core Data / Linked Data, POL → Policy, BIZ → Application). The self-referencing `Error` schema enables structured root-cause chains — including Level 2 errors from higher-layer integrations such as payments, tracking, and consent management — with the invariant that the Level 1 error is always canonical. NACK obligations are explicit: CNs MUST NOT expect callbacks after receiving a NACK, and PNs MUST retry callbacks that are NACKed per NFO policy. Responding NPs additionally hold engagement-level agency through the discretionary NACK mechanism, allowing policy-governed refusals based on caller trust, capacity, or availability, subject to NFO constraints. Strongly recommended synchronous dispatch for context, authentication, and schema errors reduces diagnostic ambiguity. Full backward-compatibility mappings from [BECKN-005](https://github.com/beckn/protocol-specifications/blob/master/docs/BECKN-005-Error-Codes-Draft-01.md) ensure smooth migration for existing implementations.
 
 Advancement to Candidate status requires at least two independent implementations validating the canonical enum, the `x-error-registry` metadata, and the ACK/NACK semantics defined in the Error Handling Guidelines.
 
@@ -1178,7 +1181,7 @@ This RFC is based on the proposal by [Abhishek Jain (abhimail)](https://github.c
 - **[BECKN-005](https://github.com/beckn/protocol-specifications/blob/master/docs/BECKN-005-Error-Codes-Draft-01.md) (v1 Error Codes)**
 - **NFH-003: The Beckn Protocol Stack:** Click [here](./The_Beckn_Protocol_Stack.md).
 - **NFH-006: Beckn API Endpoints (v2.0.0):** Click [here](./API.md).
-- **NFH-007: Navigating the Beckn Schema:** Click [here](./Core_Data_Schema.md).
+- **NFH-004: Navigating the Beckn Schema:** Click [here](./Core_Data_Schema.md).
 - **Governance:** Click [here](../GOVERNANCE.md).
 - **Keyword definitions:** Click [here](./Keyword_Definitions.md).
 - **Discussion #148:** [https://github.com/beckn/protocol-specifications-v2/discussions/148](https://github.com/beckn/protocol-specifications-v2/discussions/148)

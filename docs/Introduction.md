@@ -1,17 +1,18 @@
-# Beckn Architecture, Design Philosophy and Principles
+# Specification : Architecture, Design Philosophy and Principles
 > Request for Comments
 ## Document Details
 
 - **ID:** NFH-001
 - **Status:** Draft.
-- **Authors:** Ravi Prakash.
-- **Created:** 2026-03-03.
-- **Updated:** 2026-04-07.
+- **Authors:**
+  - [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity](https://networksforhumanity.org)
+- **Created:** 2026-05-11
+- **Updated:** 2026-05-11
 - **Version history:** No commits found on `main` for `docs/02_Design_Philosophy.md`.
 - **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/02_Design_Philosophy.md).
-- **Implementation report:** Not applicable (architecture principles RFC).
-- **Stress test report:** Inputs for stress testing strategy are captured in derived principles.
-- **Conformance impact:** Informative for architecture decisions, with normative guidance inside Section 5.
+- **Implementation report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
+- **Stress test report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
+- **Conformance impact:** Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main.
 - **Security/privacy implications:** Defines security-by-design architecture constraints, including signature and receipt semantics.
 - **Replaces / Relates to:** Supersedes the prior non-template version of `02_Design_Philosophy.md`; aligned with `api/v2.0.0/beckn.yaml` and Beckn architecture documentation.
 - **Feedback - Issues:** Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22RFC-002%22).
@@ -25,8 +26,7 @@ This RFC defines the architectural philosophy and derived principles that guide 
 
 ## Table of Contents
 
-- [Beckn Architecture Design Philosophy and Principles](#beckn-architecture-design-philosophy-and-principles)
-        - [Request for Comments](#request-for-comments)
+- [Specification : Architecture, Design Philosophy and Principles](#specification--architecture-design-philosophy-and-principles)
   - [Document Details](#document-details)
   - [Abstract](#abstract)
   - [Table of Contents](#table-of-contents)
@@ -50,7 +50,7 @@ The architectural intent is to keep transport behavior explicit, preserve semant
 
 ## Specification
 
-The key words MUST, SHOULD, and MAY in this document are to be interpreted as described in Click [here](./00_Keyword_Definitions.md).
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described [here](./Keyword_Definitions.md). These definitions aim to ensure that the terms are understood precisely and consistently to avoid confusion in the interpretation of standards, specifications, and protocols.
 
 ### Design Principles
 
@@ -71,13 +71,13 @@ Beckn Protocol v2 specification is designed to run as a layered stack built on a
 3. Composable Linked-Data Schema
 4. Workflows
 
-Core roles in v2 include BAP, BPP, Discovery Service (DS), and Registry.
+Core roles in v2 include CN, PN, Discovery Service (DS), and Registry.
 
 High-level interaction shape:
 
 ```text
-BPP -> CP -> DS -> BAP discovery
-BAP <-> BPP transaction lifecycle
+PN -> CP -> DS -> CN discovery
+CN <-> PN transaction lifecycle
 All actors <-> Registry for trust resolution
 ```
 
@@ -115,7 +115,7 @@ No protocol wire migration is introduced by this RFC. This update is editorial a
 The following evolution questions remain open and inform future work:
 
 1. Slash and underscore action aliasing may need formal deprecation over a defined release window.
-2. Actor capability profiles for Fabric Nodes, BPP, CS, and DS may need publication as a separate normative RFC.
+2. Actor capability profiles for Fabric Nodes, PN, CS, and DS may need publication as a separate normative RFC.
 
 ### Examples
 

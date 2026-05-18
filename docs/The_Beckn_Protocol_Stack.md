@@ -4,14 +4,15 @@
 
 - **ID:** NFH-003
 - **Status:** Draft.
-- **Authors:** Beckn Protocol contributors.
-- **Created:** 2026-04-10.
-- **Updated:** 2026-04-10.
+- **Authors:**
+  - [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity](https://networksforhumanity.org)
+- **Created:** 2026-05-11
+- **Updated:** 2026-05-11
 - **Version history:** Repository history on `main` does not yet show commits for this file; Draft-01 (2026-04-10) migrated the protocol stack guide into RFC template structure.
 - **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/03_The_Beckn_Protocol_Stack.md).
-- **Implementation report:** Informative RFC; no standalone implementation report required.
-- **Stress test report:** Not applicable for this architecture-overview RFC.
-- **Conformance impact:** Informative with normative guidance for layer responsibilities.
+- **Implementation report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
+- **Stress test report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
+- **Conformance impact:** Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main.
 - **Security/privacy implications:** Clarifies trust-layer and signature responsibilities across the stack.
 - **Replaces / relates to:** Replaces non-RFC-form content in `03_The_Beckn_Protocol_Stack.md`.
 - **Feedback:** Issues Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22RFC-003%22), discussions Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22RFC-003%22), pull requests Click [here](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22RFC-003%22).
@@ -29,6 +30,7 @@ This RFC defines the Beckn v2 protocol stack as six layers and explains how netw
   - [Table of Contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Specification](#specification)
+    - [Definitions](#definitions)
     - [Stack definition](#stack-definition)
     - [Layer 1: Networking Layer](#layer-1-networking-layer)
       - [Network Architecture](#network-architecture)
@@ -50,7 +52,7 @@ This RFC defines the Beckn v2 protocol stack as six layers and explains how netw
 
 ## Introduction
 
-Beckn implementations involve multiple independently operated actors and services, and without a canonical layering model responsibilities can blur across transport, trust, data, semantics, policy, and business workflow concerns. This RFC establishes a shared architecture baseline so implementations remain coherent and interoperable across BAP, BPP, DS, PS, Registry, and related infrastructure.
+Beckn implementations involve multiple independently operated actors and services, and without a canonical layering model responsibilities can blur across transport, trust, data, semantics, policy, and business workflow concerns. This RFC establishes a shared architecture baseline so implementations remain coherent and interoperable across CN, PN, DS, PS, Registry, and related infrastructure.
 
 In this layering model, the Networking Layer handles routing, addressing, discovery flow, and request/callback movement; the Trust Layer handles identity resolution, signature verification, key management, and non-repudiation controls; the Core Data Layer handles structural payload interoperability using JSON and schema validation; the Linked Data Layer handles JSON-LD semantics for extensibility and shared meaning; the Policy Layer handles runtime rule enforcement beyond core schema constraints; and the Application Layer handles participant-specific business logic and workflow execution.
 
@@ -58,7 +60,10 @@ The stack is guided by four implementation principles: each layer MUST own a cle
 
 ## Specification
 
-The key words MUST, SHOULD, and MAY in this document are to be interpreted as described in Click [here](./00_Keyword_Definitions.md).
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described [here](./Keyword_Definitions.md). These definitions aim to ensure that the terms are understood precisely and consistently to avoid confusion in the interpretation of standards, specifications, and protocols.
+
+### Definitions
+To be added
 
 ### Stack definition
 
@@ -96,15 +101,15 @@ A Beckn network is a set of independently run platforms that communicate through
 
 In Beckn v2, the runtime can be viewed as two architectural bands:
 
-1. **Open Network Layer (top):** BAP, BPP, DS  
+1. **Open Network Layer (top):** CN, PN, DS  
 2. **Universal Value-Exchange Infrastructure Fabric (bottom):** Registry, Cataloging Service (CS)
 
 ```mermaid
 flowchart TB
     subgraph TOP[Transaction Layer]
         direction TB
-        BAP <-->|discover / on_discover| DS
-        BAP <-->|Transaction API| BPP
+        CN <-->|discover / on_discover| DS
+        CN <-->|Transaction API| PN
     end
 
     subgraph BOTTOM[Fabric : Universal Value-Exchange Infrastructure]
@@ -113,12 +118,12 @@ flowchart TB
         CS[CS]
     end
 
-    BPP -->|catalog/publish| CS
+    PN -->|catalog/publish| CS
     DS <-->|catalog/subscribe| CS
     DS <-->|push/pull| CS
 
-    BAP -.->|lookup| REG
-    BPP -.->|lookup| REG
+    CN -.->|lookup| REG
+    PN -.->|lookup| REG
     DS -.->|lookup| REG
     CS -.->|lookup| REG
 
@@ -184,26 +189,26 @@ In `GET Query` mode, the server only returns acknowledgement and does not send a
 
 Discovery in Beckn is performed via the synchronization of two actors, Cataloging Service (on Fabric) and the Discovery Service (on Network):
 
-1. The **Beckn Provider Platform** (BPP) publishes / updates catalogs on the **Cataloging Service** (CS) hosted on the **Fabric**
+1. The **Provider Node** (PN) publishes / updates catalogs on the **Cataloging Service** (CS) hosted on the **Fabric**
 2. The **Cataloging Service** validates and indexes catalogs  
 3. The **Discovery Service** (DS) subscribes to various catalogs across various discovery scopes 
 4. The **Discovery Service** (DS) syncs the catalogs from **Cataloging Service** (CS))
-5. The **Beckn Application Platform** (BAP) calls `discover` on DS  
+5. The **Consumer Node** (CN) calls `discover` on DS  
 6. The **Discovery Service** (DS) returns matching results (sync or callback per policy)
 
 ```mermaid
 sequenceDiagram
-    participant BPP
+    participant PN
     participant CS
     participant DS
-    participant BAP
+    participant CN
 
-    BPP->>CS: POST catalog/publish
+    PN->>CS: POST catalog/publish
     DS->>CS: POST catalog/subscribe
     CS->>DS: push
     DS->>CS: pull
-    BAP->>DS: POST discover
-    DS->>BAP: POST on_discover
+    CN->>DS: POST discover
+    DS->>CN: POST on_discover
 
 ```
 ### Layer 2: Trust Layer
@@ -211,7 +216,7 @@ sequenceDiagram
 The trust layer provides identity and non-repudiation controls.
 
 - The NFH Fabric contains a Registry service that MUST be used as a trust directory for identity, endpoint, and key resolution.
-- Open Network Participants (BAP, BPP, DS) MUST lookup the Registry using DeDi protocol
+- Open Network Participants (CN, PN, DS) MUST lookup the Registry using DeDi protocol
 - Receivers MUST verify signatures against trusted key material returned from the Registry `lookup`
 
 ### Layer 3: Core Data Layer
@@ -258,10 +263,10 @@ Typical lifecycle groups:
 Example 1 - Discovery to transaction path:
 
 ```text
-BPP -> CS (publish)
+PN -> CS (publish)
 BP -> DS (index)
-BAP -> DS (discover)
-BAP <-> BPP (select/init/confirm/.../support lifecycle)
+CN -> DS (discover)
+CN <-> PN (select/init/confirm/.../support lifecycle)
 ```
 
 Example 2 - Envelope shape:
