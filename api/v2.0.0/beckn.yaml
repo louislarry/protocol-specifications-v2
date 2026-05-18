@@ -1597,14 +1597,14 @@ paths:
 
   /catalog/subscription:
     post:
-      summary: BAP subscribes to catalog updates on the CS
+      summary: CN subscribes to catalog updates on the CS
       description: "Creates a new catalog subscription or updates an existing one\
-        \ on the CS (Cataloging Service). The BAP declares which networks and schema\
+        \ on the CS (Cataloging Service). The CN declares which networks and schema\
         \ types it wishes to receive ongoing catalog/push callbacks for when matching\
         \ catalogs are indexed.\n\nAdditional preconditions: At least one networkId\
         \ or schemaType MUST be provided (anyOf). An empty schemaTypes array is treated\
         \ as a wildcard matching all schema types for the specified networks. The\
-        \ BAP identity is extracted from the Authorization header.\n\nFabric context:\
+        \ CN identity is extracted from the Authorization header.\n\nFabric context:\
         \ This endpoint is hosted by the CS. The CS validates the caller's identity\
         \ from the Authorization header and persists the subscription.\n\nThe message\
         \ MUST contain a CatalogSubscribeAction with a subscription object specifying\
@@ -1691,11 +1691,11 @@ paths:
         '500':
           $ref: '#/components/responses/ServerError'
     delete:
-      summary: BAP deactivates a catalog subscription on the CS
+      summary: CN deactivates a catalog subscription on the CS
       operationId: catalogSubscriptionDeactivate
       tags:
       - Fabric API - Cataloging Service
-      description: "The BAP deactivates an existing subscription on the CS (Cataloging\
+      description: "The CN deactivates an existing subscription on the CS (Cataloging\
         \ Service). A deactivated subscription stops receiving catalog updates.\n\
         \nAdditional preconditions: The subscriptionId query parameter MUST be provided.\
         \ The caller MUST be the subscription owner — the signing key identity in\
@@ -1749,8 +1749,8 @@ paths:
         \ Service), optionally filtered by status, with support for pagination and\
         \ lookup by subscription ID.\n\nAdditional preconditions: The caller's identity\
         \ is extracted from the Authorization header. Only subscriptions owned\
-        \ by the calling BAP are returned.\n\nFabric context: This endpoint is hosted\
-        \ by the CS. The CS returns only subscriptions belonging to the calling BAP,\
+        \ by the calling CN are returned.\n\nFabric context: This endpoint is hosted\
+        \ by the CS. The CS returns only subscriptions belonging to the calling CN,\
         \ with pagination metadata.\n\nA 200 response\
         \ returns a CatalogSubscriptionResponse envelope containing the matching subscriptions\
         \ and pagination metadata. When subscriptionId is provided, at most one subscription\
@@ -1819,15 +1819,15 @@ paths:
 
   /catalog/pull:
     post:
-      summary: BAP submits async catalog pull request to the CS
-      description: "The BAP submits an asynchronous catalog pull request to the CS\
+      summary: CN submits async catalog pull request to the CS
+      description: "The CN submits an asynchronous catalog pull request to the CS\
         \ (Cataloging Service), scoped to an active subscription. The subscription's\
         \ networkIds and schemaTypes determine which catalogs are returned — they\
         \ are not specified on this request.\n\nAdditional preconditions: context.version,\
         \ context.action, context.transactionId, and message.subscriptionId MUST be\
         \ supplied.\n\nFabric context: This endpoint is hosted by the CS. The CS\
         \ queues the pull request for asynchronous processing and delivers results\
-        \ to the BAP via /catalog/on_pull.\n\nThe message MUST contain a CatalogPullAction. The mode field\
+        \ to the CN via /catalog/on_pull.\n\nThe message MUST contain a CatalogPullAction. The mode field\
         \ MUST be either FULL (returns the latest version of each matching catalog)\
         \ or INCREMENTAL (returns all catalog versions published between fromDate and\
         \ toDate inclusive).\n\nCallback\
@@ -1835,16 +1835,16 @@ paths:
         \ results via POST to the /catalog/on_pull callback. When the payload is\
         \ small it is returned inline; when the result is too large to return inline\
         \ the callback carries a downloadManifest for downloading the result.\
-        \ The BAP MUST use context.messageId to correlate the /catalog/on_pull\
+        \ The CN MUST use context.messageId to correlate the /catalog/on_pull\
         \ callback with the originating request.\n\nA 200 Ack confirms the pull request was accepted;\
         \ results will be delivered asynchronously via /catalog/on_pull. A 400 NackBadRequest\
         \ is returned when the subscriptionId is missing or not a valid UUID, or when\
         \ the mode, fromDate, or toDate values are invalid. A 401 NackUnauthorized\
         \ is returned when the Authorization header signature is missing or invalid.\
         \ A 403 NackForbidden is returned when the subscriptionId does not belong\
-        \ to the calling BAP. A 404 NackNotFound is returned when the subscriptionId\
+        \ to the calling CN. A 404 NackNotFound is returned when the subscriptionId\
         \ does not exist. A 500 ServerError indicates an unexpected CS failure; the\
-        \ BAP SHOULD retry."
+        \ CN SHOULD retry."
       operationId: catalogPull
       tags:
       - Fabric API - Cataloging Service
@@ -1900,22 +1900,22 @@ paths:
 
   /catalog/on_pull:
     post:
-      summary: CS delivers historical catalog versions to the BAP
+      summary: CS delivers historical catalog versions to the CN
       description: "The CS (Cataloging Service) calls this endpoint on the Network\
-        \ Participant (BAP) to deliver the results of a previously accepted /catalog/pull\
+        \ Participant (CN) to deliver the results of a previously accepted /catalog/pull\
         \ request.\n\nAdditional preconditions: A /catalog/pull request MUST have\
-        \ been sent by the BAP and accepted (200 Ack) by the CS before this callback\
-        \ is triggered. The BAP MUST use context.messageId to correlate\
+        \ been sent by the CN and accepted (200 Ack) by the CS before this callback\
+        \ is triggered. The CN MUST use context.messageId to correlate\
         \ this callback with the originating /catalog/pull request.\n\nFabric context: This\
         \ callback is sent by the CS after processing the pull request. The CS delivers\
-        \ the results to the BAP's registered endpoint.\n\nThe message MUST contain a CatalogPullCallbackAction with\
+        \ the results to the CN's registered endpoint.\n\nThe message MUST contain a CatalogPullCallbackAction with\
         \ a status of COMPLETED or FAILED,\
         \ and either an inline catalogs array (small payload) or a downloadManifest\
         \ for downloading the result (large payload).\n\nA 200 Ack confirms the callback\
-        \ was received and accepted by the BAP. A 400 NackBadRequest is returned\
+        \ was received and accepted by the CN. A 400 NackBadRequest is returned\
         \ when the payload is malformed or required fields are missing. A 401 NackUnauthorized\
         \ is returned when the Authorization header (callback) signature is invalid.\
-        \ A 500 ServerError indicates an unexpected BAP failure."
+        \ A 500 ServerError indicates an unexpected CN failure."
       operationId: catalogOnPull
       tags:
       - Fabric API - Cataloging Service
@@ -1957,7 +1957,7 @@ paths:
   /catalog/search:
     post:
       summary: Network Participant searches catalogs on the CS
-      description: "The BAP or BPP queries the CS (Cataloging Service) for indexed\
+      description: "The CN or PN queries the CS (Cataloging Service) for indexed\
         \ catalogs, filtered by catalog type, network identifiers, and schema type\
         \ URIs with paginated results.\n\nAdditional preconditions: All filters are\
         \ optional. Omitting filters.type defaults to MASTER. Omitting\
@@ -2151,7 +2151,7 @@ components:
                   Restricts delivery of this catalog to the listed
                   network participant identifiers. Values MUST be
                   registry-registered network participant identifiers.
-                  Assigned by the BPP; enforced by the CS at delivery
+                  Assigned by the PN; enforced by the CS at delivery
                   time. When omitted, the catalog is visible to all
                   eligible subscribers.
                 example:
@@ -4470,7 +4470,7 @@ components:
                 type: string
               description: >-
                 Registry-registered network identifiers provided by the
-                BAP. The CS scopes catalog/push delivery to subscribers
+                CN. The CS scopes catalog/push delivery to subscribers
                 whose networkIds match the published catalog's network.
             schemaTypes:
               type: array
@@ -4478,7 +4478,7 @@ components:
                 type: string
               description: >-
                 Schema type URIs as published at schema.beckn.io,
-                provided by the BAP. The CS filters catalog/push delivery
+                provided by the CN. The CS filters catalog/push delivery
                 to subscribers whose schemaTypes intersect the published
                 catalog's schema types. An empty array matches all schema
                 types for the specified networks.
@@ -4509,7 +4509,7 @@ components:
           description: >-
             UUID v4 assigned by the CS on subscription creation. Stable
             for the lifetime of the subscription. MUST be supplied by
-            the BAP in all subsequent subscription management operations
+            the CN in all subsequent subscription management operations
             (update, deactivate, pull).
         networkIds:
           type: array
@@ -4556,7 +4556,7 @@ components:
         \ to navigate through large result sets using offset-based pagination.\n\n\
         Pagination appears in list responses such as /catalog/subscriptions and /catalog/search.\
         \ The DS (Discovery Service) and CS (Cataloging Service) produce it; the CN\
-        \ or BPP consumes it to determine whether additional pages are available and\
+        \ or PN consumes it to determine whether additional pages are available and\
         \ to construct subsequent requests.\n\nRelationship: Composed within the response\
         \ message objects of /catalog/subscriptions and /catalog/search endpoints."
       properties:
@@ -4706,7 +4706,7 @@ components:
         \ When the result is small it is returned inline in `catalogs`; when the\
         \ result is too large to return inline the callback carries a `downloadManifest`\
         \ for downloading the result.\n\nRelationship: Composed as the message payload\
-        \ of the /catalog/on_pull callback. The BAP MUST use context.messageId\
+        \ of the /catalog/on_pull callback. The CN MUST use context.messageId\
         \ to correlate this callback with the originating /catalog/pull request."
       additionalProperties: false
       required:
@@ -4720,8 +4720,8 @@ components:
           description: >-
             Status of the pull request result assigned by the CS.
             COMPLETED — the CS successfully assembled the catalog result;
-            the BAP MUST process either catalogs[] or downloadManifest.
-            FAILED — the CS could not assemble the result; the BAP MUST
+            the CN MUST process either catalogs[] or downloadManifest.
+            FAILED — the CS could not assemble the result; the CN MUST
             read the error field and MUST NOT attempt to process catalogs
             or downloadManifest.
         catalogs:
@@ -4736,7 +4736,7 @@ components:
             result payload from object storage. Present when status is
             COMPLETED and the result is too large to return inline in
             catalogs[]. Mutually exclusive with catalogs[] — exactly one
-            MUST be present when status is COMPLETED. The BAP MUST
+            MUST be present when status is COMPLETED. The CN MUST
             download the object at url, verify the checksum before
             processing, and MUST NOT process the content if verification
             fails.
@@ -4752,35 +4752,35 @@ components:
               type: string
               description: >-
                 Pre-signed object-store URL from which the catalog payload
-                can be downloaded. The BAP MUST NOT attempt to download
+                can be downloaded. The CN MUST NOT attempt to download
                 after expiresAt.
             expiresAt:
               type: string
               format: date-time
               description: >-
                 ISO 8601 timestamp after which url is no longer valid. The
-                BAP MUST NOT attempt to download after this time; if
-                expired, the BAP MUST re-issue POST /catalog/pull.
+                CN MUST NOT attempt to download after this time; if
+                expired, the CN MUST re-issue POST /catalog/pull.
             format:
               type: string
               enum:
               - json
               - json.gz
               description: >-
-                Encoding format of the downloaded payload. The BAP MUST
+                Encoding format of the downloaded payload. The CN MUST
                 decompress json.gz before parsing.
             sizeBytes:
               type: integer
               minimum: 0
               description: >-
-                Size of the payload in bytes after any compression. The BAP
+                Size of the payload in bytes after any compression. The CN
                 MAY use this to validate download completeness.
             checksum:
               type: string
               description: >-
                 SHA-256 hex digest of the payload at url, prefixed with
-                sha256:. The BAP MUST verify this against the downloaded
-                content before processing. If verification fails, the BAP
+                sha256:. The CN MUST verify this against the downloaded
+                content before processing. If verification fails, the CN
                 MUST discard the content and treat the pull as failed.
         pagination:
           $ref: '#/components/schemas/Pagination'
@@ -4794,7 +4794,7 @@ components:
         \ and deactivate.\n\nThis schema appears in the Catalog Subscription phase.\
         \ The CS produces it as the synchronous response to POST /catalog/subscription\
         \ (creation or update), GET /catalog/subscriptions (listing), and DELETE\
-        \ /catalog/subscription (deactivation). The BAP consumes it to confirm subscription\
+        \ /catalog/subscription (deactivation). The CN consumes it to confirm subscription\
         \ state.\n\nFabric context: Produced synchronously by the CS; no async callback\
         \ is delivered for subscription management operations. The context.action\
         \ is always catalog/on_subscription.\n\nRelationship: Composes one or more\
