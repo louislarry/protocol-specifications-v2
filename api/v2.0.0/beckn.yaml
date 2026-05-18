@@ -1958,7 +1958,7 @@ paths:
       description: "The BAP or BPP queries the CS (Cataloging Service) for indexed\
         \ catalogs, filtered by catalog type, network identifiers, and schema type\
         \ URIs with paginated results.\n\nAdditional preconditions: All filters are\
-        \ optional. Omitting filters.type returns catalogs of all types. Omitting\
+        \ optional. Omitting filters.type defaults to MASTER. Omitting\
         \ or leaving filters.networkIds empty matches all networks. Omitting or leaving\
         \ filters.schemaTypes empty matches all schema types. limit MUST be between\
         \ 1 and 100 (default 20); offset MUST be non-negative (default 0).\n\nFabric\
@@ -4686,12 +4686,14 @@ components:
               enum:
               - MASTER
               - REGULAR
+              default: MASTER
               description: >-
                 Restricts results to catalogs of the specified type.
                 MASTER — canonical resource definitions reusable across
                 the network. REGULAR — provider-specific catalogs that
-                may extend master resources. When omitted, catalogs of
-                all types are returned.
+                may extend master resources. Defaults to MASTER when
+                omitted, preserving backward-compatible behaviour for
+                existing implementations.
             networkIds:
               type: array
               items:
