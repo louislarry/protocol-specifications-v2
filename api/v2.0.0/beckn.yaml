@@ -4569,7 +4569,9 @@ components:
         \ or update) and GET /catalog/subscriptions (listing). The subscriber consumes\
         \ it to confirm subscription state.\n\nFabric context: Managed exclusively\
         \ by the CS, which uses ACTIVE subscriptions to determine which subscribers\
-        \ receive catalog/push callbacks when catalogs are published.\n\nRelationship:\
+        \ receive catalog/push callbacks when catalogs are published. The identity\
+        \ of the subscriber is derived by the CS from the signing key in the Beckn\
+        \ HTTP Signature Authorization header on each request.\n\nRelationship:\
         \ The status field MUST be one of ACTIVE (the subscriber receives catalog/push\
         \ callbacks when matching catalogs are published) or INACTIVE (temporarily\
         \ paused; can be reactivated via POST update)."
@@ -4585,14 +4587,6 @@ components:
             for the lifetime of the subscription. MUST be supplied by
             the BAP in all subsequent subscription management operations
             (update, deactivate, pull).
-        subscriberId:
-          type: string
-          description: >-
-            Identity of the subscribing BAP as extracted by the CS from
-            the signing key in the Beckn HTTP Signature Authorization
-            header. NOT supplied by the BAP in the request body. Optional
-            in the response — callers MAY infer the subscriber identity
-            from the Authorization header used in the request.
         networkIds:
           type: array
           items:
