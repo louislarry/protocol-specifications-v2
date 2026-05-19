@@ -19,7 +19,7 @@ Primary action groups:
 - Catalog Publishing
 - Subscription
 - Catalog Pull
-- Master Resource Search
+- Master Catalog Search
 
 ## Endpoint families
 
@@ -58,8 +58,9 @@ Catalog extensions:
 
 ## Security and acknowledgments
 
-- Requests require Beckn HTTP Signature in Authorization.
-- Ack includes CounterSignature.
+- Requests require a Beckn HTTP Signature in the `Authorization` header.
+- Synchronous `Ack` responses carry a `message` envelope with `status` (ACK/NACK) and the `messageId` of the received request.
+- The responding actor signs the response payload and returns the signature in the `Signature` response header; the caller verifies this to confirm authenticated receipt.
 - Error responses follow NackBadRequest, NackUnauthorized, and ServerError schemas.
 
 ## Operational notes
