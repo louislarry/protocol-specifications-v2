@@ -1246,7 +1246,7 @@ sequenceDiagram
     BPPLD->>DS: POST /catalog/publish (carries Resource shown in /on_discover example above)
 ```
 
-Steps 1–2 happen inside `ShopGulf`'s perimeter (outbound `/discover`). Steps 3–4 happen inside `ShopGulf`'s perimeter (inbound `/on_discover`). Steps A–B happen inside `MerchantHub`'s perimeter (publication via the Fabric Cataloging Service). The wire format — with single-string `@context` URLs inside every `Attributes` container — is the only shared contract.
+Steps 1–2 happen inside `ShopGulf`'s perimeter (outbound `/discover`). Steps 3–4 happen inside `ShopGulf`'s perimeter (inbound `/on_discover`). Steps A–B happen inside `MerchantHub`'s perimeter (catalog publication to a Cataloging Service node). The wire format — with single-string `@context` URLs inside every `Attributes` container — is the only shared contract.
 
 ##### Pseudocode — edge processing
 

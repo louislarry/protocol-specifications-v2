@@ -243,11 +243,11 @@ Any evolution in the protocol MUST enable decentralization of the associated eco
 
 ### 2. Fabric-driven
 
-Any evolution in the protocol MUST emerge as a consequence of evolution in the NFH Fabric. Any feature request MUST originate as a Fabric feature request, NOT a protocol feature request. Based on discussions following the feature request, a decision will be made whether to support the feature as a run-time Fabric capability or a protocol-level specification change. Protocol changes that do NOT have a traceable Fabric requirement MUST NOT be accepted.
+Any evolution in the protocol MUST emerge as a consequence of evolution in the NFH fabric. Any feature request MUST originate as a fabric feature request, NOT a protocol feature request. Based on discussions following the feature request, a decision will be made whether to support the feature as a run-time fabric capability or a protocol-level specification change. Protocol changes that do NOT have a traceable fabric requirement MUST NOT be accepted.
 
-> **RFC authorship test:** The RFC MUST identify the Fabric capability or Fabric service evolution that motivates the protocol change. If no Fabric requirement is cited, the RFC is incomplete.
+> **RFC authorship test:** The RFC MUST identify the fabric capability or fabric service evolution that motivates the protocol change. If no fabric requirement is cited, the RFC is incomplete.
 
-> **Failure mode:** Proposing a new endpoint to solve a developer convenience problem that has NOT been raised as a Fabric service requirement and has NOT been discussed in the NFH Fabric Support Forum.
+> **Failure mode:** Proposing a new endpoint to solve a developer convenience problem that has NOT been raised as a fabric service requirement and has NOT been discussed in the NFH fabric Support Forum.
 
 ---
 

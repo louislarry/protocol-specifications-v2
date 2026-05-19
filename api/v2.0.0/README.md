@@ -13,13 +13,10 @@ The specification uses one named endpoint per Beckn protocol action.
 
 Primary action groups:
 - Discovery
-- Transaction
+- Contracting / Ordering
 - Fulfillment
 - Post-Fulfillment
-- Catalog Publishing
-- Subscription
-- Catalog Pull
-- Master Catalog Search
+- Fabric API - Cataloging Service
 
 ## Endpoint families
 
@@ -27,7 +24,7 @@ Discovery:
 - /discover
 - /on_discover
 
-Transaction:
+Contracting / Ordering:
 - /select, /on_select
 - /init, /on_init
 - /confirm, /on_confirm
@@ -42,19 +39,14 @@ Post-Fulfillment:
 - /rate, /on_rate
 - /support, /on_support
 
-Catalog publishing:
+Fabric API - Cataloging Service:
 - /catalog/publish
 - /catalog/on_publish
-
-Catalog extensions:
+- /catalog/push
 - /catalog/subscription
-- /catalog/subscriptions
-- /catalog/subscription/{subscriptionId}
 - /catalog/pull
-- /catalog/pull/result/{requestId}/{filename}
-- /catalog/master/search
-- /catalog/master/schemaTypes
-- /catalog/master/{masterItemId}
+- /catalog/on_pull
+- /catalog/search
 
 ## Security and acknowledgments
 

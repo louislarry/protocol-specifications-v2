@@ -66,7 +66,7 @@ The following are the substantive changes from Beckn Protocol v1.x to v2.0.
 BAP (Beckn Application Platform) and BPP (Beckn Provider Platform) are replaced by **Consumer Node (CN)** and **Provider Node (PN)**. The new names are role-oriented and domain-neutral.
 
 **Catalog-first discovery**
-Discovery no longer relies on live multicast fan-out. PN publishes catalogs to a Cataloging Service (CS) on the Fabric; the Discovery Service (DS) subscribes to and syncs those catalogs. CN calls `discover` on DS. Catalog infrastructure is exposed as a protocol-visible API group (`catalog/publish`, `catalog/subscribe`, `catalog/pull`, `catalog/master/*`).
+Discovery no longer relies on live multicast fan-out. CNs, PNs, and DS nodes are all nodes of the fabric — they collectively form it. PNs publish catalogs; DS nodes subscribe to and sync those catalogs; CNs call `discover` on DS nodes. The catalog API group (`catalog/publish`, `catalog/push`, `catalog/subscription`, `catalog/pull`, and `catalog/search`) introduces discoverability as a capability of the fabric.
 
 **Contract-centric transaction model**
 The transaction lifecycle is centered on explicit `Contract`, `Offer`, and `Consideration` schema objects. `Consideration` is a domain-neutral representation of the value being exchanged — monetary, credits, service, or compliance — allowing the same transaction lifecycle to operate across verticals without modification.

@@ -90,7 +90,7 @@ The OpenAPI definition in [`api/v2.0.0/beckn.yaml`](api/v2.0.0/beckn.yaml) curre
 - `POST /discover`
 - `POST /on_discover`
 
-### Transaction
+### Contracting / Ordering
 - `POST /select`
 - `POST /on_select`
 - `POST /init`
@@ -114,18 +114,14 @@ The OpenAPI definition in [`api/v2.0.0/beckn.yaml`](api/v2.0.0/beckn.yaml) curre
 - `POST /support`
 - `POST /on_support`
 
-### Catalog Publishing and Extensions
+### Fabric API - Cataloging Service
 - `POST /catalog/publish`
 - `POST /catalog/on_publish`
+- `POST /catalog/push`
 - `POST /catalog/subscription`
-- `GET /catalog/subscriptions`
-- `GET /catalog/subscription/{subscriptionId}`
-- `DELETE /catalog/subscription/{subscriptionId}`
 - `POST /catalog/pull`
-- `GET /catalog/pull/result/{requestId}/{filename}`
-- `POST /catalog/master/search`
-- `GET /catalog/master/schemaTypes`
-- `GET /catalog/master/{masterItemId}`
+- `POST /catalog/on_pull`
+- `POST /catalog/search`
 
 For a concise package-level summary, see [`api/v2.0.0/README.md`](api/v2.0.0/README.md).
 

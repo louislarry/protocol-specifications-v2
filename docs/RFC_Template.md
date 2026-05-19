@@ -24,7 +24,7 @@
 
 > A short abstract about this RFC describing the context, problem, and solution. Should be less than 50 words. Below is an example
 
-This document defines the identity and addressing specifications for network participants on the fabric. It provides the APIs, schemas, and workflows used for discovering and communicating with the base URLs of the applications registered on the fabric.  
+This document defines the identity and addressing specifications for network participants of the fabric. It provides the APIs, schemas, and workflows used for discovering and communicating with the base URLs of the applications registered as nodes of the fabric.  
 
 ## Table of Contents
 
