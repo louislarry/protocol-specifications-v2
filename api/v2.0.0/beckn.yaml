@@ -2675,13 +2675,17 @@ components:
         \ domain schema SHOULD be used within considerationAttributes."
       required:
       - id
-      - status
       properties:
         id:
           description: Identifier of this consideration
           type: string
         status:
-          description: The status of this consideration
+          description: >
+            The lifecycle state of this consideration. Required when Consideration
+            appears in Contract.consideration[] from on_select onward. Optional in Offer.considerations[]
+            (catalog context, where no transaction lifecycle has been established) and
+            in select-phase payloads where the Seeker NP signals intent before the
+            Provider NP has priced the consideration.
           $ref: '#/components/schemas/Descriptor'
         considerationAttributes:
           description: 'Domain-specific attributes of this consideration. For monetary considerations,
