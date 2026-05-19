@@ -63,7 +63,14 @@ The stack is guided by four implementation principles: each layer MUST own a cle
 The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described [here](./Keyword_Definitions.md). These definitions aim to ensure that the terms are understood precisely and consistently to avoid confusion in the interpretation of standards, specifications, and protocols.
 
 ### Definitions
-To be added
+
+The following actors participate in a Beckn network:
+
+- **Consumer Node (CN):** A platform or agent that initiates value-exchange transactions by discovering and transacting with Provider Nodes through the Beckn protocol.
+- **Provider Node (PN):** A platform that offers goods, services, or capabilities through the Beckn protocol and publishes its catalog to the Fabric.
+- **Discovery Service (DS):** An infrastructure actor that subscribes to catalogs from the Cataloging Service and responds to `discover` requests from Consumer Nodes.
+- **Cataloging Service (CS):** A Fabric service that validates, indexes, and distributes Provider Node catalogs across the network.
+- **Registry:** The Global Root Registry — the authoritative directory for participant identity, endpoint addressing, and public key resolution. Used by all actors for trust lookups.
 
 ### Stack definition
 
@@ -166,7 +173,7 @@ The standard exchange pattern is:
 2. Receiver returns `Ack` or `Nack` immediately  
 3. Business result returns later via callback in most flows  
 4. Callback carries `inReplyTo` for correlation  
-5. `Ack` may carry `counterSignature` as signed receipt
+5. Response is signed via the `Signature` response header
 
 ```mermaid
 sequenceDiagram
@@ -176,7 +183,7 @@ sequenceDiagram
     Sender->>Receiver: RequestContainer
     Note over Sender,Receiver: Request is signed
     Receiver-->>Sender: Ack or Nack
-    Note over Receiver,Sender: Ack includes counterSignature
+    Note over Receiver,Sender: Response signed via Signature header
 
     Receiver->>Sender: CallbackContainer
     Note over Receiver,Sender: Callback includes inReplyTo
@@ -309,7 +316,7 @@ This RFC reflects contributions from Beckn Protocol contributors who developed a
 
 ## References
 
-- Click [here](./00_Keyword_Definitions.md)
+- Click [here](./Keyword_Definitions.md)
 - Click [here](../api/v2.0.0/beckn.yaml)
 - Click [here](https://docs.beckn.io/introduction-to-beckn/beckn-protocol)
 - Click [here](https://docs.beckn.io/introduction-to-beckn/fabric-the-value-exchange-infrastructure)

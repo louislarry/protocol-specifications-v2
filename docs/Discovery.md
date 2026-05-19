@@ -7,7 +7,7 @@
 - **Created:** 2026-04-22.
 - **Updated:** 2026-05-18.
 - **Version history:** To be published.
-- **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Catalog_APIs_RFC.md).
+- **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Discovery.md).
 - **Implementation report:** To be published by implementation working group.
 - **Stress test report:** To be published by testing and certification working group.
 - **Conformance impact:** Major (introduces catalog lifecycle management APIs for Beckn v2 networks).
