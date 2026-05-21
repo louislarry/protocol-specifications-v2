@@ -13,7 +13,7 @@
 - **Implementation report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
 - **Stress test report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
 - **Conformance impact:** Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main.
-- **Security/privacy implications:** Reinforces signature and counter-signature requirements on endpoint interactions.
+- **Security/privacy implications:** Reinforces signature requirements on endpoint interactions, including the synchronous `Signature` response header defined in [NFH-007 §5](./Authentication_and_Trust.md).
 - **Replaces / Relates to:** Replaces non-RFC-form content in `06_Beckn_API_Endpoints.md`; the source contract remains `api/v2.0.0/beckn.yaml`.
 - **Feedback:** Issues Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22RFC-006%22), Discussions Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22RFC-006%22), Pull Requests Click [here](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22RFC-006%22).
 - **Errata:** To be published.
@@ -51,9 +51,9 @@ This RFC explains the Beckn v2.0.0 endpoint surface, covering action and callbac
 
 Beckn v2 defines a broad action surface across discovery, transaction, fulfillment, post-fulfillment, and catalog infrastructure. Without a normalized interpretation guide, implementations can diverge on action semantics, callback behavior, envelope handling, and transport trust expectations even when they use the same OpenAPI contract. This document consolidates lifecycle and endpoint behavior so implementations remain interoperable while preserving the canonical contract in `api/v2.0.0/beckn.yaml`.
 
-Within this document, the canonical OpenAPI contract is `api/v2.0.0/beckn.yaml`, action and callback pairing refers to a forward action endpoint and its corresponding `on_*` asynchronous callback endpoint, an envelope is the standard transport container carrying `context` and `message`, the ACK/NACK model refers to the immediate acknowledgement response families (`Ack`, `AckNoCallback`, `Nack*`, and `ServerError`), counter-signature refers to the signed receipt used to strengthen non-repudiation, and catalog infrastructure endpoints cover publish, subscription, pull, and master resource search flows.
+Within this document, the canonical OpenAPI contract is `api/v2.0.0/beckn.yaml`, action and callback pairing refers to a forward action endpoint and its corresponding `on_*` asynchronous callback endpoint, an envelope is the standard transport container carrying `context` and `message`, the ACK/NACK model refers to the immediate acknowledgement response families (`Ack`, `AckNoCallback`, `Nack*`, and `ServerError`), the synchronous response `Signature` header is the signed receipt the responding node returns to chain its receipt to the inbound request as defined in [NFH-007 §5](./Authentication_and_Trust.md), and catalog infrastructure endpoints cover publish, subscription, pull, and master resource search flows.
 
-Implementations are expected to preserve three design foundations throughout this endpoint surface: the OpenAPI contract remains the source of endpoint and payload truth, forward actions and `on_*` callbacks remain semantically paired, and the async-first interaction model with request signatures and acknowledgement counter-signatures remains intact wherever the contract defines it.
+Implementations are expected to preserve three design foundations throughout this endpoint surface: the OpenAPI contract remains the source of endpoint and payload truth, forward actions and `on_*` callbacks remain semantically paired, and the async-first interaction model with request signatures and the synchronous `Signature` response header on every acknowledgement remains intact wherever the contract defines it.
 
 ## Specification
 
@@ -83,7 +83,7 @@ Standard response families are:
 - `NackUnauthorized` (`401`)
 - `ServerError` (`500`)
 
-Successful acknowledgements SHOULD include signed receipt semantics through counter-signature, and implementations SHOULD verify response counter-signatures where provided.
+Successful acknowledgements MUST carry a `Signature` response header as defined in [NFH-007 §5](./Authentication_and_Trust.md), and the sending node MUST verify it.
 
 Illustrative request envelope:
 
@@ -162,11 +162,11 @@ Post-fulfillment: /rate,/on_rate,/support,/on_support
 
 ### Operation behavior and conformance requirements
 
-- `context.try` semantics are used for preview and commit behavior in selected flows, including `update`, `cancel`, `rate`, and `support`.
+- `context.try` semantics are used for preview and commit behavior in selected flows, limited to `update` and `cancel`.
 - Catalog publishing actions may support alias forms such as `catalog/publish` and `catalog_publish` where defined in OpenAPI.
 - Catalog pull is asynchronous and returns an immediate acknowledgement with request tracking metadata.
 - Implementations MUST treat `api/v2.0.0/beckn.yaml` as the canonical endpoint and payload contract.
-- Implementations MUST enforce request signature validation and SHOULD verify response counter-signatures where provided.
+- Implementations MUST enforce request signature validation and MUST verify the `Signature` response header on synchronous acknowledgements as defined in [NFH-007 §5](./Authentication_and_Trust.md).
 - Catalog infrastructure endpoints MUST follow operation-specific constraints defined in OpenAPI, including parameter and response semantics.
 
 ### Security and compatibility considerations

@@ -124,7 +124,7 @@ An Idea that does NOT generate working group engagement is a signal that the pro
 ### Stage 2 — Proposal
 
 **Location:** GitHub Discussions → `Proposals` category  
-**Requirement:** A formal RFC authored using the [NFH-006 RFC template](./docs/NFH-006_RFC_Writing_Guide.md), linked to the Idea Discussion.  
+**Requirement:** A formal RFC authored using the [NFH-011 RFC template](./docs/RFC_Template.md), linked to the Idea Discussion.  
 **Purpose:** The working group formally evaluates the proposed design against the design principles, the RFC writing standard, and the ecosystem impact. Working group consensus is required to advance.
 
 A Proposal that does NOT reach consensus does NOT proceed. Contributors may revise and resubmit.
@@ -132,7 +132,7 @@ A Proposal that does NOT reach consensus does NOT proceed. Contributors may revi
 ### Stage 3 — Protocol Draft
 
 **Location:** `draft` branch (merged via PR after Proposal approval)  
-**Requirement:** A PR to the `draft` branch whose diff corresponds precisely to the approved Proposal content. The PR MUST link to the approved Proposal Discussion. The PR MUST pass the RFC Approval Gate defined in [NFH-005](./docs/Design_Guide.md).  
+**Requirement:** A PR to the `draft` branch whose diff corresponds precisely to the approved Proposal content. The PR MUST link to the approved Proposal Discussion. The PR MUST pass the RFC Approval Gate defined in [NFH-005](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md) (drafted on `draft` branch, undergoing review).  
 **Purpose:** The approved design is implemented in normative artifacts (`beckn.yaml`, schema packs, JSON-LD files). The PR is subject to technical review against NFH-005.
 
 Upon merge, the RFC reaches Protocol Draft status. It is normative on the `draft` branch but has NOT yet reached standard status.
@@ -335,7 +335,7 @@ The emergency is not over when the hotfix is merged. The following MUST occur:
 - The emergency change MUST be the first agenda item at the next scheduled Core Working Group meeting, with no exceptions.
 - A Root Cause Analysis (RCA) MUST be completed and documented in a GitHub Discussion before that meeting. The RCA MUST identify: what was merged that caused the regression, why the regression was not caught during review, and what process, tooling, or conformance gap allowed it to reach production.
 - Mitigation strategies MUST be proposed, documented, and assigned to owners in that same meeting.
-- The hotfix itself MUST be retroactively documented as a post-hoc RFC — authored using the NFH-006 template, submitted to the `Proposals` Discussion category, and formally approved by the working group so that the change appears in the RFC record. The post-hoc RFC MUST be linked from the emergency PR.
+- The hotfix itself MUST be retroactively documented as a post-hoc RFC — authored using the NFH-011 template, submitted to the `Proposals` Discussion category, and formally approved by the working group so that the change appears in the RFC record. The post-hoc RFC MUST be linked from the emergency PR.
 
 The failure to complete the RCA and retroactive RFC within 30 days of the emergency merge is itself a governance violation subject to the enforcement provisions of this document.
 
@@ -350,7 +350,7 @@ The Working Group Administrator MUST publish a governance health report to the r
 - The number of Code of Conduct notices, suspensions, restrictions, and removals issued during the period.
 - Any emergency hotfix invocations during the period and their RCA status.
 
-This report serves a purpose beyond accountability. A consistently high rate of RFC gate failures may indicate that the RFC template (NFH-006) is unclear, that the Design Guide (NFH-005) requirements are not well understood, or that the onboarding process is inadequate. A high rate of the same conformance violation across multiple contributors is a signal that the requirement needs clarification, not just enforcement.
+This report serves a purpose beyond accountability. A consistently high rate of RFC gate failures may indicate that the RFC template (NFH-011) is unclear, that the Design Guide (NFH-005) requirements are not well understood, or that the onboarding process is inadequate. A high rate of the same conformance violation across multiple contributors is a signal that the requirement needs clarification, not just enforcement.
 
 A sustained pattern of violations across multiple reporting periods MUST trigger a formal working group agenda item to evaluate whether the design principles (NFH-001), the Design Guide (NFH-005), or the governance model itself have become too idealistic or too detached from the practical realities of the ecosystem. The governance model is not exempt from the same scrutiny it demands of protocol changes. If it is not working, it MUST be changed through the RFC process.
 
@@ -394,7 +394,7 @@ Working group membership is by invitation, not by application. The process is:
 
 2. **Working group vote.** The nomination is posted to the working group's private channel with a seven-day comment period. Existing Core Committers vote. A simple majority of active Core Committers is required. The Chief Architect may appoint directly without a vote for the initial working group formation or in cases where the nominee's contribution record clearly satisfies the eligibility criteria and no objections are received.
 
-3. **Acceptance conditions.** Before accepting, the nominee MUST confirm in writing that they have read and understood: [NFH-001](./docs/Introduction.md), [NFH-005](./docs/Design_Guide.md), [NFH-006](./docs/NFH-006_RFC_Writing_Guide.md), [GOVERNANCE.md](./GOVERNANCE.md), [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md), and [CONTRIBUTING.md](./CONTRIBUTING.md). Acceptance without this confirmation is NOT valid.
+3. **Acceptance conditions.** Before accepting, the nominee MUST confirm in writing that they have read and understood: [NFH-001](./docs/Introduction.md), [NFH-005](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md), [NFH-010](./docs/RFC_Authoring_Guide.md), [NFH-011](./docs/RFC_Template.md), [GOVERNANCE.md](./GOVERNANCE.md), [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md), and [CONTRIBUTING.md](./CONTRIBUTING.md). Acceptance without this confirmation is NOT valid.
 
 4. **Role assignment.** The Working Group Administrator adds the new member to the relevant GitHub team and announces the addition in the repository Discussions with the member's role and the effective date.
 
@@ -439,7 +439,8 @@ Governed repositories include but are not limited to: `protocol-specifications-v
 ## Related documents
 
 - [NFH-001 — Architecture and Design Principles](./docs/Introduction.md)
-- [NFH-005 — Specification Design Guide](./docs/Design_Guide.md)
-- [NFH-006 — RFC Writing Guide](./docs/NFH-006_RFC_Writing_Guide.md)
+- [NFH-005 — Specification Design Guide](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md) (drafted on `draft` branch, undergoing review)
+- [NFH-010 — RFC Authoring Guide](./docs/RFC_Authoring_Guide.md)
+- [NFH-011 — RFC Template](./docs/RFC_Template.md)
 - [CONTRIBUTING.md](./CONTRIBUTING.md)
 - [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md)

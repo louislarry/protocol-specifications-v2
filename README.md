@@ -132,7 +132,7 @@ For a concise package-level summary, see [`api/v2.0.0/README.md`](api/v2.0.0/REA
 - All protocol requests are expected to carry Beckn HTTP Signatures via the `Authorization` header as defined in [`api/v2.0.0/beckn.yaml`](api/v2.0.0/beckn.yaml).
 - `Ack` responses confirm receipt at the transport layer; the responding actor signs the response payload and returns the signature in the `Signature` response header for the caller to verify. Business completion happens asynchronously through callback flows where applicable.
 - `context.action` must match the semantics of the endpoint being invoked.
-- `context.try` supports sandbox-style operation for applicable flows such as update, cancel, rate, and support.
+- `context.try` supports sandbox-style operation for applicable flows: `update` and `cancel` only.
 - Error handling is standardized through response schemas such as `NackBadRequest`, `NackUnauthorized`, and `ServerError`.
 
 For signing details and protocol semantics, see [`api/v2.0.0/beckn.yaml`](api/v2.0.0/beckn.yaml) and [`api/v2.0.0/README.md`](api/v2.0.0/README.md).

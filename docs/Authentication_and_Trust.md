@@ -13,7 +13,7 @@
 - **Stress test report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
 - **Conformance impact:** Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main.
 - **Security/privacy implications:** This RFC defines the complete authentication and non-repudiation model for all Beckn Protocol interactions. Incorrect implementation of any normative requirement creates exploitable vulnerabilities including message forgery, replay attacks, and man-in-the-middle substitution.
-- **Replaces / Relates to:** Supersedes BECKN-006 Signing Beckn APIs in HTTP Draft-01. Relates to [Identity and Addressing](./Identity_and_Addressing.md).
+- **Replaces / Relates to:** Supersedes BECKN-006 Signing Beckn APIs in HTTP Draft-01. Relates to [Identity and Addressing](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Identity_and_Addressing.md) (drafted on `draft` branch, undergoing review).
 - **Feedback:**
   - Issues: Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22NFH-007%22)
   - Discussions: Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22NFH-007%22)
@@ -65,7 +65,7 @@ This document defines the authentication and trust model for Beckn Protocol v2.0
       - [10. Replay Protection](#10-replay-protection)
         - [10.1 CN Request Replay Protection](#101-cn-request-replay-protection)
         - [10.2 Solicited Callback Replay Protection](#102-solicited-callback-replay-protection)
-        - [10.3 Provider-Initiated Notification Replay Protection](#103-provider-initiated-notification-replay-protection)
+        - [10.3 PN-Initiated Callback Replay Protection](#103-pn-initiated-callback-replay-protection)
     - [Conformance Requirements](#conformance-requirements)
     - [Cross-cutting considerations](#cross-cutting-considerations)
       - [Clock skew](#clock-skew)
@@ -122,7 +122,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 - **request-signature:** The raw Ed25519 signature value extracted from an incoming request's `Authorization` header and included verbatim in either a PN's callback signing string (§3.3) or a responding NP's Ack response signing string (§3.4), cryptographically binding the outgoing message to the specific request that triggered it.
 - **Implicit keyId:** A keyId that uses a path-only format and is resolved exclusively via the GRR at `fabric.nfh.global/registry`.
 - **Explicit keyId:** A keyId that embeds the full registry URL, allowing resolution against any dedi-protocol compliant registry.
-- **Provider-initiated notification:** A callback sent by a PN to a CN's `/on_*` endpoint without a preceding CN request in the current message exchange. Only endpoints designated as supporting provider-initiated notifications in the Beckn Protocol API specification may send them.
+- **PN-initiated callback:** A callback sent by a PN to a CN's `/on_*` endpoint without a preceding CN request in the current message exchange. Only endpoints designated as supporting PN-initiated callbacks in the Beckn Protocol API specification may send them.
 - **Solicited callback:** A callback sent by a PN to a CN's `/on_*` endpoint in direct response to a prior CN request accepted with a `200 Ack`.
 
 ### Normative Requirements
@@ -248,11 +248,11 @@ Used exclusively when the PN sends a solicited callback to the CN's `/on_*` endp
 (created): {created_unix_ts}
 (expires): {expires_unix_ts}
 digest: {callback_body_digest}
-request-signature: {bap_signature_value}
+request-signature: {cn_signature_value}
 ```
 
 - `{callback_body_digest}` — digest of the **callback** request body (not the original CN request body).
-- `{bap_signature_value}` — the raw Base64-encoded Ed25519 signature value extracted from the CN's `Authorization` header's `signature="..."` field. This MUST be the literal string value of the `signature` attribute only, without the surrounding quotes or any other Authorization header components.
+- `{cn_signature_value}` — the raw Base64-encoded Ed25519 signature value extracted from the CN's `Authorization` header's `signature="..."` field. This MUST be the literal string value of the `signature` attribute only, without the surrounding quotes or any other Authorization header components.
 
 The `headers` attribute of the PN's callback `Authorization` header MUST declare all four fields in order: `"(created) (expires) digest request-signature"`.
 
@@ -288,14 +288,14 @@ Attribute definitions:
 | `algorithm` | string | MUST be `ed25519`. |
 | `created` | integer string | Unix timestamp of signature creation. |
 | `expires` | integer string | Unix timestamp of signature expiry. |
-| `headers` | string | Space-separated list of fields included in the signing string. For CN requests and provider-initiated notifications: `"(created) (expires) digest"`. For PN solicited callbacks: `"(created) (expires) digest request-signature"`. For synchronous responses (`Signature` header): `"(created) (expires) digest request-signature"`. |
+| `headers` | string | Space-separated list of fields included in the signing string. For CN requests and PN-initiated callbacks: `"(created) (expires) digest"`. For PN solicited callbacks: `"(created) (expires) digest request-signature"`. For synchronous responses (`Signature` header): `"(created) (expires) digest request-signature"`. |
 | `signature` | string | Standard Base64 encoding of the Ed25519 signature over the signing string. |
 
 The signing procedure for a request is:
 
 1. Serialize the request body to UTF-8.
 2. Compute the body digest (§3.1).
-3. Construct the signing string (§3.2 for CN requests and provider-initiated notifications; §3.3 for PN solicited callbacks).
+3. Construct the signing string (§3.2 for CN requests and PN-initiated callbacks; §3.3 for PN solicited callbacks).
 4. Sign the UTF-8 encoding of the signing string using the NP's Ed25519 private key.
 5. Base64-encode the resulting 64-byte signature.
 6. Assemble the `Authorization` header value as specified above.
@@ -334,15 +334,15 @@ When the PN sends a solicited callback to the CN's `/on_*` endpoint, it MUST sig
 The PN MUST:
 
 1. Retrieve the CN's `Authorization` header from the original request that triggered this callback.
-2. Extract the raw Base64 signature value from the CN's `Authorization` header's `signature="..."` attribute. This value becomes `{bap_signature_value}`.
+2. Extract the raw Base64 signature value from the CN's `Authorization` header's `signature="..."` attribute. This value becomes `{cn_signature_value}`.
 3. Compute the body digest of the callback request body (§3.1).
-4. Construct the callback signing string (§3.3) using the PN's own `{created}` and `{expires}` timestamps, the callback body digest, and `{bap_signature_value}`.
+4. Construct the callback signing string (§3.3) using the PN's own `{created}` and `{expires}` timestamps, the callback body digest, and `{cn_signature_value}`.
 5. Sign the UTF-8 encoding of the signing string with the PN's Ed25519 private key.
 6. Assemble the `Authorization` header with `headers="(created) (expires) digest request-signature"`.
 
 The PN MUST retain the CN's original `Authorization` header value at least until the callback has been successfully acknowledged (200 Ack) by the CN, to support retries.
 
-For provider-initiated notifications (§10.3), the PN MUST omit the `request-signature` field and MUST use the standard signing string (§3.2) with `headers="(created) (expires) digest"`.
+For PN-initiated callbacks (§10.3), the PN MUST omit the `request-signature` field and MUST use the standard signing string (§3.2) with `headers="(created) (expires) digest"`.
 
 #### 7. Verifying a Callback — CN Procedure
 
@@ -368,7 +368,7 @@ Use the key lookup procedure (§2.3) to retrieve the PN's Ed25519 public key.
 
 Using the `headers` field as the ordered list of fields:
 
-- If `headers` is `"(created) (expires) digest"`: reconstruct the standard signing string (§3.2) using the `created` and `expires` values from the PN's `Authorization` header and the BLAKE2b-512 digest of the received callback body. This is a provider-initiated notification.
+- If `headers` is `"(created) (expires) digest"`: reconstruct the standard signing string (§3.2) using the `created` and `expires` values from the PN's `Authorization` header and the BLAKE2b-512 digest of the received callback body. This is a PN-initiated callback.
 - If `headers` is `"(created) (expires) digest request-signature"`: reconstruct the callback signing string (§3.3) using the above plus the value on the `request-signature` line. This is a solicited callback; proceed to Step 7.
 
 ##### Step 6 — Verify the PN's Ed25519 signature
@@ -380,7 +380,7 @@ Verify the decoded `signature` against the reconstructed signing string using th
 If `headers` contains `request-signature`:
 
 1. Retrieve the `signature` value from the CN's own stored outbound `Authorization` header for the message identified by `context.transactionId` and `context.messageId` from the callback's `context` object.
-2. Compare it to the `{bap_signature_value}` extracted from the reconstructed signing string's `request-signature` line.
+2. Compare it to the `{cn_signature_value}` extracted from the reconstructed signing string's `request-signature` line.
 3. If they do not match, reject with `401`. This mismatch indicates the callback was not issued in response to a request the CN sent.
 
 ##### Step 8 — Return Ack
@@ -434,9 +434,9 @@ The CN MUST persist the `messageId` of each outbound request until one of the fo
 
 Upon receiving a callback, the CN MUST verify that the `messageId` in the callback's `context` object matches a `messageId` the CN has persisted and for which it has not yet received a callback. A callback with a `messageId` the CN does not recognize, or one for which a callback has already been received, MUST be rejected.
 
-##### 10.3 Provider-Initiated Notification Replay Protection
+##### 10.3 PN-Initiated Callback Replay Protection
 
-A PN sending a provider-initiated notification MUST assign a unique `messageId` to each notification. No two provider-initiated notifications may share a `messageId`. However, the `transactionId` in a provider-initiated notification MUST match the `transactionId` of an active, confirmed transaction between the CN and PN. A CN receiving a provider-initiated notification with an unrecognized `transactionId` MUST reject it with a `400 NackBadRequest`.
+A PN sending a PN-initiated callback MUST assign a unique `messageId` to each notification. No two PN-initiated callbacks may share a `messageId`. However, the `transactionId` in a PN-initiated callback MUST match the `transactionId` of an active, confirmed transaction between the CN and PN. A CN receiving a PN-initiated callback with an unrecognized `transactionId` MUST reject it with a `400 NackBadRequest`.
 
 ### Conformance Requirements
 
@@ -453,15 +453,15 @@ A PN sending a provider-initiated notification MUST assign a unique `messageId` 
 | CON-004-09 | A PN sending a solicited callback to a CN MUST use the callback signing string, appending the CN's original `signature` value as the `request-signature` field. | MUST |
 | CON-004-10 | The PN MUST declare `headers="(created) (expires) digest request-signature"` in its callback `Authorization` header when sending a solicited callback. | MUST |
 | CON-004-11 | The CN MUST verify the `request-signature` field in a PN solicited callback against its own previously sent signature for the same `transactionId`/`messageId`. | MUST |
-| CON-004-12 | A PN sending a provider-initiated notification MUST use the standard signing string with `headers="(created) (expires) digest"`. | MUST |
+| CON-004-12 | A PN sending a PN-initiated callback MUST use the standard signing string with `headers="(created) (expires) digest"`. | MUST |
 | CON-004-13 | The `created` timestamp SHOULD NOT be more than 5 seconds in the future relative to the verifier's clock. NFOs MAY configure a different tolerance for their subnet; all NPs on that subnet MUST use the configured value. | SHOULD |
 | CON-004-14 | An NP MUST NOT trust an explicit `keyId` resolving to a registry outside `fabric.nfh.global/registry` unless that registry has been explicitly configured as trusted by the NP's operator. | SHOULD |
 | CON-004-15 | The `request-signature` value included in the callback signing string MUST be the raw Base64 `signature` attribute value from the CN's `Authorization` header, with no additional encoding or transformation. | MUST |
 | CON-004-16 | A CN MUST assign a unique `messageId` to every outbound request. | MUST |
 | CON-004-17 | A PN solicited callback MUST carry the same `messageId` as the triggering CN request. | MUST |
 | CON-004-18 | A CN MUST persist each outbound request's `messageId` until the corresponding solicited callback is received or the request's `expires` timestamp passes. | MUST |
-| CON-004-19 | A PN provider-initiated notification MUST carry a unique `messageId`. | MUST |
-| CON-004-20 | A PN provider-initiated notification MUST carry a `transactionId` matching an active, confirmed transaction between that CN and PN. | MUST |
+| CON-004-19 | A PN PN-initiated callback MUST carry a unique `messageId`. | MUST |
+| CON-004-20 | A PN PN-initiated callback MUST carry a `transactionId` matching an active, confirmed transaction between that CN and PN. | MUST |
 | CON-004-21 | When both the sending and receiving NP are members of the same subnet, the sending NP SHOULD perform a `subscriber_reference` registry lookup for the receiving NP immediately before dispatching a message. | SHOULD |
 | CON-004-22 | A PN SHOULD verify that its own signing key has not expired before sending a solicited callback. | SHOULD |
 | CON-004-23 | Every synchronous response `Signature` header MUST use the Ack response signing string (§3.4) with `headers="(created) (expires) digest request-signature"`. The `request-signature` value MUST be the raw Base64 `signature` attribute value from the incoming request's `Authorization` header. | MUST |
@@ -502,7 +502,7 @@ The following v1.x patterns are breaking changes in v2.0:
 
 #### Example 1: CN Request to PN
 
-**Scenario:** CN `bap.example.com` sends a `/select` request to PN `bpp.example.com`.
+**Scenario:** CN `cn.example.com` sends a `/select` request to PN `pn.example.com`.
 
 ##### Step 1 — Compute body digest
 
@@ -525,8 +525,8 @@ digest: BLAKE2b-512=qK3Uvd39k+SHfSdG5igXsRY2Sh+nvBSNlQkLxzM7NnP4...
 
 ```http
 POST /select HTTP/1.1
-Host: bpp.example.com
-Authorization: Signature keyId="bap.example.com/keys/k001|ed25519",algorithm="ed25519",created="1746518400",expires="1746518700",headers="(created) (expires) digest",signature="Base64EncodedEd25519SignatureHere=="
+Host: pn.example.com
+Authorization: Signature keyId="cn.example.com/keys/k001|ed25519",algorithm="ed25519",created="1746518400",expires="1746518700",headers="(created) (expires) digest",signature="Base64EncodedEd25519SignatureHere=="
 Content-Type: application/json
 
 {"context":{"action":"select","transactionId":"550e8400-e29b-41d4-a716-446655440001","messageId":"550e8400-e29b-41d4-a716-446655440000",...},"message":{...}}
@@ -539,7 +539,7 @@ Content-Type: application/json
 ##### Step 1 — Extract CN's request signature
 
 ```
-bap_signature_value = "Base64EncodedEd25519SignatureHere=="
+cn_signature_value = "Base64EncodedEd25519SignatureHere=="
 ```
 
 This is the raw Base64 value from the `signature="..."` field of the CN's `Authorization` header in Example 1.
@@ -566,7 +566,7 @@ request-signature: Base64EncodedEd25519SignatureHere==
 ```http
 HTTP/1.1 200 OK
 Content-Type: application/json
-Signature: keyId="bpp.example.com/keys/k002|ed25519",algorithm="ed25519",created="1746518401",expires="1746518701",headers="(created) (expires) digest request-signature",signature="BPPAckSignatureHere=="
+Signature: keyId="pn.example.com/keys/k002|ed25519",algorithm="ed25519",created="1746518401",expires="1746518701",headers="(created) (expires) digest request-signature",signature="BPPAckSignatureHere=="
 
 {"message":{"status":"ACK","messageId":"550e8400-e29b-41d4-a716-446655440000"}}
 ```
@@ -580,7 +580,7 @@ The PN's `Signature` header signs a four-line string that covers the Ack body di
 ##### Step 1 — Extract CN's original signature
 
 ```
-bap_signature_value = "Base64EncodedEd25519SignatureHere=="
+cn_signature_value = "Base64EncodedEd25519SignatureHere=="
 ```
 
 ##### Step 2 — Compute callback body digest
@@ -604,8 +604,8 @@ request-signature: Base64EncodedEd25519SignatureHere==
 
 ```http
 POST /on_select HTTP/1.1
-Host: bap.example.com
-Authorization: Signature keyId="bpp.example.com/keys/k002|ed25519",algorithm="ed25519",created="1746518450",expires="1746518750",headers="(created) (expires) digest request-signature",signature="BPPCallbackSignatureHere=="
+Host: cn.example.com
+Authorization: Signature keyId="pn.example.com/keys/k002|ed25519",algorithm="ed25519",created="1746518450",expires="1746518750",headers="(created) (expires) digest request-signature",signature="BPPCallbackSignatureHere=="
 Content-Type: application/json
 
 {"context":{"action":"on_select","transactionId":"550e8400-e29b-41d4-a716-446655440001","messageId":"550e8400-e29b-41d4-a716-446655440000",...},"message":{...}}
@@ -613,7 +613,7 @@ Content-Type: application/json
 
 ##### CN verification
 
-1. Fetch PN's public key from `https://fabric.nfh.global/registry/dedi/lookup/bpp.example.com/keys/k002|ed25519`.
+1. Fetch PN's public key from `https://fabric.nfh.global/registry/dedi/lookup/pn.example.com/keys/k002|ed25519`.
 2. Reconstruct the callback signing string using the four `headers` fields in declared order.
 3. Verify PN's `signature` against the reconstructed string.
 4. Extract `request-signature` value: `Base64EncodedEd25519SignatureHere==`.
@@ -645,6 +645,6 @@ Builds on BECKN-006 Signing Beckn APIs in HTTP Draft-01 and the broader dedi pro
 - **RFC 4648** — The Base16, Base32, and Base64 Data Encodings. IETF.
 - **draft-cavage-http-signatures-12** — Signing HTTP Messages. IETF (expired draft, used as basis for Beckn HTTP Signature format).
 - **dedi protocol** — Decentralized Directory Protocol specification. Networks for Humanity Foundation.
-- **Identity and Addressing:** Click [here](./Identity_and_Addressing.md).
-- **Error Codes:** Click [here](./Error_Codes.md).
+- **Identity and Addressing:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Identity_and_Addressing.md) (drafted on `draft` branch, undergoing review).
+- **Error Codes:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Error_Codes.md) (drafted on `draft` branch, undergoing review).
 - **BECKN-006** — Signing Beckn APIs in HTTP Draft-01 (superseded by this RFC).

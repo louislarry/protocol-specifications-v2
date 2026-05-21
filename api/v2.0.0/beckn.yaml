@@ -802,7 +802,7 @@ paths:
         \ to the CN. When context.try was true, the callback carries updated terms\
         \ without state change. When context.try was false, the callback carries the\
         \ confirmed updated contract. The PN MAY also send unsolicited /on_update\
-        \ callbacks for provider-initiated contract mutations. The CN MUST correlate\
+        \ callbacks for PN-initiated contract mutations. The CN MUST correlate\
         \ solicited callbacks using the messageId from Context.\n\nResponse codes:\
         \ Ack, AckNoCallback, NackBadRequest, NackUnauthorized, ServerError."
       operationId: update
@@ -853,15 +853,15 @@ paths:
         \ contract state. When responding to a preview request (context.try was true),\
         \ the PN returns recalculated terms without having changed any state. When\
         \ responding to a committed update (context.try was false) or sending a proactive\
-        \ provider-initiated mutation, the PN returns the confirmed updated contract.\n\
+        \ PN-initiated mutation, the PN returns the confirmed updated contract.\n\
         \nAdditional preconditions: Either an /update request MUST have been sent by\
         \ the CN and accepted (200 Ack) by the PN, or the PN is sending a proactive\
-        \ update for a provider-initiated contract mutation on an already-confirmed\
+        \ update for a PN-initiated contract mutation on an already-confirmed\
         \ contract.\n\nThe message MUST contain an OnUpdateAction with the Contract\
         \ object. The context.try field echoes the value from the originating /update\
         \ request to allow the CN to interpret whether this is a preview or a committed\
         \ change.\n\nCallback relationship: This endpoint is triggered by the PN either\
-        \ in response to an /update request or proactively for provider-initiated mutations.\
+        \ in response to an /update request or proactively for PN-initiated mutations.\
         \ The CN MUST use the messageId in Context to correlate solicited callbacks\
         \ and MUST handle unsolicited callbacks by updating the locally held contract\
         \ state.\n\nResponse codes: Ack, NackBadRequest, NackUnauthorized, ServerError."
@@ -2046,7 +2046,7 @@ components:
       in: header
       required: true
       description: "Beckn HTTP Signature authentication header for CN requests and\
-        \ PN provider-initiated notifications. The signing string covers `(created)`,\
+        \ PN PN-initiated notifications. The signing string covers `(created)`,\
         \ `(expires)`, and the BLAKE2b-512 body digest.\n\nSee `#/components/schemas/Signature`\
         \ for the wire format and signing string construction. For PN solicited callbacks,\
         \ use `CallbackAuthorizationHeader` instead."
@@ -2061,7 +2061,7 @@ components:
         \ `(expires)`, the BLAKE2b-512 body digest, and `request-signature` — the\
         \ raw Base64 signature value from the triggering CN request's `Authorization`\
         \ header. This chain proves the callback is a genuine response to the CN's\
-        \ original request.\n\nEndpoints that also accept provider-initiated notifications\
+        \ original request.\n\nEndpoints that also accept PN-initiated notifications\
         \ (no preceding CN request) use `AuthorizationHeader` with the standard\
         \ Signature for those messages.\n\nSee `#/components/schemas/CallbackSignature`\
         \ for the wire format and signing string construction."
@@ -2284,8 +2284,9 @@ components:
         \ the DS's indexed catalog store.\n\nRelationship: Composes the Intent schema\
         \ as its primary carrier. The intent property is required and contains all\
         \ structured search qualifiers including textSearch, JSONPath filters, spatial\
-        \ constraints, and media search inputs. The legacy text_search property is\
-        \ retained for backward compatibility."
+        \ constraints, and media search inputs. The legacy snake_case text_search\
+        \ property previously exposed by this schema has been removed; structured\
+        \ search inputs are now expressed exclusively via the intent container."
       type: object
       properties:
         intent:
@@ -2500,7 +2501,7 @@ components:
       description: "The real-world act by which the PN delivers the outcome of a\
         \ contract mutation to the CN, either returning recalculated terms without\
         \ state change (preview mode) or confirming the committed updated contract\
-        \ state, which may also be sent proactively for provider-initiated mutations.\n\
+        \ state, which may also be sent proactively for PN-initiated mutations.\n\
         \nThis schema appears in the performance phase of the value-exchange lifecycle.\
         \ The PN produces it as the message payload of an /on_update callback; the\
         \ CN consumes it to update the locally held contract state or to present\
@@ -3835,7 +3836,7 @@ components:
     Signature:
       title: Beckn HTTP Signature
       description: "A digitally signed authentication credential transmitted in the\
-        \ HTTP Authorization header of CN requests and PN provider-initiated notifications,\
+        \ HTTP Authorization header of CN requests and PN PN-initiated notifications,\
         \ proving the identity of the sending network participant and ensuring the\
         \ integrity of the request body.\n\nThe sending actor produces this by signing\
         \ a three-line canonical signing string with its Ed25519 private key registered\
@@ -3846,7 +3847,7 @@ components:
         \ (implicit, resolved at GRR) or a full dedi protocol URL followed by `|ed25519`\
         \ (explicit). The algorithm MUST be `ed25519`. The body digest MUST use BLAKE2b-512\
         \ encoded as `BLAKE2b-512={Base64}`.\n\nUsed for: CN→PN requests across\
-        \ all phases of the value-exchange lifecycle; PN→CN provider-initiated notifications.\
+        \ all phases of the value-exchange lifecycle; PN→CN PN-initiated notifications.\
         \ The receiving actor verifies it against the sender's registered public key.\
         \ Requests with an absent, expired, or unverifiable Signature MUST be rejected\
         \ with 401 NackUnauthorized.\n\nFor PN solicited callbacks, use CallbackSignature\
@@ -3867,14 +3868,14 @@ components:
         \ is a genuine response to a request it sent.\n\nThe PN produces this by\
         \ signing a four-line canonical signing string with its Ed25519 private key:\n\
         \n    (created): {unix_timestamp}\n    (expires): {unix_timestamp}\n    digest:\
-        \ BLAKE2b-512={base64_callback_body_hash}\n    request-signature: {bap_raw_base64_signature}\n\
+        \ BLAKE2b-512={base64_callback_body_hash}\n    request-signature: {cn_raw_base64_signature}\n\
         \nThe fourth line (`request-signature`) contains the raw Base64 Ed25519 signature\
         \ value extracted verbatim from the `signature=\"...\"` field of the CN's\
         \ original `Authorization` header. This binds the callback cryptographically\
         \ to the triggering request.\n\nThe `headers` attribute MUST be `\"(created)\
         \ (expires) digest request-signature\"`. The `keyId` identifies the PN signer.\
         \ The algorithm MUST be `ed25519`. The body digest covers the callback body\
-        \ using BLAKE2b-512.\n\nUsed for: PN→CN solicited callbacks only. For provider-initiated\
+        \ using BLAKE2b-512.\n\nUsed for: PN→CN solicited callbacks only. For PN-initiated\
         \ notifications (no preceding CN request), use the standard Signature schema\
         \ instead. For synchronous response signing, see components/headers/AckSignatureHeader.\
         \ See NFH-004 Authentication and Trust §6 for the full callback signing procedure."
@@ -4931,7 +4932,7 @@ components:
       description: Caller is authenticated but does not have permission to access or modify this resource.
       headers:
         Signature:
-          $ref: '#/components/headers/SignatureHeader'
+          $ref: '#/components/headers/AckSignatureHeader'
       content:
         application/json:
           schema:
@@ -4940,7 +4941,7 @@ components:
       description: The requested resource does not exist.
       headers:
         Signature:
-          $ref: '#/components/headers/SignatureHeader'
+          $ref: '#/components/headers/AckSignatureHeader'
       content:
         application/json:
           schema:

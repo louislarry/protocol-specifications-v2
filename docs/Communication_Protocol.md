@@ -14,7 +14,7 @@
 - **Stress test report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
 - **Conformance impact:** Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main.
 - **Security/privacy implications:** Defines the message-level security boundary — each transport hop must be independently authenticated; PN-initiated callbacks received without a valid request signature MUST be rejected to prevent injection attacks.
-- **Replaces / Relates to:** Modernises [BECKN-RFC-003 Beckn Protocol Communication Draft-01](https://github.com/beckn/protocol-specifications/blob/master/docs/BECKN-003-Beckn-Protocol-Communication-Draft-01.md); relates to [NFH-006 Beckn API Endpoints](./API.md) and [NFH-007 Authentication and Trust](./Authentication_and_Trust.md). The independent-workflow implications of the stateless model are further developed in [NFH-TBD Independent Workflows](./Independent_Workflows.md) (under draft).
+- **Replaces / Relates to:** Modernises [BECKN-RFC-003 Beckn Protocol Communication Draft-01](https://github.com/beckn/protocol-specifications/blob/master/docs/BECKN-003-Beckn-Protocol-Communication-Draft-01.md); relates to [NFH-006 Beckn API Endpoints](./API.md) and [NFH-007 Authentication and Trust](./Authentication_and_Trust.md). The independent-workflow implications of the stateless model are further developed in [NFH-TBD Independent Workflows](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Independent_Workflows.md) (under draft).
 - **Feedback:**
   - Issues: Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22NFH-013%22)
   - Discussions: Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22NFH-013%22)
@@ -152,7 +152,7 @@ Key rules:
 - A PN that returns `Ack` (200) is obligated to deliver a callback. The PN is under no obligation to deliver that callback immediately, but MUST deliver it within the bounds of the transaction lifecycle.
 - After receiving any Nack, no callback will follow for that `messageId`. The CN MAY retry with a new `messageId`.
 - After receiving `AckNoCallback`, the CN MUST NOT wait for a callback. The CN MAY initiate a fresh forward request.
-- Successful acknowledgements SHOULD carry a counter-signature from the receiving node to strengthen non-repudiation. The sending node SHOULD verify the counter-signature where provided.
+- Every synchronous response MUST carry a `Signature` response header as defined in [NFH-007 §5](./Authentication_and_Trust.md). The sending node MUST verify this header.
 
 #### 4. Stateless Communication Model
 
@@ -164,7 +164,7 @@ Beckn Protocol is stateless. No node is required to maintain shared session stat
 
 **The PN Ack obligation.** The one exception to the no-obligation rule is the PN's Ack: when a PN returns `Ack` (HTTP 200) to a CN's forward request, it commits to delivering a callback for that `messageId`. This is the PN's declaration that it has accepted the request for processing and will respond with its state. The timing of the callback is at the PN's discretion; the CN MUST NOT block its own workflow waiting for the callback to arrive.
 
-**Anti-pattern: CN blocking on PN state.** A common implementation error is for the CN to pause its own workflow — holding a user-visible loading state, deferring downstream actions, or queuing subsequent requests — until the PN's callback arrives. This is incorrect. The CN SHOULD advance its own workflow using the last known state and handle the arriving callback as an incremental update. The independent workflow model for both nodes is developed further in [NFH-TBD Independent Workflows](./Independent_Workflows.md) (under draft).
+**Anti-pattern: CN blocking on PN state.** A common implementation error is for the CN to pause its own workflow — holding a user-visible loading state, deferring downstream actions, or queuing subsequent requests — until the PN's callback arrives. This is incorrect. The CN SHOULD advance its own workflow using the last known state and handle the arriving callback as an incremental update. The independent workflow model for both nodes is developed further in [NFH-TBD Independent Workflows](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Independent_Workflows.md) (under draft).
 
 #### 5. Message Correlation — context.messageId
 
@@ -435,12 +435,12 @@ sequenceDiagram
 | CON-013-17 | The `transactionId` MUST NOT be reused across different business transactions. | MUST NOT |
 | CON-013-18 | Every node MUST authenticate each incoming message independently, regardless of prior messages in the same transaction. See [NFH-007](./Authentication_and_Trust.md). | MUST |
 | CON-013-19 | In any multicast fan-out (DS to PNs, or CN to PNs directly), the fanning-out node MUST assign a distinct `messageId` for each node it addresses while keeping the `transactionId` constant. | MUST |
-| CON-013-24 | A DS MUST aggregate all PN responses and static catalog data before sending `on_discover` to the CN. Direct forwarding of PN `on_discover` responses to the CN MUST NOT be implemented. | MUST |
-| CON-013-25 | A DS MAY send multiple paginated `on_discover` callbacks for a single `discover` request. The CN MUST NOT discard later pages. | MAY |
 | CON-013-20 | Confirmation or any other action on one network layer MUST NOT be assumed to automatically trigger the corresponding action on a downstream layer. | MUST NOT |
 | CON-013-21 | `context.messageId` MUST be a UUID. | MUST |
 | CON-013-22 | `context.transactionId` MUST be a UUID. | MUST |
 | CON-013-23 | A message sender SHOULD treat the combination of `context.messageId` and its outgoing request signature as the unique deduplication key for long-term message deduplication. | SHOULD |
+| CON-013-24 | A DS MUST aggregate all PN responses and static catalog data before sending `on_discover` to the CN. Direct forwarding of PN `on_discover` responses to the CN MUST NOT be implemented. | MUST |
+| CON-013-25 | A DS MAY send multiple paginated `on_discover` callbacks for a single `discover` request. The CN MUST NOT discard later pages. | MAY |
 
 ### Cross-cutting Considerations
 
@@ -459,7 +459,7 @@ The following changes require implementer attention:
 - `search` / `on_search` are replaced by `discover` / `on_discover` in Beckn v2. These endpoints involve the DS rather than a direct CN↔PN exchange.
 - The pattern in which a DS forwards PN `on_discover` responses directly to the CN without aggregation (as used in Beckn v1 BG implementations) is deprecated. The DS MUST aggregate all responses before delivering `on_discover` to the CN.
 - Implementations that rely on synchronous business responses (i.e., expecting the Ack to carry order or fulfillment data) MUST be refactored to consume the callback endpoint.
-- Implementations in which the CN blocks its workflow awaiting PN state SHOULD be refactored to adopt an independent-workflow model. See [NFH-TBD Independent Workflows](./Independent_Workflows.md).
+- Implementations in which the CN blocks its workflow awaiting PN state SHOULD be refactored to adopt an independent-workflow model. See [NFH-TBD Independent Workflows](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Independent_Workflows.md) (drafted on `draft` branch, undergoing review).
 
 ### Examples
 
@@ -497,9 +497,8 @@ A CN sends a `confirm` request. The PN echoes the `messageId` in `on_confirm`, a
     "messageId": "msg-9b4d1e77"
   },
   "message": {
-    "ack": {
-      "status": "ACK"
-    }
+    "status": "ACK",
+    "messageId": "msg-9b4d1e77"
   }
 }
 ```
@@ -632,8 +631,8 @@ BECKN-RFC-003 (Ravi Prakash, Sujith Nair, Pramod Varma, 2021) provided the found
 - **NFH-001 Architecture, Design Philosophy and Principles:** Click [here](./Introduction.md).
 - **NFH-006 Beckn API Endpoints:** Click [here](./API.md).
 - **NFH-007 Authentication and Trust:** Click [here](./Authentication_and_Trust.md).
-- **NFH-008 Handling Exceptions and Errors:** Click [here](./Error_Codes.md).
-- **NFH-TBD Independent Workflows:** Click [here](./Independent_Workflows.md) (under draft).
+- **NFH-008 Handling Exceptions and Errors:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Error_Codes.md) (drafted on `draft` branch, undergoing review).
+- **NFH-TBD Independent Workflows:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Independent_Workflows.md) (under draft).
 - **Keyword Definitions:** Click [here](./Keyword_Definitions.md).
 - **Canonical OpenAPI contract:** `api/v2.0.0/beckn.yaml`.
 - **Legacy reference:** [BECKN-RFC-003 Beckn Protocol Communication Draft-01](https://github.com/beckn/protocol-specifications/blob/master/docs/BECKN-003-Beckn-Protocol-Communication-Draft-01.md).
