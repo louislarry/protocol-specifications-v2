@@ -460,8 +460,8 @@ A PN sending a PN-initiated callback MUST assign a unique `messageId` to each no
 | CON-004-16 | A CN MUST assign a unique `messageId` to every outbound request. | MUST |
 | CON-004-17 | A PN solicited callback MUST carry the same `messageId` as the triggering CN request. | MUST |
 | CON-004-18 | A CN MUST persist each outbound request's `messageId` until the corresponding solicited callback is received or the request's `expires` timestamp passes. | MUST |
-| CON-004-19 | A PN PN-initiated callback MUST carry a unique `messageId`. | MUST |
-| CON-004-20 | A PN PN-initiated callback MUST carry a `transactionId` matching an active, confirmed transaction between that CN and PN. | MUST |
+| CON-004-19 | A PN sending a PN-initiated callback MUST carry a unique `messageId`. | MUST |
+| CON-004-20 | A PN sending a PN-initiated callback MUST carry a `transactionId` matching an active, confirmed transaction between that CN and PN. | MUST |
 | CON-004-21 | When both the sending and receiving NP are members of the same subnet, the sending NP SHOULD perform a `subscriber_reference` registry lookup for the receiving NP immediately before dispatching a message. | SHOULD |
 | CON-004-22 | A PN SHOULD verify that its own signing key has not expired before sending a solicited callback. | SHOULD |
 | CON-004-23 | Every synchronous response `Signature` header MUST use the Ack response signing string (§3.4) with `headers="(created) (expires) digest request-signature"`. The `request-signature` value MUST be the raw Base64 `signature` attribute value from the incoming request's `Authorization` header. | MUST |
