@@ -15,7 +15,7 @@
 - **Conformance impact:** Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main.
 - **Security/privacy implications:** Reinforces signature requirements on endpoint interactions, including the synchronous `Signature` response header defined in [NFH-007 §5](./Authentication_and_Trust.md).
 - **Replaces / Relates to:** Replaces non-RFC-form content in `06_Beckn_API_Endpoints.md`; the source contract remains `api/v2.0.0/beckn.yaml`.
-- **Feedback:** Issues Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22RFC-006%22), Discussions Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22RFC-006%22), Pull Requests Click [here](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22RFC-006%22).
+- **Feedback:** Issues Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22NFH-006%22), Discussions Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22NFH-006%22), Pull Requests Click [here](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22NFH-006%22).
 - **Errata:** To be published.
 
 ## Abstract
@@ -141,11 +141,14 @@ This lifecycle expresses the intended action symmetry between forward actions an
 #### Catalog infrastructure
 
 - `POST /catalog/publish`, `POST /catalog/on_publish`
-- `POST /catalog/subscription`, `GET /catalog/subscriptions`
-- `GET|DELETE /catalog/subscription/{subscriptionId}`
-- `POST /catalog/pull`, `GET /catalog/pull/result/{requestId}/{filename}`
+- `POST /catalog/push`
+- `POST|GET|DELETE /catalog/subscription`
+- `POST /catalog/pull`, `POST /catalog/on_pull`
+- `POST /catalog/search`
 
 #### Master resource search
+
+*The following endpoints are planned for a future release and are not yet defined in the canonical OpenAPI contract (`api/v2.0.0/beckn.yaml`).*
 
 - `POST /catalog/master/search`
 - `GET /catalog/master/schemaTypes`
@@ -185,5 +188,5 @@ This document reflects the work of Beckn Protocol contributors and the implement
 
 ## References
 
-- Keyword definitions: Click [here](./00_Keyword_Definitions.md)
+- Keyword definitions: Click [here](./Keyword_Definitions.md)
 - Canonical OpenAPI contract: `api/v2.0.0/beckn.yaml` (Click [here](../api/v2.0.0/beckn.yaml))

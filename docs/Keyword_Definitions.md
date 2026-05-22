@@ -2,7 +2,7 @@
 
 ## Document Details
 - **ID:** NFH-002
-- **Status:** PUBLISHED
+- **Status:** Draft
 - **Authors:**
   - [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity](https://networksforhumanity.org)
 - **Created:** 2026-05-11
@@ -14,7 +14,7 @@
 - **Conformance impact:** Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main.
 - **Security/privacy implications:** -NA-
 - **Replaces / relates to:** -NA-
-- **Feedback:** Issues Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%NFH-002%22), discussions Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22RFC-003%22), pull requests Click [here](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22RFC-003%22).
+- **Feedback:** Issues Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22NFH-002%22), discussions Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22NFH-002%22), pull requests Click [here](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22NFH-002%22).
 - **Errata:** -NA-
 
 ## Abstract
@@ -134,13 +134,13 @@ In this section, we provide examples that demonstrate the correct usage of the k
 
 ### Example 1: Using "REQUIRED" and "MUST"
 
-- REQUIRED. The PN MUST implement the `search` endpoint to receive an `Intent` object sent by CNs.
-- REQUIRED. The PN MUST return a catalog of products on the `on_search` callback endpoint specified in the `context.bpp_uri` field of the `search` request body.
+- REQUIRED. The PN MUST implement the `discover` endpoint to receive an `Intent` object sent by CNs.
+- REQUIRED. The PN MUST return a catalog of products on the `on_discover` callback endpoint specified in the `context.bppUri` field of the `discover` request body.
 - REQUIRED. Any provider-related information like `name`, `logo`, `short_desc` MUST be mapped to the `Provider.descriptor` schema.
-- REQUIRED. If the PN does not want to respond to a `search` request, it MUST return an `ack.status` value equal to `NACK`.
+- REQUIRED. If the PN does not want to respond to a `discover` request, it MUST return an `ack.status` value equal to `NACK`.
 
 ### Example 2: Using "RECOMMENDED" and "SHOULD"
-- RECOMMENDED. Upon receiving a `search` request, the PN SHOULD return a `Catalog` that best matches the `Intent`. This can be done by indexing the catalog against the various probable paths in the `Intent` schema relevant to the use case.
+- RECOMMENDED. Upon receiving a `discover` request, the PN SHOULD return a `Catalog` that best matches the `Intent`. This can be done by indexing the catalog against the various probable paths in the `Intent` schema relevant to the use case.
 
 ## Conclusion
 
@@ -154,7 +154,7 @@ This RFC reflects contributions from Beckn Protocol contributors who developed a
 
 ## References
 
-- Click [here](./00_Keyword_Definitions.md)
+- Click [here](./Keyword_Definitions.md)
 - Click [here](../api/v2.0.0/beckn.yaml)
 - Click [here](https://docs.beckn.io/introduction-to-beckn/beckn-protocol)
 - Click [here](https://docs.beckn.io/introduction-to-beckn/fabric-the-value-exchange-infrastructure)

@@ -18,12 +18,12 @@ Copyright © 2026 Networks for Humanity Foundation. Licensed under [CC-BY-NC-SA 
 | **Created** | 2026-05-11 |
 | **Updated** | 2026-05-11 |
 | **Version history** | Draft-01 (2026-05-11): Initial publication. |
-| **Latest editor's draft** | [github.com/beckn/protocol-specifications-v2/blob/draft/docs/NFH-006_RFC_Writing_Guide.md](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/NFH-006_RFC_Writing_Guide.md) |
+| **Latest editor's draft** | [github.com/beckn/protocol-specifications-v2/blob/draft/docs/RFC_Authoring_Guide.md](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/RFC_Authoring_Guide.md) |
 | **Implementation report** | Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main. |
 | **Stress test report** | Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main. |
 | **Conformance impact** | Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main. |
 | **Security/privacy implications** | Incomplete RFCs produce incomplete security models. This guide reduces the risk of insecure protocol features entering the specification unexamined. |
-| **Replaces / Relates to** | Supplements [NFH-009 Specification Design Guide](./Design_Guide.md) · [GOVERNANCE.md](https://github.com/beckn/protocol-specifications/blob/master/GOVERNANCE.md) · [CONTRIBUTING.md](https://github.com/beckn/protocol-specifications-v2/blob/main/CONTRIBUTING.md). Does NOT replace any of these documents. |
+| **Replaces / Relates to** | Supplements [NFH-009 Specification Design Guide](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md) (drafted on `draft` branch, undergoing review) · [GOVERNANCE.md](https://github.com/beckn/protocol-specifications/blob/master/GOVERNANCE.md) · [CONTRIBUTING.md](https://github.com/beckn/protocol-specifications-v2/blob/main/CONTRIBUTING.md). Does NOT replace any of these documents. |
 | **Feedback** | See subheadings below. |
 | **Errata** | To be published. |
 
@@ -31,16 +31,16 @@ Copyright © 2026 Networks for Humanity Foundation. Licensed under [CC-BY-NC-SA 
 
 #### Issues
 
-- [Open issues labelled RFC-006](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22RFC-006%22)
+- [Open issues labelled NFH-010](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22NFH-010%22)
 
 #### Discussions
 
 - [NFH Fabric Support Forum — RFC Writing Guide](https://discuss.nfh.global/c/beckn/rfc-writing-guide) *(primary discussion channel)*
-- [GitHub Discussions labelled RFC-006](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22RFC-006%22)
+- [GitHub Discussions labelled NFH-010](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22NFH-010%22)
 
 #### Pull Requests
 
-- [Pull requests labelled RFC-006](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22RFC-006%22)
+- [Pull requests labelled NFH-010](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22NFH-010%22)
 
 ---
 
@@ -172,7 +172,7 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 - **Normative reference:** A document that an implementer MUST read and conform to. Referenced in the RFC body with a normative keyword.
 - **Informative reference:** Background reading that aids understanding but is NOT required for conformance.
 - **Legacy submission:** An RFC submitted before the adoption of this guide that does NOT conform to its requirements.
-- **Fabric:** The Universal Value-exchange Fabric hosted by the Networks for Humanity Foundation, as defined in [NFH-009](./Design_Guide.md).
+- **Fabric:** The Universal Value-exchange Fabric hosted by the Networks for Humanity Foundation, as defined in [NFH-009](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md).
 - **AI Agent:** An autonomous software entity capable of participating in protocol interactions without direct human instruction at the time of the interaction.
 
 ---
@@ -186,7 +186,7 @@ This RFC applies to:
 - Working Group Administrators who manage the review lifecycle and declare consensus
 - Any community member contributing feedback on open RFC submissions
 
-Readers are expected to have working knowledge of the Beckn Protocol, familiarity with the [NFH-009 Design Guide](./Design_Guide.md), and the ability to read and write OpenAPI 3.1 YAML.
+Readers are expected to have working knowledge of the Beckn Protocol, familiarity with the [NFH-009 Design Guide](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md), and the ability to read and write OpenAPI 3.1 YAML.
 
 ---
 
@@ -555,7 +555,7 @@ Required when the RFC removes, renames, or changes the meaning of any existing e
 |---|---|---|---|
 | `GET /example/result/{id}` | `resultUrl` in callback payload | Implementers MUST implement the callback endpoint; the CS MUST include `resultUrl` in all callback responses | v2.1.0 |
 
-The migration path MUST be specific enough that an independent implementer can execute it. "Update your implementation" is NOT a migration path. The preferred change sequence from [NFH-009](./Design_Guide.md) applies: add the new artifact while retaining the old, mark the old as deprecated with `owl:deprecated` in `vocab.jsonld`, publish migration notes, and remove the old artifact only in a planned major release.
+The migration path MUST be specific enough that an independent implementer can execute it. "Update your implementation" is NOT a migration path. The preferred change sequence from [NFH-009](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md) applies: add the new artifact while retaining the old, mark the old as deprecated with `owl:deprecated` in `vocab.jsonld`, publish migration notes, and remove the old artifact only in a planned major release.
 
 ---
 
@@ -823,7 +823,7 @@ Ambiguity in normative text — through missing normative keywords, undefined ac
 
 This RFC establishes a normative authoring standard for Beckn Protocol RFCs, grounded in the seven Beckn design principles and modelled on the quality bar of IETF and W3C process documents. The standard is NOT aspirational — it is a merge gate. An RFC that does NOT satisfy the requirements stated here MUST NOT be merged, regardless of the quality of its accompanying schema changes.
 
-An RFC is a necessary but NOT sufficient artifact for any protocol change. The schema and API specification artifacts that accompany it carry equal weight and are subject to the quality standard governed by [NFH-009](./Design_Guide.md).
+An RFC is a necessary but NOT sufficient artifact for any protocol change. The schema and API specification artifacts that accompany it carry equal weight and are subject to the quality standard governed by [NFH-009](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md).
 
 The working group is encouraged to treat this document as a living specification. Where gaps, ambiguities, or missing guidance are identified, contributors are invited to propose improvements via the feedback channels in the Document Details section.
 
@@ -831,7 +831,7 @@ The working group is encouraged to treat this document as a living specification
 
 ## Acknowledgements
 
-This document reflects input from Beckn Protocol contributors and the Core Working Group. It is grounded in the design principles established in [GOVERNANCE.md](https://github.com/beckn/protocol-specifications/blob/master/GOVERNANCE.md) and the authoring standards of [NFH-009](./Design_Guide.md).
+This document reflects input from Beckn Protocol contributors and the Core Working Group. It is grounded in the design principles established in [GOVERNANCE.md](https://github.com/beckn/protocol-specifications/blob/master/GOVERNANCE.md) and the authoring standards of [NFH-009](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md).
 
 ---
 
@@ -839,7 +839,7 @@ This document reflects input from Beckn Protocol contributors and the Core Worki
 
 ### Normative References
 
-- **[NFH-009]** Ravi Prakash V, *Specification Design Guide*, Networks for Humanity Foundation, 2026. [Design_Guide.md](./Design_Guide.md)
+- **[NFH-009]** Ravi Prakash V, *Specification Design Guide*, Networks for Humanity Foundation, 2026. [Design_Guide.md](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md) (drafted on `draft` branch, undergoing review)
 - **[AUTH-TRUST]** Beckn Core Working Group, *Authentication and Trust*. [Authentication_and_Trust.md](./Authentication_and_Trust.md)
 - **[GOVERNANCE]** Beckn Core Working Group, *Specification Governance*. [GOVERNANCE.md](https://github.com/beckn/protocol-specifications/blob/master/GOVERNANCE.md)
 - **[CONTRIBUTING]** Beckn Core Working Group, *Contributing to Beckn Protocol*. [CONTRIBUTING.md](https://github.com/beckn/protocol-specifications-v2/blob/main/CONTRIBUTING.md)

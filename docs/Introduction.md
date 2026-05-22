@@ -42,7 +42,7 @@ This RFC defines the architectural philosophy and derived principles that guide 
 
 Beckn Protocol is an open, decentralized standard for value-exchange across independently operated networks. It defines the transport contracts, interaction patterns, and schema conventions that allow Consumer Nodes, Provider Nodes, Discovery Services, and registry infrastructure to interoperate without prior bilateral agreements.
 
-Version 2.0 formalises catalog-first discovery, introduces a contract-centric transaction model, and establishes a layered architecture in which transport behavior remains stable while schema semantics and vertical-specific payloads continue to evolve. The canonical artifact for v2.0 is `api/v2.0.0/beckn.yaml`, an OpenAPI 3.1.1 specification that defines all transport-level contracts. Network topology and actor responsibilities are defined in [NFH-003](./The_Beckn_Protocol_Stack.md).
+Version 2.0 formalises catalog-first discovery, introduces a contract-centric transaction model, and establishes a layered architecture in which transport behavior remains stable while schema semantics and vertical-specific payloads continue to evolve. The canonical artifact for v2.0 is `api/v2.0.0/beckn.yaml`, an OpenAPI 3.1.1 specification that defines all transport-level contracts. Network topology and actor responsibilities are defined in [NFH-003](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/The_Beckn_Protocol_Stack.md) (drafted on `draft` branch, undergoing review).
 
 The design philosophy behind v2.0 is captured in seven principles below. These are normative constraints on how the specification evolves. Any proposed change that cannot be justified against at least one of these principles SHOULD be treated as out of scope.
 
@@ -72,7 +72,7 @@ Discovery no longer relies on live multicast fan-out. CNs, PNs, and DS nodes are
 The transaction lifecycle is centered on explicit `Contract`, `Offer`, and `Consideration` schema objects. `Consideration` is a domain-neutral representation of the value being exchanged — monetary, credits, service, or compliance — allowing the same transaction lifecycle to operate across verticals without modification.
 
 **Linked Data schema layer**
-JSON-LD semantics are formalized as a distinct layer in the protocol stack. Domain-specific extensions use `Attribute` containers with `@context` and `@type` for semantic interoperability across regions and verticals. See [NFH-005](./Linked_Data_Schema.md).
+JSON-LD semantics are formalized as a distinct layer in the protocol stack. Domain-specific extensions use `Attribute` containers with `@context` and `@type` for semantic interoperability across regions and verticals. See [NFH-005](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Linked_Data_Schema.md) (drafted on `draft` branch, undergoing review).
 
 **Signature model**
 `CounterSignature` in the `Ack` response body has been removed. Response authentication is now provided by a `Signature` HTTP response header carrying a signed digest of the response payload. This simplifies the Ack schema and keeps response signing at the transport layer. See [NFH-007](./Authentication_and_Trust.md).

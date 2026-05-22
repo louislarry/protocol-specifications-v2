@@ -23,7 +23,7 @@ Copyright © 2026 Networks for Humanity Foundation. Licensed under [CC-BY-NC-SA 
 | **Stress test report** | Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main. |
 | **Conformance impact** | Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main. |
 | **Security/privacy implications** | Unmanaged schema publication creates semantic ambiguity that can be exploited to misinterpret or spoof payload meaning across networks. |
-| **Replaces / Relates to** | Supplements [NFH-004 Core Data Schema](./Core_Data_Schema.md) · [NFH-005 Linked Data Schema](./Linked_Data_Schema.md) · [NFH-009 Specification Design Guide](./Design_Guide.md) · [GOVERNANCE.md](../GOVERNANCE.md). Does NOT replace any of these documents. |
+| **Replaces / Relates to** | Supplements [NFH-004 Core Data Schema](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Core_Data_Schema.md) · [NFH-005 Linked Data Schema](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Linked_Data_Schema.md) · [NFH-009 Specification Design Guide](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md) (NFH-004, NFH-005, NFH-009 drafted on `draft` branch, undergoing review) · [GOVERNANCE.md](../GOVERNANCE.md). Does NOT replace any of these documents. |
 | **Feedback** | See subheadings below. |
 | **Errata** | To be published. |
 
@@ -620,7 +620,7 @@ This layering allows the protocol, the domain-agnostic schemas, the domain-speci
 
 #### Core Working Group
 
-The Core Working Group is the sole authority for changes to the core data model defined in [NFH-004](./Core_Data_Schema.md). Changes to core objects — adding or removing fields from `Context`, `Catalog`, `Contract`, `Intent`, `Offer`, `Resource`, `Commitment`, `Consideration`, `Performance`, `Settlement`, `Participant`, or `Descriptor` — require CWG approval through the RFC process defined in [NFH-010](./RFC_Authoring_Guide.md).
+The Core Working Group is the sole authority for changes to the core data model defined in [NFH-004](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Core_Data_Schema.md). Changes to core objects — adding or removing fields from `Context`, `Catalog`, `Contract`, `Intent`, `Offer`, `Resource`, `Commitment`, `Consideration`, `Performance`, `Settlement`, `Participant`, or `Descriptor` — require CWG approval through the RFC process defined in [NFH-010](./RFC_Authoring_Guide.md).
 
 The CWG also serves as the final governance authority for all artifacts published to `beckn/schemas`. Day-to-day review is performed by the maintainers of the relevant repository under standard open-source contribution practices. The CWG retains the right to reject any artifact that introduces ecosystem-wide semantic risk.
 
@@ -642,7 +642,7 @@ NFOs who discover, during the design of a network-specific vocabulary, that thei
 
 To prevent bottlenecks in the evolution of the shared schema layer, **NFOs operating Beckn-conformant networks SHOULD be added as external collaborators to the `beckn/schemas` repository**. As external collaborators, NFO representatives obtain the rights to maintain, triage, and evolve the schemas most relevant to the networks they operate — opening Issues, reviewing PRs, labelling Discussions, and approving merges in the areas of their domain expertise.
 
-This collaborator model is essential, not optional. It distributes day-to-day stewardship of the schema layer to the people who actually run networks and feel the operational impact of every schema decision first. **The Core Working Group does NOT review every schema PR.** The CWG's role is narrower and more focused: to uphold and enforce the **design principles** documented in [Design principles for schema authors](#design-principles-for-schema-authors) and in [NFH-009 Specification Design Guide](./Design_Guide.md). As long as a contribution adheres to the design principles, the repository's maintainers — including NFO collaborators — have the authority to merge it without waiting for CWG sign-off.
+This collaborator model is essential, not optional. It distributes day-to-day stewardship of the schema layer to the people who actually run networks and feel the operational impact of every schema decision first. **The Core Working Group does NOT review every schema PR.** The CWG's role is narrower and more focused: to uphold and enforce the **design principles** documented in [Design principles for schema authors](#design-principles-for-schema-authors) and in [NFH-009 Specification Design Guide](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md). As long as a contribution adheres to the design principles, the repository's maintainers — including NFO collaborators — have the authority to merge it without waiting for CWG sign-off.
 
 An NFO that wishes to be added as an external collaborator MUST nominate one or more representatives, document the schemas they intend to steward, and apply via Issue in the target repository. Removal of collaborator privileges follows the standard open-source path: extended inactivity, repeated design-principle violations, or governance-policy breach.
 
@@ -678,7 +678,7 @@ Community contributors MUST have an active GitHub account and be invited as exte
 
 Schema authoring is a design discipline. Authors of new or extended schemas in `beckn/schemas` or `beckn/DEG` MUST follow the design principles below. These principles are normative for all contributions and are the criteria by which maintainers — including NFO external collaborators — and the CWG evaluate every schema PR.
 
-The full normative authoring rules are defined in [NFH-009 Specification Design Guide](./Design_Guide.md). This subsection summarizes the principles most directly relevant to schema authoring; the Design Guide remains authoritative for any detail not reproduced here.
+The full normative authoring rules are defined in [NFH-009 Specification Design Guide](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md). This subsection summarizes the principles most directly relevant to schema authoring; the Design Guide remains authoritative for any detail not reproduced here.
 
 ##### Core design principles
 
@@ -755,7 +755,7 @@ Schemas authored with AI assistance are not less authored. The provenance of the
 
 ##### NOT RECOMMENDED — generic suffixes such as `Attributes`, `Item`, `Offer`, `Resource`
 
-Schema authors SHOULD NOT suffix a schema name with a generic Beckn term (such as `Attributes`, `Item`, `Offer`, `Resource`, or `Product`) merely to signal *where the schema is intended to be carried* in a payload. Names like `GroceryItemAttributes`, `ElectronicsOffer`, or `FlightItem` violate the [naming conventions in NFH-009](./Design_Guide.md#naming-the-schema):
+Schema authors SHOULD NOT suffix a schema name with a generic Beckn term (such as `Attributes`, `Item`, `Offer`, `Resource`, or `Product`) merely to signal *where the schema is intended to be carried* in a payload. Names like `GroceryItemAttributes`, `ElectronicsOffer`, or `FlightItem` violate the [naming conventions in NFH-009](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md#naming-the-schema):
 
 - They **inflate the token count** of the schema name beyond the two-word recommendation (`Grocery` + `Item` + `Attributes` is three components).
 - They **conflate the concept with its placement**. The concept is "a grocery product". Where it is carried in a Beckn envelope (the `resourceAttributes` field of `Resource`) is a separate, structural concern.
@@ -825,7 +825,7 @@ A consumer that processes a `Resource` whose `resourceAttributes.@type` is `groc
 | `HotelResource` | `HotelStay` (or `Accommodation`) | The Resource is a Beckn primitive; the schema models the stay |
 | `PaymentConsideration` | `PaymentTerms` (or reuse `Consideration` directly) | If it adds nothing beyond `Consideration`, no new schema is needed |
 
-> **Legacy exceptions.** Existing schemas in `beckn/schemas` such as `GroceryItem` (with its `groc:GroceryItemAttributes` type) are recognised as **offending schemas** per the [Design Guide](./Design_Guide.md#managing-exceptions-and-offending-schemas). They are not invalidated by this guidance — they MUST carry a migration path using `owl:sameAs` and `owl:deprecated` constructs in `vocab.jsonld` so that consumers can migrate to a conformant name. New schemas MUST NOT introduce these suffixes.
+> **Legacy exceptions.** Existing schemas in `beckn/schemas` such as `GroceryItem` (with its `groc:GroceryItemAttributes` type) are recognised as **offending schemas** per the [Design Guide](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md#managing-exceptions-and-offending-schemas). They are not invalidated by this guidance — they MUST carry a migration path using `owl:sameAs` and `owl:deprecated` constructs in `vocab.jsonld` so that consumers can migrate to a conformant name. New schemas MUST NOT introduce these suffixes.
 
 ##### Describing a schema
 
@@ -1710,10 +1710,10 @@ This document reflects the governance model and schema design guidance developed
 ### Beckn Protocol and governance
 
 - [NFH-002 Keyword Definitions](./Keyword_Definitions.md)
-- [NFH-003 The Beckn Protocol Stack](./The_Beckn_Protocol_Stack.md)
-- [NFH-004 Core Data Schema](./Core_Data_Schema.md)
-- [NFH-005 Linked Data Schema](./Linked_Data_Schema.md)
-- [NFH-009 Specification Design Guide](./Design_Guide.md)
+- [NFH-003 The Beckn Protocol Stack](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/The_Beckn_Protocol_Stack.md) (drafted on `draft` branch, undergoing review)
+- [NFH-004 Core Data Schema](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Core_Data_Schema.md) (drafted on `draft` branch, undergoing review)
+- [NFH-005 Linked Data Schema](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Linked_Data_Schema.md) (drafted on `draft` branch, undergoing review)
+- [NFH-009 Specification Design Guide](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md) (drafted on `draft` branch, undergoing review)
 - [NFH-010 RFC Authoring Guide](./RFC_Authoring_Guide.md)
 - [GOVERNANCE.md](../GOVERNANCE.md)
 - [CONTRIBUTING.md](../CONTRIBUTING.md)

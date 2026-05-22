@@ -131,5 +131,5 @@ _List any unresolved issues or design choices that require further discussion be
 > Add any external standards, prior art, or related RFCs here.
 
 - **Governance:** Click [here](../GOVERNANCE.md).
-- **Keyword definitions:** Click [here](./00_Keyword_Definitions.md).
+- **Keyword definitions:** Click [here](./Keyword_Definitions.md).
 - **Additional references:** _Add any external standards, prior art, or related RFCs here._

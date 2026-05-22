@@ -10,13 +10,13 @@ For the suggested reading order and document descriptions, see [README.md](./REA
 |--------|-------|---------|--------------|--------|
 | [NFH-001](./Introduction.md) | Specification: Architecture, Design Philosophy and Principles | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
 | [NFH-002](./Keyword_Definitions.md) | Keyword Definitions | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-003](./The_Beckn_Protocol_Stack.md) | The Beckn Protocol Stack | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-004](./Core_Data_Schema.md) | Core Data Schema | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-005](./Linked_Data_Schema.md) | Linked Data Schema | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
+| [NFH-003](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/The_Beckn_Protocol_Stack.md) | The Beckn Protocol Stack | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Drafted on `draft` branch (under review) |
+| [NFH-004](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Core_Data_Schema.md) | Core Data Schema | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Drafted on `draft` branch (under review) |
+| [NFH-005](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Linked_Data_Schema.md) | Linked Data Schema | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Drafted on `draft` branch (under review) |
 | [NFH-006](./API.md) | Beckn API Endpoints | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
 | [NFH-007](./Authentication_and_Trust.md) | Authentication and Trust | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-008](./Error_Codes.md) | Handling Exceptions and Errors | [Abhishek Jain](https://github.com/abhimail), [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
-| [NFH-009](./Design_Guide.md) | Specification Design Guide | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
+| [NFH-008](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Error_Codes.md) | Handling Exceptions and Errors | [Abhishek Jain](https://github.com/abhimail), [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Drafted on `draft` branch (under review) |
+| [NFH-009](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Design_Guide.md) | Specification Design Guide | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Drafted on `draft` branch (under review) |
 | [NFH-010](./RFC_Authoring_Guide.md) | RFC Authoring Guide | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
 | [NFH-011](./RFC_Template.md) | RFC Template | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-11 | Protocol Standard — REQUIRED |
 | [NFH-012](./Schema_Design_Guide.md) | Schema Design Guide | [Ravi Prakash](https://github.com/ravi-prakash-v) | 2026-05-12 | Draft |
