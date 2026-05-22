@@ -88,7 +88,7 @@ info:
     | Code | Name | Semantics |
     |------|------|-----------|
     | 200 | **Ack** | The implementer authenticated the request and accepted it for processing. For async actions, the business result arrives via callback. |
-    | 409 | **AckNoCallback** | The implementer received and authenticated the request but will not produce a callback (e.g., no matching results found). |
+    | 202 | **AckNoCallback** | The implementer received and authenticated the request but will not produce a callback (e.g., no matching results found). |
     | 400 | **NackBadRequest** | The request body is structurally invalid or fails semantic validation. The implementer MUST NOT process the request further; the caller MUST correct the request before retrying. |
     | 401 | **NackUnauthorized** | The Beckn HTTP Signature is absent, expired, or fails Registry key verification. The implementer MUST NOT process the request; the caller MUST obtain a valid signature before retrying. |
     | 500 | **ServerError** | An unexpected internal failure occurred. The caller SHOULD treat this as transient and MAY retry after a backoff interval. |
@@ -169,7 +169,7 @@ paths:
           $ref: '#/components/responses/NackUnauthorized'
         '403':
           $ref: '#/components/responses/NackDiscretionary'
-        '409':
+        '202':
           $ref: '#/components/responses/AckNoCallback'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
@@ -276,7 +276,7 @@ paths:
           $ref: '#/components/responses/NackUnauthorized'
         '403':
           $ref: '#/components/responses/NackDiscretionary'
-        '409':
+        '202':
           $ref: '#/components/responses/AckNoCallback'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
@@ -385,7 +385,7 @@ paths:
           $ref: '#/components/responses/NackUnauthorized'
         '403':
           $ref: '#/components/responses/NackDiscretionary'
-        '409':
+        '202':
           $ref: '#/components/responses/AckNoCallback'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
@@ -496,7 +496,7 @@ paths:
           $ref: '#/components/responses/NackUnauthorized'
         '403':
           $ref: '#/components/responses/NackDiscretionary'
-        '409':
+        '202':
           $ref: '#/components/responses/AckNoCallback'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
@@ -608,7 +608,7 @@ paths:
           $ref: '#/components/responses/NackUnauthorized'
         '403':
           $ref: '#/components/responses/NackDiscretionary'
-        '409':
+        '202':
           $ref: '#/components/responses/AckNoCallback'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
@@ -723,7 +723,7 @@ paths:
           $ref: '#/components/responses/NackUnauthorized'
         '403':
           $ref: '#/components/responses/NackDiscretionary'
-        '409':
+        '202':
           $ref: '#/components/responses/AckNoCallback'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
@@ -839,7 +839,7 @@ paths:
           $ref: '#/components/responses/NackUnauthorized'
         '403':
           $ref: '#/components/responses/NackDiscretionary'
-        '409':
+        '202':
           $ref: '#/components/responses/AckNoCallback'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
@@ -960,7 +960,7 @@ paths:
           $ref: '#/components/responses/NackUnauthorized'
         '403':
           $ref: '#/components/responses/NackDiscretionary'
-        '409':
+        '202':
           $ref: '#/components/responses/AckNoCallback'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
@@ -1072,7 +1072,7 @@ paths:
           $ref: '#/components/responses/NackUnauthorized'
         '403':
           $ref: '#/components/responses/NackDiscretionary'
-        '409':
+        '202':
           $ref: '#/components/responses/AckNoCallback'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
@@ -1180,7 +1180,7 @@ paths:
           $ref: '#/components/responses/NackUnauthorized'
         '403':
           $ref: '#/components/responses/NackDiscretionary'
-        '409':
+        '202':
           $ref: '#/components/responses/AckNoCallback'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
@@ -1549,11 +1549,15 @@ paths:
         \ have a valid endpoint registered in the network.\n\nFabric\
         \ context: This endpoint is implemented by the DS. The CS\
         \ signs the request and delivers it to the DS's registered\
-        \ endpoint.\n\nThe message MUST contain a CatalogPublishAction with a non-empty\
-        \ catalogs array.\n\nA 200 Ack confirms the push was received and accepted\
-        \ for processing. A 400 NackBadRequest is returned for an invalid or malformed\
-        \ payload. A 401 NackUnauthorized is returned when the Authorization header\
-        \ signature is invalid. A 409 AckNoCallback is returned when the receiver\
+        \ endpoint.\n\nAuthentication note: This endpoint uses AuthorizationHeader\
+        \ (not CallbackAuthorizationHeader) because the CS initiates the push\
+        \ autonomously when a subscription matches — there is no prior DS request\
+        \ whose signature could be chained via request-signature. This is analogous\
+        \ to a PN-initiated notification.\n\nThe message MUST contain a CatalogPublishAction\
+        \ with a non-empty catalogs array.\n\nA 200 Ack confirms the push was received\
+        \ and accepted for processing. A 400 NackBadRequest is returned for an invalid\
+        \ or malformed payload. A 401 NackUnauthorized is returned when the Authorization\
+        \ header signature is invalid. A 202 AckNoCallback is returned when the receiver\
         \ accepted the request but will not process it further (e.g., no matching\
         \ subscriptions). A 500 ServerError indicates an unexpected failure at the\
         \ DS."
@@ -1589,7 +1593,7 @@ paths:
           $ref: '#/components/responses/NackBadRequest'
         '401':
           $ref: '#/components/responses/NackUnauthorized'
-        '409':
+        '202':
           $ref: '#/components/responses/AckNoCallback'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
@@ -1616,7 +1620,7 @@ paths:
         \ the payload is malformed. A 401 NackUnauthorized is returned when the Authorization\
         \ header signature is missing or invalid. A 403 NackForbidden is returned\
         \ when the subscriptionId belongs to a different subscriber. A 404 NackNotFound\
-        \ is returned when the provided subscriptionId does not exist. A 409 NackBadRequest\
+        \ is returned when the provided subscriptionId does not exist. A 409 NackConflict\
         \ is returned when an identical networkIds+schemaTypes combination is already\
         \ active for this subscriber. A 500 ServerError indicates an unexpected CS\
         \ failure."
@@ -1686,7 +1690,7 @@ paths:
         '404':
           $ref: '#/components/responses/NackNotFound'
         '409':
-          $ref: '#/components/responses/NackBadRequest'
+          $ref: '#/components/responses/NackConflict'
         '429':
           $ref: '#/components/responses/NackTooManyRequests'
         '500':
@@ -3264,7 +3268,7 @@ components:
         \ property (Level 2) MAY carry domain-specific or non-canonical error codes\
         \ from downstream systems, enabling typed error chains across protocol stack\
         \ layers and network hops.\n\nError appears in NackBadRequest (400), NackUnauthorized\
-        \ (401), AckNoCallback (409), and AsyncError across all phases of the value-exchange\
+        \ (401), AckNoCallback (202), and AsyncError across all phases of the value-exchange\
         \ lifecycle. Both PNs and CNs produce errors depending on the direction of\
         \ the failing call; the counterpart consumes them to determine corrective action.\n\
         \nRelationship: Extended by the AsyncError schema. Composed within the NackBadRequest,\
@@ -4128,7 +4132,7 @@ components:
         \ has authenticated and received the request but has determined that no asynchronous\
         \ callback will follow, for example because no matching catalog was found,\
         \ inventory is unavailable, or the provider is closed.\n\nAckNoCallback appears as\
-        \ the response body for 409 responses across all phases of the value-exchange\
+        \ the response body for 202 responses across all phases of the value-exchange\
         \ lifecycle where the endpoint supports this response code. The implementing\
         \ actor (PN, DS, or CS) produces it; the calling actor (CN or PN) consumes\
         \ the error field to understand why no callback will follow and to decide\
@@ -4810,6 +4814,38 @@ components:
             error:
               $ref: '#/components/schemas/Error'
 
+    NackConflict:
+      description: "The synchronous rejection body returned when the request conflicts\
+        \ with existing state — for example, a subscription with the same criteria\
+        \ already exists for this subscriber.\n\nNackConflict appears as the response\
+        \ body for 409 responses on synchronous endpoints where the conflict is with\
+        \ persisted resource state, not with callback processing. The implementing\
+        \ actor produces it; the calling actor MUST resolve the conflict (e.g., update\
+        \ the existing resource) before retrying.\n\nRelationship: Extends the Ack\
+        \ schema with status constrained to NACK and adds an error field describing\
+        \ the conflict."
+      type: object
+      required:
+      - message
+      properties:
+        message:
+          type: object
+          required:
+          - status
+          - messageId
+          - error
+          properties:
+            status:
+              type: string
+              const: NACK
+            messageId:
+              type: string
+              description: >-
+                Echoes the messageId from the triggering request's Context,
+                for caller correlation.
+            error:
+              $ref: '#/components/schemas/Error'
+
     NackNotFound:
       description: "The synchronous rejection body returned when the requested resource\
         \ does not exist in the system.\n\nNackNotFound appears as the response body\
@@ -4946,3 +4982,14 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/NackNotFound'
+    NackConflict:
+      description: "The request conflicts with existing state. For example, a subscription\
+        \ with the same criteria already exists for this subscriber. The caller MUST\
+        \ resolve the conflict (e.g., update the existing resource) before retrying."
+      headers:
+        Signature:
+          $ref: '#/components/headers/AckSignatureHeader'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NackConflict'
