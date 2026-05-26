@@ -206,6 +206,8 @@ The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "S
 
 Three principles underpin every other rule in this RFC. Authors and reviewers of schema contributions SHOULD return to these whenever a specific design question is unclear. They are the foundational design principles of the Beckn schema layer; the more granular authoring rules in [Design principles for schema authors](#design-principles-for-schema-authors) are derived from them.
 
+These principles are direction-setting heuristics, not universal optimizations. Real schema design involves balancing tradeoffs: semantic flexibility against deterministic interoperability, inferred semantics against explicit structure, lightweight schemas against machine-comparable modeling, semantic stability against managed evolution. The principles below describe where Beckn schemas should generally aim; how to balance them in a specific case is a judgment call that may vary by domain maturity. Emerging domains often need exploratory modeling before stable abstractions settle; mature domains benefit from tighter unification. Ecosystems also evolve through transitional compatibility phases (dual publishing, migration windows, semantic deprecation, phased convergence) rather than clean replacement boundaries; the principles below assume such transitions are managed, not absent.
+
 #### Principle 1: Semantic Invariance across regions
 
 A schema's semantics do not change across regions, languages, or networks. A property named `screenSize` on a `Television` schema means the same physical dimension whether the catalog is published in Indonesia, Morocco, or Amsterdam. A `countryOfOrigin` field on a `Resource` carries the same meaning everywhere it appears. **Local policies may differ — one network may require `countryOfOrigin` for regulatory compliance while another treats it as optional — but the meaning of the term itself is invariant.**
@@ -217,6 +219,8 @@ This invariance is what makes a single shared schema usable across the entire ec
 - **Display-unit variations** (inches vs. centimetres, kWh vs. joules) are handled by the **presentation layer** in CNs and PNs at runtime.
 
 When a contributor encounters a perceived need for a regional schema, the right move is to investigate which of these layers the actual variation belongs to. In nearly every real-world case the underlying semantic concept is invariant, and the variation lives in policy, vocabulary, or presentation.
+
+**Invariance is across space, not across time.** Semantic Invariance discourages ungoverned, silent semantic drift across regions or networks; it does not preclude managed semantic evolution over time. As domains mature, controlled narrowing, splitting, deprecation, or refinement of concepts is sometimes required and is governed through the RFC and schema contribution process, not the invariance principle.
 
 #### Principle 2: Unification over Standardization
 
@@ -265,6 +269,8 @@ This is **unification**: the ecosystem converges on shared, increasingly general
 
 Beckn's architectural premise, established in [NFH-001](./Introduction.md), is that AI agents are first-class participants in value-exchange transactions. The protocol's evolution is required to be enabled for AI agents first, with human enablement following. **The schema layer is the surface those agents reason over** — every term they recognise, every relationship they traverse, every disambiguation they make depends on a schema vocabulary that is precise, complete, and well-named. Agent-First Design has two directions, and both are normative.
 
+**Agent-First means agent-friendly, not agent-dependent.** Beckn schemas continue to serve non-AI-native consumers: deterministic validators, SDK generators, conformance tooling, rule engines, indexers, search and filter pipelines, and constrained implementations. Designing for AI agents is an additive capability that strengthens explicit structured interoperability, not a replacement for it. A schema that is agent-friendly should also remain parser-safe, validator-friendly, and tooling-friendly.
+
 **Schemas MUST be designed for AI agents.** A schema that is comprehensible to a human reader but illegible to an AI agent fails this principle. Beckn's commitment to AI-first interoperability is not negotiable at the schema layer. Concretely:
 
 - Schema and property descriptions MUST read as standalone semantic prose, not as abbreviated developer notes, and MUST identify the real-world concept the schema models, the actors that produce or consume it, and its position in the value-exchange lifecycle. See [Describing a schema](#describing-a-schema).
@@ -276,8 +282,8 @@ Beckn's architectural premise, established in [NFH-001](./Introduction.md), is t
 
 1. **AI is the primary instrument**, not an optional convenience. Authors SHOULD use it to propose names, generate candidate descriptions, scan for industry-standard terms, suggest superset concepts, and check semantic alignment against published vocabularies. The model's suggestion is the starting draft, not the final word.
 2. **The human role is curatorial.** The author validates suggestions against the principles in this RFC, ensures semantic stability across versions, enforces naming conventions, and confirms domain accuracy. This curation is precisely where human authorship now adds the most value — and where AI cannot yet operate unattended.
-3. **Authoring without AI produces parochial schemas.** A schema authored by hand tends to reflect the individual author's vocabulary, idiom, and reach into industry conventions. The ecosystem-wide cost of those parochialisms is real: every counterparty that processes such a schema pays for the author's reach being narrower than what is available. Continuing to author this way does not preserve rigour; it slows the ecosystem's convergence on shared meaning.
-4. **The capability gap will widen.** AI's fluency in naming, vocabulary alignment, and semantic mapping is already substantial and is improving rapidly. Schema work done today without AI will look increasingly stilted alongside schemas authored with it. Anchoring to a pre-AI authoring style is a choice; this RFC asks that authors not make it.
+3. **Authoring without AI narrows the schema's reach.** A schema authored by hand tends to reflect the individual author's vocabulary, idiom, and direct exposure to industry conventions. That narrower reach has an ecosystem-wide cost: every counterparty that processes such a schema is implicitly working with the author's vocabulary rather than the broader semantic landscape AI assistance now surfaces. Authoring this way is not less rigorous, but it slows the ecosystem's convergence on shared meaning.
+4. **The capability gap will widen.** AI's fluency in naming, vocabulary alignment, and semantic mapping is already substantial and is improving rapidly. Schema work done without AI assistance will look increasingly limited alongside schemas authored with it. This RFC encourages authors to incorporate AI into their authoring workflow rather than rely on manual authorship alone.
 
 The point is not that AI replaces schema authors. It is that AI changes what schema authoring is. The discipline is now curatorial, not generative — and Beckn schemas authored under this RFC are expected to reflect that shift. See [Authoring with AI](#authoring-with-ai) for the concrete workflow.
 
@@ -292,6 +298,8 @@ The schema layer this RFC governs is the substrate on which that inversion stand
 #### Anti-pattern: Overdesigning schemas in an AI-first world
 
 The natural corollary of [Principle 3](#principle-3-agent-first-design) cuts in an unexpected direction. If AI agents are the primary consumers of the schema layer, the instinct to encode every domain nuance as a deeply-nested, strongly-typed tree is **the wrong design reflex** — even though it is the most common one inherited from the pre-AI era. Schema authors who continue to design as if the consumer were a deterministic parser produce schemas that are progressively worse fits for the agents that actually read them.
+
+**Structured modeling is not the anti-pattern.** Many facts genuinely benefit from explicit structured representation: facts that participate in discovery, ranking, orchestration, comparison, matching, indexing, validation, or deterministic interoperability across participants. The anti-pattern is *premature rigidity*, encoding every domain nuance into deep nested trees and closed enums when an open vocabulary or descriptive content would serve the same purpose with more semantic reach. Authors should structure deliberately, not by default, modeling the facts that genuinely participate in deterministic flows and leaving softer attributes to descriptive content.
 
 ##### Why tree-shaped schemas hinder AI agents
 
@@ -458,11 +466,11 @@ It is tempting to read context engineering as an application-layer concern — s
 
 Read this way, the Beckn schema layer is not a passive data contract — it is an explicit context-engineering surface that publishers and protocol authors share with the agents they intend to serve.
 
-##### Context engineering takes precedence over object-oriented design
+##### Context engineering informs schema design
 
 The implication, taken to its logical conclusion, is the one foreshadowed in [The trajectory](#the-trajectory) above. When a contributor reaches for a new domain-specific `Attributes` schema, the design question is no longer *"what is the right class hierarchy for this concept?"* It is *"what is the right configuration of context to put in front of an agent that has to act on this concept?"*
 
-These two questions have very different answers. The first leads to taxonomies, inheritance trees, and enum proliferation — the natural output of object-oriented design as practised by a generation of API authors raised on it. The second leads to dense descriptive content, well-curated media, open vocabulary links, and a `Descriptor` that does most of the semantic work — the shape that contemporary AI agents are best at consuming. In the schema layer, **context engineering takes precedence over object-oriented design**. Authors should bring the same rigour they previously gave to class hierarchies to the curation of `Descriptor` content, and should reserve structured `Attributes` for the genuinely small set of facts that participate in arithmetic, deterministic filtering, or cross-resource reference.
+These two questions have very different answers. The first leads to taxonomies, inheritance trees, and enum proliferation — the natural output of object-oriented design as practised by a generation of API authors raised on it. The second leads to dense descriptive content, well-curated media, open vocabulary links, and a `Descriptor` that does most of the semantic work — the shape that contemporary AI agents are best at consuming. In the schema layer, **context engineering should inform schema design**, alongside the structural rigour that deterministic validation, indexing, SDK generation, and non-agentic consumers still require. Authors should bring the same rigour they previously gave to class hierarchies to the curation of `Descriptor` content, and should reserve structured `Attributes` for the facts that genuinely participate in arithmetic, deterministic filtering, validation, comparison, or cross-resource reference.
 
 ##### A separate RFC is underway
 
@@ -474,7 +482,7 @@ This Schema Design Guide stays scoped to the schema-author side of that picture;
 
 ### Why do schemas need to be created or changed
 
-When a contributor encounters a perceived gap in the schema layer, the response MUST follow a strict order of precedence. Authors and reviewers MUST attempt each option below in order, and only proceed to the next when the previous is genuinely insufficient.
+When a contributor encounters a perceived gap in the schema layer, the response SHOULD follow the order of precedence below. Authors and reviewers SHOULD attempt each option in order and only proceed to the next when the previous is genuinely insufficient. This precedence is a heuristic that guards against unnecessary schema proliferation in mature domains; emerging domains where stable abstractions have not yet settled MAY justify direct creation of a new schema with explicit working-group review.
 
 > **Order of precedence:** 1. Abstraction → 2. Composition → 3. Extension → 4. Creation.
 >
@@ -539,6 +547,8 @@ The following are NOT sufficient justification for a new or modified schema, and
 
 ### Where schemas are published
 
+The subsections that follow describe operational publication policy (which repositories host schemas for which domains, and how the Beckn Schema Registry indexes them) rather than schema design principles. The principles are in earlier sections of this RFC.
+
 #### The Beckn Schema Registry
 
 The Beckn Schema Registry at [schema.beckn.io](https://schema.beckn.io) is the canonical discovery index for all published Beckn schema artifacts. It is managed by the Networks for Humanity Foundation (NFH) through a schema administration console. The registry does not host schema files directly — it sources and indexes them from the `main` branches of recognized repositories. When a schema is merged to `main` in a recognized repository, a sync is triggered on the schema administration console, which publishes the artifact on the website.
@@ -557,6 +567,8 @@ Schema packs in `beckn/schemas` MUST conform to the schema pack structure define
 
 The `beckn/DEG` (Digital Energy Grid) repository at [github.com/beckn/DEG](https://github.com/beckn/DEG) is the publication venue exclusively for **energy domain** schemas. It is governed by the DEG Working Group and was conceived by FIDE in collaboration with the International Energy Agency (IEA). Energy schema packs are placed in the `specification/schema/*` directory of this repository (full path: `beckn/DEG/specification/schema/<SchemaName>/<version>/`). Schemas on the `main` branch of `beckn/DEG` are sourced and indexed by the Beckn Schema Registry alongside those from `beckn/schemas`.
 
+The `beckn/DEG` venue is a domain-specific governance arrangement reflecting the Digital Energy Grid's relationship with the International Energy Agency (IEA) and the FIDE/IEA collaboration that established it. It is not a precedent that domains should generally expect: the default publication venue for any new domain is `beckn/schemas`. A federated venue analogous to `beckn/DEG` MAY be considered for a future domain only with explicit Core Working Group approval and a clear demonstration that the domain's governance requires a separate working group and venue.
+
 > **Note on directory naming.** As with `beckn/schemas`, the directory layout in `beckn/DEG` may be reorganised in a future release for greater clarity. Authors SHOULD watch the repository for announcements.
 
 All non-energy domain schemas MUST be published to `beckn/schemas`, not to `beckn/DEG`.
@@ -572,7 +584,7 @@ The creation and publication of standalone, NFO-scoped schema artifacts is **NOT
 
 Custom NFO-scoped schemas fragment the semantic layer, undermine cross-network interoperability, and force every counterparty to learn an NFO-specific vocabulary. The very objective of the Beckn schema registry is to allow domain semantics to evolve **once**, in the open, and be reused across networks. NFOs who prefer the short-term convenience of forking the vocabulary will, over time, recreate the isolated semantic islands that Beckn Protocol was explicitly designed to eliminate.
 
-In the rare case where an NFO must run experimental schema work that has not yet completed the contribution process, the experimental artifact MUST be hosted on the NFO's own infrastructure, MUST NOT carry a `@context` URI that resolves to `schema.beckn.io` or any `beckn.org` domain, and MUST be retired as soon as the corresponding upstream contribution is merged. Such artifacts MUST NOT be relied upon for production traffic between independent networks.
+In the rare case where an NFO must run experimental schema work that has not yet completed the contribution process, the experimental artifact MUST be hosted on the NFO's own infrastructure, MUST NOT carry a `@context` URI that resolves to `schema.beckn.io` or any `beckn.org` domain, and MUST be retired once the corresponding upstream contribution is merged. A bounded transition window MAY be observed where existing integrations continue to resolve the NFO-hosted artifact alongside the upstream version; the NFO SHOULD document the migration window with a fixed end date and SHOULD migrate consumers within that window. Experimental artifacts MUST NOT be relied upon for production traffic between independent networks beyond the transition window.
 
 #### Publication venue selection
 
@@ -741,6 +753,8 @@ These remain the author's responsibility. AI's role is to widen the space of wel
 Schemas authored with AI assistance are not less authored. The provenance of the contribution is the human author who curated, validated, and submitted the PR; that author is credited in `README.md` and in the schema's commit history. The model used (and the prompts that produced foundational naming or description decisions) MAY be recorded in `README.md` as supplementary provenance.
 
 ##### Naming a schema
+
+The naming guidelines below aim to discourage semantically weak names (names that obscure what the schema models or that duplicate existing concepts). They are not intended to prohibit verbose or compositional naming patterns where those genuinely help, for example schemas in extension packs where a longer name communicates important compositional context. Authors SHOULD apply these guidelines with semantic clarity as the goal, not strict adherence to a single naming form.
 
 1. **Part of speech.** Schemas MUST always be nouns or the noun form of verbs. A schema modelling an act MUST use the noun form with an `Action` suffix (e.g., `PaymentAction`, not `Pay`).
 2. **Domain-agnostic naming.** Domain-agnostic schemas SHOULD use abstract but meaningful names. A reader SHOULD understand the concept from the name alone without consulting the description.
