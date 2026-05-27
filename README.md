@@ -30,6 +30,8 @@ protocol-specifications-v2/
 │   └── v2.0.0/
 │       ├── beckn.yaml
 │       └── README.md
+├── docs/
+│   └── *.md   (NFH-001 through NFH-013 RFC documents)
 ├── GOVERNANCE.md
 ├── LICENSE
 └── README.md
@@ -39,6 +41,7 @@ protocol-specifications-v2/
 
 - [`api/v2.0.0/beckn.yaml`](api/v2.0.0/beckn.yaml) — authoritative OpenAPI 3.1.1 specification for Beckn Protocol v2.0.0.
 - [`api/v2.0.0/README.md`](api/v2.0.0/README.md) — API package overview, endpoint families, and operational notes.
+- [`docs/`](docs/) — normative RFC documents (NFH-001 through NFH-013) covering architecture, protocol stack, API endpoints, authentication, error handling, design guides, and schema governance. See [`docs/README.md`](docs/README.md) for the suggested reading order.
 - [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md) — contributor recognition for this release line.
 
 ---
@@ -87,7 +90,7 @@ The OpenAPI definition in [`api/v2.0.0/beckn.yaml`](api/v2.0.0/beckn.yaml) curre
 - `POST /discover`
 - `POST /on_discover`
 
-### Transaction
+### Contracting / Ordering
 - `POST /select`
 - `POST /on_select`
 - `POST /init`
@@ -111,18 +114,14 @@ The OpenAPI definition in [`api/v2.0.0/beckn.yaml`](api/v2.0.0/beckn.yaml) curre
 - `POST /support`
 - `POST /on_support`
 
-### Catalog Publishing and Extensions
+### Fabric API - Cataloging Service
 - `POST /catalog/publish`
 - `POST /catalog/on_publish`
+- `POST /catalog/push`
 - `POST /catalog/subscription`
-- `GET /catalog/subscriptions`
-- `GET /catalog/subscription/{subscriptionId}`
-- `DELETE /catalog/subscription/{subscriptionId}`
 - `POST /catalog/pull`
-- `GET /catalog/pull/result/{requestId}/{filename}`
-- `POST /catalog/master/search`
-- `GET /catalog/master/schemaTypes`
-- `GET /catalog/master/{masterItemId}`
+- `POST /catalog/on_pull`
+- `POST /catalog/search`
 
 For a concise package-level summary, see [`api/v2.0.0/README.md`](api/v2.0.0/README.md).
 
@@ -131,9 +130,9 @@ For a concise package-level summary, see [`api/v2.0.0/README.md`](api/v2.0.0/REA
 ## Security and Protocol Semantics
 
 - All protocol requests are expected to carry Beckn HTTP Signatures via the `Authorization` header as defined in [`api/v2.0.0/beckn.yaml`](api/v2.0.0/beckn.yaml).
-- `Ack` responses confirm receipt at the transport layer; business completion happens asynchronously through callback flows where applicable.
+- `Ack` responses confirm receipt at the transport layer; the responding actor signs the response payload and returns the signature in the `Signature` response header for the caller to verify. Business completion happens asynchronously through callback flows where applicable.
 - `context.action` must match the semantics of the endpoint being invoked.
-- `context.try` supports sandbox-style operation for applicable flows such as update, cancel, rate, and support.
+- `context.try` supports sandbox-style operation for applicable flows: `update` and `cancel` only.
 - Error handling is standardized through response schemas such as `NackBadRequest`, `NackUnauthorized`, and `ServerError`.
 
 For signing details and protocol semantics, see [`api/v2.0.0/beckn.yaml`](api/v2.0.0/beckn.yaml) and [`api/v2.0.0/README.md`](api/v2.0.0/README.md).
@@ -151,6 +150,7 @@ Use this repository as the reference baseline for:
 - and onboarding implementers through the versioned API package and governance references.
 
 When working at the API and transport level, start with [`api/v2.0.0/beckn.yaml`](api/v2.0.0/beckn.yaml).
+When working at the specification and design level, start with [`docs/README.md`](docs/README.md).
 When working at the process and policy level, start with [`GOVERNANCE.md`](GOVERNANCE.md).
 
 ---
@@ -159,6 +159,7 @@ When working at the process and policy level, start with [`GOVERNANCE.md`](GOVER
 
 - [`ACKNOWLEDGEMENTS.md`](ACKNOWLEDGEMENTS.md)
 - [`api/v2.0.0/README.md`](api/v2.0.0/README.md)
+- [`docs/README.md`](docs/README.md)
 - [`GOVERNANCE.md`](GOVERNANCE.md)
 - [`CONTRIBUTING.md`](CONTRIBUTING.md)
 - [`CODE_OF_CONDUCT.md`](CODE_OF_CONDUCT.md)

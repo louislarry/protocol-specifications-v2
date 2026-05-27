@@ -13,13 +13,10 @@ The specification uses one named endpoint per Beckn protocol action.
 
 Primary action groups:
 - Discovery
-- Transaction
+- Contracting / Ordering
 - Fulfillment
 - Post-Fulfillment
-- Catalog Publishing
-- Subscription
-- Catalog Pull
-- Master Resource Search
+- Fabric API - Cataloging Service
 
 ## Endpoint families
 
@@ -27,7 +24,7 @@ Discovery:
 - /discover
 - /on_discover
 
-Transaction:
+Contracting / Ordering:
 - /select, /on_select
 - /init, /on_init
 - /confirm, /on_confirm
@@ -42,23 +39,20 @@ Post-Fulfillment:
 - /rate, /on_rate
 - /support, /on_support
 
-Catalog publishing:
+Fabric API - Cataloging Service:
 - /catalog/publish
 - /catalog/on_publish
-
-Catalog extensions:
+- /catalog/push
 - /catalog/subscription
-- /catalog/subscriptions
-- /catalog/subscription/{subscriptionId}
 - /catalog/pull
-- /catalog/pull/result/{requestId}/{filename}
-- /catalog/master/search
-- /catalog/master/schemaTypes
-- /catalog/master/{masterItemId}
+- /catalog/on_pull
+- /catalog/search
 
 ## Security and acknowledgments
 
-- Requests require Beckn HTTP Signature in Authorization.
+- Requests require a Beckn HTTP Signature in the `Authorization` header.
+- Synchronous `Ack` responses carry a `message` envelope with `status` (ACK/NACK) and the `messageId` of the received request.
+- The responding actor signs the response payload and returns the signature in the `Signature` response header; the caller verifies this to confirm authenticated receipt.
 - Error responses follow NackBadRequest, NackUnauthorized, and ServerError schemas.
 
 ## Operational notes

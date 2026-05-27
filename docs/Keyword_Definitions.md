@@ -1,0 +1,160 @@
+# Keyword Definitions
+
+## Document Details
+- **ID:** NFH-002
+- **Status:** Draft
+- **Authors:**
+  - [Ravi Prakash](https://github.com/ravi-prakash-v), [Networks for Humanity](https://networksforhumanity.org)
+- **Created:** 2026-05-11
+- **Updated:** 2026-05-11
+- **Version history:** Repository history on `main` does not yet show commits for this file
+- **Latest editor's draft:** Click [here](https://github.com/beckn/protocol-specifications-v2/blob/draft/docs/Keyword_Definitions.md)
+- **Implementation report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
+- **Stress test report:** Not available. This document is at Initial Draft status; report will be linked in the next formal release of this RFC, following merge to main.
+- **Conformance impact:** Not determined. This document is at Initial Draft status; impact will be classified in the next formal release of this RFC, following merge to main.
+- **Security/privacy implications:** -NA-
+- **Replaces / relates to:** -NA-
+- **Feedback:** Issues Click [here](https://github.com/beckn/protocol-specifications-v2/issues?q=is%3Aissue+label%3A%22NFH-002%22), discussions Click [here](https://github.com/beckn/protocol-specifications-v2/discussions?discussions_q=label%3A%22NFH-002%22), pull requests Click [here](https://github.com/beckn/protocol-specifications-v2/pulls?q=is%3Apr+label%3A%22NFH-002%22).
+- **Errata:** -NA-
+
+## Abstract
+
+This document outlines the normative definitions of keywords that are commonly used in technical specifications, standards, and protocols. The aim is to provide a uniform interpretation of these terms to avoid ambiguity and misinterpretation.
+
+## Table of Contents
+
+- [Keyword Definitions](#keyword-definitions)
+  - [Document Details](#document-details)
+  - [Abstract](#abstract)
+  - [Table of Contents](#table-of-contents)
+  - [Introduction](#introduction)
+  - [Definitions](#definitions)
+    - [MUST](#must)
+    - [MUST NOT](#must-not)
+    - [REQUIRED](#required)
+    - [SHALL](#shall)
+    - [SHALL NOT](#shall-not)
+    - [SHOULD](#should)
+    - [SHOULD NOT](#should-not)
+    - [RECOMMENDED](#recommended)
+    - [MAY](#may)
+    - [OPTIONAL](#optional)
+  - [Network Actor Definitions](#network-actor-definitions)
+    - [CN (Consumer Node)](#cn-consumer-node)
+    - [PN (Provider Node)](#pn-provider-node)
+    - [NFH (Networks for Humanity Foundation)](#nfh-networks-for-humanity-foundation)
+    - [Fabric](#fabric)
+    - [Discovery Service (DS)](#discovery-service-ds)
+    - [Registry](#registry)
+  - [Examples and Correct Usage](#examples-and-correct-usage)
+    - [Example 1: Using "REQUIRED" and "MUST"](#example-1-using-required-and-must)
+    - [Example 2: Using "RECOMMENDED" and "SHOULD"](#example-2-using-recommended-and-should)
+  - [Conclusion](#conclusion)
+  - [Acknowledgements](#acknowledgements)
+  - [References](#references)
+
+## Introduction
+
+The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this document are to be interpreted as described below. These definitions aim to ensure that the terms are understood precisely and consistently to avoid confusion in the interpretation of standards, specifications, and protocols.
+## Definitions
+
+### MUST
+
+The term "MUST" implies an absolute requirement.
+
+### MUST NOT
+
+The term "MUST NOT" indicates an absolute prohibition.
+
+### REQUIRED
+
+The term "REQUIRED" is synonymous with "MUST".
+
+### SHALL
+
+The term "SHALL" is equivalent to "MUST".
+
+### SHALL NOT
+
+The term "SHALL NOT" is equivalent to "MUST NOT".
+
+### SHOULD
+
+The term "SHOULD" indicates a strong recommendation.
+
+### SHOULD NOT
+
+The term "SHOULD NOT" indicates a strong recommendation against.
+
+### RECOMMENDED
+
+The term "RECOMMENDED" is synonymous with "SHOULD".
+
+### MAY
+
+The term "MAY" indicates that an item is truly optional.
+
+### OPTIONAL
+
+The term "OPTIONAL" is synonymous with "MAY".
+
+## Network Actor Definitions
+
+The following terms identify the principal actors and infrastructure components of the Beckn Protocol. These definitions apply across all Beckn Protocol RFCs unless explicitly qualified otherwise.
+
+### CN (Consumer Node)
+
+A software platform that initiates value-exchange transactions on behalf of a user or agent by invoking Beckn Protocol APIs. The CN is the caller in all stateless transaction endpoints and receives callback responses from the PN.
+
+### PN (Provider Node)
+
+A software platform that receives transaction requests from a CN, processes them, and responds via callback endpoints. The PN is the implementer of all stateless transaction endpoints and produces the canonical response objects — such as `Catalog` and `Contract` — that are consumed by the CN.
+
+> **Legacy terminology and backward compatibility.** *Consumer Node (CN)* and *Provider Node (PN)* were previously referred to as *Beckn Application Platform (BAP)* and *Beckn Provider Platform (BPP)* respectively. Prose throughout the specification uses the new terms, but wire-level field names — `bapId`, `bapUri`, `bppId`, `bppUri` — are **retained unchanged** in the `context` object to preserve backward compatibility with existing integrations. Read `bapId` / `bapUri` as the CN's identity and address, and `bppId` / `bppUri` as the PN's.
+
+### NFH (Networks for Humanity Foundation)
+
+The foundation that governs, hosts, and evolves the Universal Value-exchange Fabric. NFH publishes the canonical Beckn Protocol Specification and operates the shared infrastructure that Beckn network participants connect to. It was previously known as Foundation for Interoperability in Digital Economy, which was previously known as Beckn Foundation. 
+
+### Fabric
+
+The Universal Value-exchange Fabric, hosted by the Networks for Humanity Foundation. The Fabric provides shared infrastructure — including the Discovery Service, Registry, and catalog infrastructure — through which CNs and PNs discover each other, establish trust, and coordinate transactions.
+
+### Discovery Service (DS)
+
+A Fabric-hosted service that indexes PN catalogs and responds to discovery requests from CNs. The Discovery Service enables catalog-first discovery without requiring CNs to query PNs directly at runtime.
+
+### Registry
+
+A Fabric-hosted service that maintains the authoritative list of network participants (CNs and PNs), their signing keys, and their callback URIs. The Registry is used to validate the identity and authorisation of participants in a Beckn network.
+
+## Examples and Correct Usage
+
+In this section, we provide examples that demonstrate the correct usage of the key words defined in this document. The examples are related to a hypothetical Consumer Node (CN) that interacts with a Provider Node (PN) using beckn protocol APIs.
+
+### Example 1: Using "REQUIRED" and "MUST"
+
+- REQUIRED. The PN MUST implement the `discover` endpoint to receive an `Intent` object sent by CNs.
+- REQUIRED. The PN MUST return a catalog of products on the `on_discover` callback endpoint specified in the `context.bppUri` field of the `discover` request body.
+- REQUIRED. Any provider-related information like `name`, `logo`, `short_desc` MUST be mapped to the `Provider.descriptor` schema.
+- REQUIRED. If the PN does not want to respond to a `discover` request, it MUST return an `ack.status` value equal to `NACK`.
+
+### Example 2: Using "RECOMMENDED" and "SHOULD"
+- RECOMMENDED. Upon receiving a `discover` request, the PN SHOULD return a `Catalog` that best matches the `Intent`. This can be done by indexing the catalog against the various probable paths in the `Intent` schema relevant to the use case.
+
+## Conclusion
+
+The definitions provided in this document are intended to clarify the interpretation of key terms used in technical specifications, standards, and protocols. Adherence to these definitions will ensure a consistent understanding and implementation of such documents.
+
+> Note : This document is subject to change and may be updated to include additional terms or to refine existing definitions.
+
+## Acknowledgements
+
+This RFC reflects contributions from Beckn Protocol contributors who developed and reviewed the architecture, interoperability, and trust-model guidance represented in this stack description.
+
+## References
+
+- Click [here](./Keyword_Definitions.md)
+- Click [here](../api/v2.0.0/beckn.yaml)
+- Click [here](https://docs.beckn.io/introduction-to-beckn/beckn-protocol)
+- Click [here](https://docs.beckn.io/introduction-to-beckn/fabric-the-value-exchange-infrastructure)
